@@ -1,0 +1,32 @@
+@font-face {
+    font-family: 'vcr';
+    src: url('assets/fonts/pixel-latin.ttf') format('truetype');
+}
+
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background: url(Site-background-dark.jpg) no-repeat center center fixed;
+    background-size: cover;
+}
+
+#game-container {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+}
+
+#fullscreen-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: white;
+    z-index: 1000;
+}

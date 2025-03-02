@@ -1,0 +1,16 @@
+{
+	"tracks": [
+		["Tutorial"]
+	],
+
+	"weekCharacters": [
+		"",
+		"bf",
+		"gf"
+	],
+
+	"weekBackground": "stage",
+
+	"phrase": "TEACHING TIME",
+	"weekName": "tutorial"
+}

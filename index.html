@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNF Genesis Engine</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="icon" sizes="16x16" href="icon16.png">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <button id="fullscreen-btn" tabindex="-1">
+            <span class="material-symbols-outlined">fullscreen</span>
+        </button>
+    </div>
+
+    <!-- Cargar el control de volumen primero -->
+    <script src="js/debug/soundtray.js"></script>
+
+    <!-- Scripts del juego -->
+    <script type="module" src="js/Main.js"></script>
+    <script type="module" src="js/states/PlayState.js"></script>
+    <script type="module" src="js/states/StoryModeState.js"></script>
+    <script type="module" src="js/states/IntroMenu.js"></script>
+    <script type="module" src="js/states/GfDanceState.js"></script>
+    <script type="module" src="js/states/MainMenuState.js"></script>
+
+    <script>
+        document.getElementById('fullscreen-btn').addEventListener('focus', function(event) {
+            event.target.blur();
+        });
+    </script>
+</body>
+</html>
