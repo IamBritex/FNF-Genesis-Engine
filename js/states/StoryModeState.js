@@ -36,6 +36,9 @@ class Character extends Phaser.GameObjects.Sprite {
 
         this.confirmAnim = characterData.confirm_anim;
         this.setDepth(2);
+
+        // Nueva propiedad para rastrear si la animación está en curso
+        this.isAnimationPlaying = false;
     }
 
     createAnimation(scene, animKey) {
@@ -68,7 +71,13 @@ class Character extends Phaser.GameObjects.Sprite {
         if (this.confirmAnim && this.scene.anims.exists(this.confirmAnim)) {
             this.applyConfirmRotation();
             this.play(this.confirmAnim);
+            this.isAnimationPlaying = true; // Marcar que la animación está en curso
         }
+    }
+
+    stopAnimation() {
+        this.anims.stop();
+        this.isAnimationPlaying = false; // Marcar que la animación se detuvo
     }
 
     resetRotation() {
@@ -181,10 +190,20 @@ class StoryModeState extends Phaser.Scene {
     create() {
         console.log("StoryModeState create started");
         this.canPressEnter = true; // Habilitar la tecla Enter al crear la escena
+        this.registry.remove('selectedWeekIndex');
+                // ====== BARRA SUPERIOR ======
+                this.topBar = this.add.rectangle(
+                    this.scale.width / 2, // Centrada en X
+                    200, // Ubicación en Y
+                    this.scale.width, // Ancho total
+                    500, // Altura de la barra
+                    0x000000 // Color negro
+                ).setDepth(1).setAlpha(1); // Semi-transparente
     }
 
     processWeeks(weekList) {
         console.log("Processing weeks");
+        this.selectedWeekIndex = 0;
         weekList.forEach(week => {
             const weekData = this.cache.json.get(week);
 
@@ -228,22 +247,23 @@ class StoryModeState extends Phaser.Scene {
             .setOrigin(0.5, 0.5)
             .setScale(1.1)
             .setCrop(0, 24, width, height - 34)
-            .setDepth(1);
+            .setDepth(2);
 
         this.scoreText = this.add.text(20, 20, "LEVEL SCORE: 0", {
             fontFamily: 'Arial',
             fontSize: '24px',
             color: '#FFFFFF'
-        });
+        }) .setDepth(10);
 
         this.weekPhrase = this.add.text(width - 20, 20, this.weeks[this.weekKeys[this.selectedWeekIndex]].phrase, {
             fontFamily: 'Arial',
             fontSize: '24px',
             color: '#AAAAFF'
-        }).setOrigin(1, 0);
+        }).setOrigin(1, 0)
+            .setDepth(10);
 
         // Ajustar la posición inicial del contenedor de títulos
-        this.weekTitlesContainer = this.add.container(width / 2, height - 150); // Cambiado de 200 a 150
+        this.weekTitlesContainer = this.add.container(width / 2, height - 185);
         this.weekTitlesContainer.setDepth(0);
 
         // Aumentar la separación entre los títulos
@@ -258,23 +278,7 @@ class StoryModeState extends Phaser.Scene {
 
         // Aplicar opacidad completa al título de la semana seleccionada
         this.weekTitlesContainer.list[this.selectedWeekIndex].setAlpha(1);
-
-        // Variables para controlar el scroll
-        this.scrollSpeed = 0;
-        this.scrollAccumulator = 0;
-        this.scrollThreshold = 50; // Umbral para acumular el scroll
-
-        // Listener para el scroll
-        this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-            this.scrollSpeed = deltaY;
-            this.scrollAccumulator += deltaY;
-
-            if (Math.abs(this.scrollAccumulator) > this.scrollThreshold) {
-                this.adjustTitleContainerPosition();
-                this.scrollAccumulator = 0;
-            }
-        });
-
+        
         this.trackLabel = this.add.image(100, 480, 'tracksLabel').setOrigin(0, 0);
         this.trackTexts = [];
         this.updateTracks();
@@ -387,37 +391,46 @@ class StoryModeState extends Phaser.Scene {
     loadCharacters() {
         this.characters.forEach(character => character.destroy());
         this.characters = [];
-
+    
         const weekData = this.weeks[this.weekKeys[this.selectedWeekIndex]];
         const charactersData = weekData.weekCharacters;
-
+    
         const positions = [
-            { x: 280, y: 260 }, //dad
-            { x: 650, y: 260 }, //bf
-            { x: 1050, y: 260 } //gf
+            { x: 280, y: 260 }, // dad
+            { x: 650, y: 260 }, // bf
+            { x: 1050, y: 260 } // gf
         ];
-
+    
         charactersData.forEach((characterName, index) => {
             if (!characterName) return;
-
+    
             const characterKey = `${characterName}Data`;
             if (!this.cache.json.exists(characterKey)) {
                 console.error(`Datos de ${characterName} no encontrados en la caché.`);
                 return;
             }
-
+    
             // Verificar si el personaje ya está en la caché
             if (!this.characterCache[characterName]) {
                 console.log(`Cargando datos de ${characterName} por primera vez...`);
                 const characterData = this.cache.json.get(characterKey);
                 this.characterCache[characterName] = characterData; // Almacenar en caché
             }
-
+    
             const characterData = this.characterCache[characterName];
             console.log(`Datos de ${characterName}:`, characterData);
-
+    
             const character = new Character(this, positions[index].x, positions[index].y, characterData);
             this.characters.push(character);
+    
+            // Verificar si la animación ya está en curso
+            if (this.anims.exists(characterData.idle_anim)) {
+                if (!character.anims.isPlaying) {
+                    character.play(characterData.idle_anim); // Solo reproducir si no está en curso
+                }
+            } else {
+                character.play(characterData.idle_anim);
+            }
         });
     }
 

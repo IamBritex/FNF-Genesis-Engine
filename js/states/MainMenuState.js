@@ -2,8 +2,10 @@ class MainMenuState extends Phaser.Scene {
     constructor() {
         super({ key: "MainMenuState" });
         this.selectedIndex = 0;
-        this.scrollSpeed = 50; 
-        this.bgScrollSpeed = 50; 
+        this.scrollSpeed = 50;
+        this.bgScrollSpeed = 50;
+        this.keyCooldown = false; // Cooldown general para evitar spam de teclas
+        this.enterCooldown = false; // Cooldown específico para ENTER
     }
 
     preload() {
@@ -57,9 +59,18 @@ class MainMenuState extends Phaser.Scene {
         this.updateSelection();
 
         // ====== INPUT KEYS ======
-        this.input.keyboard.on('keydown-DOWN', () => this.changeSelection(1));
-        this.input.keyboard.on('keydown-UP', () => this.changeSelection(-1));
-        this.input.keyboard.on('keydown-ENTER', () => this.selectOption());
+        this.input.keyboard.on('keydown', (event) => this.handleInput(event.code));
+    }
+
+    handleInput(key) {
+        if (this.keyCooldown) return; // Evita mantener presionadas las teclas
+
+        this.keyCooldown = true;
+        this.time.delayedCall(150, () => { this.keyCooldown = false; }); // Cooldown corto para evitar spam
+
+        if (key === "ArrowDown") this.changeSelection(1);
+        if (key === "ArrowUp") this.changeSelection(-1);
+        if (key === "Enter") this.selectOption();
     }
 
     createAnimations() {
@@ -110,45 +121,33 @@ class MainMenuState extends Phaser.Scene {
     }
 
     changeSelection(direction) {
-        const prevIndex = this.selectedIndex;
         const totalOptions = this.menuOptions.length;
         this.selectedIndex = (this.selectedIndex + direction + totalOptions) % totalOptions;
-    
-        // ====== SCROLL EFFECT IN THE MENU ======
+
+        // ====== MUEVE EL BACKGROUND Y EL MENÚ ======
         this.tweens.add({
             targets: this.menuContainer,
             y: -this.selectedIndex * this.scrollSpeed,
             duration: 200,
             ease: 'Power2'
         });
-    
-        // ====== MOVE THE BACKGROUND ======
-        if ((prevIndex === 0 && direction === -1) || (prevIndex === totalOptions - 1 && direction === 1)) {
-            this.tweens.add({
-                targets: this.bg,
-                y: this.selectedIndex === 0 ? 0 : -this.bgScrollSpeed * (totalOptions - 1),
-                duration: 200,
-                ease: 'Power2'
-            });
-        } else {
-            this.tweens.add({
-                targets: this.bg,
-                y: this.bg.y - (direction * this.bgScrollSpeed),
-                duration: 200,
-                ease: 'Power2'
-            });
-        }
-    
+
+        this.tweens.add({
+            targets: this.bg,
+            y: -this.selectedIndex * this.bgScrollSpeed,
+            duration: 200,
+            ease: 'Power2'
+        });
+
         this.updateSelection();
         this.selectSound.play();
-    }    
+    }
 
     updateSelection() {
         this.menuOptions.forEach((option, index) => {
             if (index === this.selectedIndex) {
                 option.play(this.getWhiteAnimationKey(index));
 
-                // ====== ZOOM IN OPTION SELECTED ======
                 this.tweens.add({
                     targets: option,
                     scaleX: 1.2,
@@ -171,6 +170,9 @@ class MainMenuState extends Phaser.Scene {
     }
 
     selectOption() {
+        if (this.enterCooldown) return;
+        this.enterCooldown = true;
+
         const sceneNames = [
             'StoryModeState',
             'FreeplayState',
@@ -179,23 +181,34 @@ class MainMenuState extends Phaser.Scene {
             'ModsState',
             'CreditsState'
         ];
-    
-        console.log("Seleccionaste:", sceneNames[this.selectedIndex]); // <- Ver si llega aquí
-    
+
+        const selectedScene = sceneNames[this.selectedIndex];
+
+        if (!this.scene.get(selectedScene)) {
+            console.warn(`Escena "${selectedScene}" no existe.`);
+            this.enterCooldown = false;
+            return;
+        }
+
+        console.log("Seleccionaste:", selectedScene);
+
         const selectedOption = this.menuOptions[this.selectedIndex];
         this.confirmSound.play();
-    
-        this.time.addEvent({
+
+        let blinkEvent = this.time.addEvent({
             delay: 100,
-            repeat: 24, 
+            repeat: 24,
             callback: () => {
                 selectedOption.visible = !selectedOption.visible;
             }
         });
-    
+
         this.time.delayedCall(1700, () => {
-            console.log("Cambiando a:", sceneNames[this.selectedIndex]); // <- Ver si intenta cambiar de escena
-            this.scene.start(sceneNames[this.selectedIndex]);
+            blinkEvent.remove();
+            selectedOption.visible = true;
+            console.log("Cambiando a:", selectedScene);
+            this.scene.get("TransitionScene").startTransition(selectedScene);
+            this.enterCooldown = false;
         });
     }
 }

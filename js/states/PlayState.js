@@ -33,7 +33,7 @@ class PlayState extends Phaser.Scene {
         // Mostrar la imagen de carga (funkay) al centro y ajustar su tamaño
         const { width, height } = this.scale;
         this.loadingImage = this.add.image(width / 2, height / 2, 'funkay');
-        this.loadingImage.setScale(Math.min(width / this.loadingImage.width, height / this.loadingImage.height) * 0.8);
+        this.loadingImage.setScale(Math.min(width / this.loadingImage.width, height / this.loadingImage.height) * 0.8); // Ajustar tamaño para que quepa
 
         // Crear una barra de carga en la parte inferior
         this.loadBar = this.add.graphics();
@@ -76,51 +76,51 @@ class PlayState extends Phaser.Scene {
             this.redirectToNextState();
             return;
         }
-
+    
         console.log("Cargando datos de la canción:", currentSong);
-
+    
         // Construir la ruta del JSON con la primera letra en mayúscula
         let jsonPath = `assets/weeks/data/${currentSong}/${currentSong}.json`;
         if (this.selectedDifficulty && this.selectedDifficulty !== "normal") {
             jsonPath = `assets/weeks/data/${currentSong}/${currentSong}-${this.selectedDifficulty}.json`;
         }
-
+    
         this.load.json(`songData_${currentSong}`, jsonPath);
-
+    
         this.load.once('fileerror', (file) => {
             if (file.key === `songData_${currentSong}`) {
                 console.warn(`No se encontró ${jsonPath}, intentando con la primera letra en minúscula.`);
-
+    
                 // Convertir la primera letra de la carpeta y el archivo a minúscula
                 let altSongName = currentSong.charAt(0).toLowerCase() + currentSong.slice(1);
                 let altJsonPath = `assets/weeks/data/${altSongName}/${altSongName}.json`;
-
+    
                 if (this.selectedDifficulty && this.selectedDifficulty !== "normal") {
                     altJsonPath = `assets/weeks/data/${altSongName}/${altSongName}-${this.selectedDifficulty}.json`;
                 }
-
+    
                 console.log(`Intentando cargar: ${altJsonPath}`);
                 this.load.json(`songData_${currentSong}`, altJsonPath);
                 this.load.start();
             }
         });
-
+    
         this.load.once('complete', () => {
             const songData = this.cache.json.get(`songData_${currentSong}`);
             if (!songData || !songData.song) {
                 console.warn(`No se encontró el JSON en ninguna de las rutas, probando con carpeta en minúsculas...`);
-
+    
                 // Convertir toda la carpeta a minúsculas
                 let lowerCaseFolder = currentSong.toLowerCase();
                 let lowerCaseJsonPath = `assets/weeks/data/${lowerCaseFolder}/${lowerCaseFolder}.json`;
-
+    
                 if (this.selectedDifficulty && this.selectedDifficulty !== "normal") {
                     lowerCaseJsonPath = `assets/weeks/data/${lowerCaseFolder}/${lowerCaseFolder}-${this.selectedDifficulty}.json`;
                 }
-
+    
                 console.log(`Intentando cargar desde carpeta en minúscula: ${lowerCaseJsonPath}`);
                 this.load.json(`songData_${currentSong}`, lowerCaseJsonPath);
-
+    
                 this.load.once('complete', () => {
                     const finalData = this.cache.json.get(`songData_${currentSong}`);
                     if (!finalData || !finalData.song) {
@@ -128,29 +128,29 @@ class PlayState extends Phaser.Scene {
                         this.redirectToNextState();
                         return;
                     }
-
+    
                     this.processSongData(finalData, currentSong);
                 });
-
+    
                 this.load.start();
                 return;
             }
-
+    
             this.processSongData(songData, currentSong);
         });
-
+    
         this.load.start();
-    }
+    }     
 
     processSongData(songData, songName) {
         const playerCharacter = songData.song.player1 || 'bf';
         const enemyCharacter = songData.song.player2 || 'gf';
-
+    
         console.log(`Jugador: ${playerCharacter}, Enemigo: ${enemyCharacter}`);
-
+    
         // Cargar los archivos de audio usando los personajes extraídos
         this.loadSongAssets(songName, playerCharacter, enemyCharacter);
-
+    
         this.load.once('complete', () => {
             this.loadingImage.destroy();
             this.loadBar.destroy();
@@ -158,46 +158,39 @@ class PlayState extends Phaser.Scene {
             this.showData();
             this.startCountdown();
         });
-
+    
         this.load.start();
     }
 
     loadSongAssets(songName, playerCharacter, enemyCharacter) {
         const instPath = `assets/songs/${songName}/Inst.ogg`;
-        const voicePaths = [
-            `assets/songs/${songName}/Voices-${playerCharacter}.ogg`,
-            `assets/songs/${songName}/Voices-Player.ogg`,
-            `assets/songs/${songName}/Voices-${enemyCharacter}.ogg`,
-            `assets/songs/${songName}/Voices-Opponent.ogg`
-        ];
-
-        // Verificar si la instrumental existe
-        fetch(instPath, { method: 'HEAD' })
-            .then(response => {
-                if (!response.ok) throw new Error("Inst.ogg no encontrado");
-                
-                // Cargar instrumental
-                this.load.audio(`inst_${songName}`, instPath);
-                
-                // Verificar y cargar voces solo si existen
-                voicePaths.forEach(path => {
-                    fetch(path, { method: 'HEAD' })
-                        .then(res => {
-                            if (res.ok) {
-                                const key = path.includes(playerCharacter) ? `player_${songName}` : `enemy_${songName}`;
-                                this.load.audio(key, path);
-                            }
-                        })
-                        .catch(() => { /* Ignorar errores de voces */ });
-                });
-
-                this.load.start();
-            })
-            .catch(() => {
-                console.error(`No se encontró la instrumental para: ${songName}`);
-                this.redirectToNextState();
-            });
-    }
+        let playerPath = `assets/songs/${songName}/Voices-${playerCharacter}.ogg`;
+        let enemyPath = `assets/songs/${songName}/Voices-${enemyCharacter}.ogg`;
+    
+        // Cargar la instrumental
+        this.load.audio(`inst_${songName}`, instPath);
+    
+        // Verificar si los archivos personalizados existen antes de cargarlos
+        fetch(playerPath, { method: 'HEAD' }).then(response => {
+            if (response.ok) {
+                this.load.audio(`player_${songName}`, playerPath);
+            } else {
+                console.warn(`No se encontró ${playerPath}, usando Voices-Player.ogg`);
+                this.load.audio(`player_${songName}`, `assets/songs/${songName}/Voices-Player.ogg`);
+            }
+        });
+    
+        fetch(enemyPath, { method: 'HEAD' }).then(response => {
+            if (response.ok) {
+                this.load.audio(`enemy_${songName}`, enemyPath);
+            } else {
+                console.warn(`No se encontró ${enemyPath}, usando Voices-Opponent.ogg`);
+                this.load.audio(`enemy_${songName}`, `assets/songs/${songName}/Voices-Opponent.ogg`);
+            }
+        });
+    
+        this.load.start();
+    }    
 
     create() {
         console.log("PlayState iniciado.");
@@ -260,27 +253,13 @@ class PlayState extends Phaser.Scene {
 
     startMusic() {
         const currentSong = this.songList[this.currentSongIndex];
-
-        // Verificar si la instrumental está cargada
-        if (!this.cache.audio.exists(`inst_${currentSong}`)) {
-            console.error(`No se encontró la instrumental para: ${currentSong}`);
-            this.redirectToNextState();
-            return;
-        }
-
         const inst = this.sound.add(`inst_${currentSong}`);
-        const player = this.cache.audio.exists(`player_${currentSong}`) ? this.sound.add(`player_${currentSong}`) : null;
-        const enemy = this.cache.audio.exists(`enemy_${currentSong}`) ? this.sound.add(`enemy_${currentSong}`) : null;
+        const player = this.sound.add(`player_${currentSong}`);
+        const enemy = this.sound.add(`enemy_${currentSong}`);
 
         inst.play();
-        if (player) player.play();
-        if (enemy) enemy.play();
-
-        // Verificar si hay una siguiente canción y precargarla
-        if (this.currentSongIndex + 1 < this.songList.length) {
-            const nextSong = this.songList[this.currentSongIndex + 1];
-            this.preloadNextSong(nextSong);
-        }
+        player.play();
+        enemy.play();
 
         inst.on('complete', () => {
             this.currentSongIndex++;
@@ -299,38 +278,10 @@ class PlayState extends Phaser.Scene {
         console.log("Reproduciendo canción:", currentSong);
     }
 
-    preloadNextSong(nextSong) {
-        const formats = [
-            `assets/weeks/data/${nextSong}/${nextSong}.json`,
-            `assets/weeks/data/${nextSong.toLowerCase()}/${nextSong.toLowerCase()}.json`,
-            `assets/weeks/data/${nextSong}/${nextSong}-${this.selectedDifficulty}.json`,
-            `assets/weeks/data/${nextSong.toLowerCase()}/${nextSong.toLowerCase()}-${this.selectedDifficulty}.json`
-        ];
-
-        let loaded = false;
-        
-        // Intentar cargar el JSON en todos los formatos posibles
-        formats.forEach(path => {
-            fetch(path, { method: 'HEAD' })
-                .then(response => {
-                    if (!response.ok || loaded) return;
-                    loaded = true;
-                    this.load.json(`songData_${nextSong}`, path);
-                    this.load.start();
-                });
-        });
-
-        // Si ningún formato funciona después de 1 segundo, omitir precarga
-        setTimeout(() => {
-            if (!loaded) {
-                console.warn(`No se pudo precargar datos para: ${nextSong}`);
-                this.load.stop();
-            }
-        }, 1000);
-    }
-
     isPreloaded(songName) {
-        return this.cache.audio.exists(`inst_${songName}`);
+        return this.cache.audio.exists(`inst_${songName}`) &&
+               this.cache.audio.exists(`player_${songName}`) &&
+               this.cache.audio.exists(`enemy_${songName}`);
     }
 
     getSceneData() {
