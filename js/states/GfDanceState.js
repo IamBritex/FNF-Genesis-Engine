@@ -7,9 +7,9 @@ class GfDanceState extends Phaser.Scene {
         console.log("GfDanceState cargado correctamente");
 
         // ======ASSETS======
-        this.load.atlasXML('gfDance', 'assets/IntroMenu/gfDanceTitle.png', '../assets/IntroMenu/gfDanceTitle.xml');
-        this.load.atlasXML('titleEnter', 'assets/IntroMenu/titleEnter.png', '../assets/IntroMenu/titleEnter.xml');
-        this.load.atlasXML('logoBumpin', 'assets/IntroMenu/logoBumpin.png', '../assets/IntroMenu/logoBumpin.xml');
+        this.load.atlasXML('gfDance', 'assets/IntroMenu/gfDanceTitle.png', 'assets/IntroMenu/gfDanceTitle.xml');
+        this.load.atlasXML('titleEnter', 'assets/IntroMenu/titleEnter.png', 'assets/IntroMenu/titleEnter.xml');
+        this.load.atlasXML('logoBumpin', 'assets/IntroMenu/logoBumpin.png', 'assets/IntroMenu/logoBumpin.xml');
         this.load.audio('confirm', 'assets/sounds/confirmMenu.ogg');
     }
 
