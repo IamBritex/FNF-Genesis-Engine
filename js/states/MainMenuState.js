@@ -150,8 +150,8 @@ class MainMenuState extends Phaser.Scene {
 
                 this.tweens.add({
                     targets: option,
-                    scaleX: 1.2,
-                    scaleY: 1.2,
+                    scaleX: 1,
+                    scaleY: 1,
                     duration: 200,
                     ease: 'Power2'
                 });
@@ -160,8 +160,8 @@ class MainMenuState extends Phaser.Scene {
 
                 this.tweens.add({
                     targets: option,
-                    scaleX: 1,
-                    scaleY: 1,
+                    scaleX: 0.9,
+                    scaleY: 0.9,
                     duration: 200,
                     ease: 'Power2'
                 });
@@ -177,7 +177,7 @@ class MainMenuState extends Phaser.Scene {
             'StoryModeState',
             'FreeplayState',
             'AwardsState',
-            'OptionsState',
+            'OptionsMenu',
             'ModsState',
             'CreditsState'
         ];

@@ -1,67 +1,60 @@
+import { AudioManager } from './PlayState/AudioManager.js';
+import { DataManager } from './PlayState/DataManager.js';
+import { ArrowsManager } from './PlayState/ArrowsManager.js';
+
 class PlayState extends Phaser.Scene {
     constructor() {
         super({ key: "PlayState" });
+        this.audioManager = new AudioManager(this);
+        this.dataManager = new DataManager(this);
+        this.arrowsManager = new ArrowsManager(this);
+        this.songPosition = 0; // Tiempo actual de la canción
+        this.isMusicPlaying = false; // Indica si la música está reproduciéndose
     }
 
     init(data) {
-        // Inicialización de datos recibidos
-        this.storyPlaylist = data.storyPlaylist ? data.storyPlaylist.flat() : [];
-        this.storyDifficulty = data.storyDifficulty;
-        this.isStoryMode = data.isStoryMode;
-        this.campaignScore = data.campaignScore;
-        this.campaignMisses = data.campaignMisses;
-        this.weekName = data.weekName;
-        this.weekBackground = data.weekBackground;
-        this.weekCharacters = data.weekCharacters;
-        this.weekTracks = data.weekTracks;
-        this.selectedDifficulty = data.selectedDifficulty;
-        this.currentSongIndex = data.currentSongIndex || 0;
-
-        // Verificar que la playlist sea válida
-        if (Array.isArray(this.storyPlaylist) && this.storyPlaylist.length > 0) {
-            this.songList = this.storyPlaylist;
-        } else {
-            console.error("Playlist inválida o vacía.");
-            this.songList = [];
-        }
+        this.dataManager.init(data);
     }
 
     preload() {
+        // Cargar el atlas de texturas para las notas móviles
+        this.load.atlasXML('notes', 'assets/PlayState/notes.png', 'assets/PlayState/notes.xml');
+
+        // Cargar las flechas estáticas (strumline)
+        this.load.atlasXML('noteStrumline', 'assets/PlayState/noteStrumline.png', 'assets/PlayState/noteStrumline.xml');
+
+        // Cargar los assets de las notas largas
+        this.load.atlasXML('NOTE_hold_assets', 'assets/PlayState/NOTE_hold_assets.png', 'assets/PlayState/NOTE_hold_assets.xml');
+
         // Cambiar el fondo a verde limón
         this.cameras.main.setBackgroundColor("#cbfa4c");
 
-        // Mostrar la imagen de carga (funkay) al centro y ajustar su tamaño
         const { width, height } = this.scale;
         this.loadingImage = this.add.image(width / 2, height / 2, 'funkay');
-        this.loadingImage.setScale(Math.min(width / this.loadingImage.width, height / this.loadingImage.height) * 0.8); // Ajustar tamaño para que quepa
+        this.loadingImage.setScale(Math.min(width / this.loadingImage.width, height / this.loadingImage.height) * 0.8);
 
-        // Crear una barra de carga en la parte inferior
         this.loadBar = this.add.graphics();
-        this.loadBar.fillStyle(0x8A2BE2, 1); // Morado claro
+        this.loadBar.fillStyle(0x8A2BE2, 1);
         this.loadBar.fillRect(0, height - 20, width, 20);
 
-        // Cargar assets comunes
-        this.load.image('funkay', 'assets/images/funkay.png');
-        this.load.audio('intro1', 'assets/sounds/countdown/funkin/intro1.ogg');
-        this.load.audio('intro2', 'assets/sounds/countdown/funkin/intro2.ogg');
         this.load.audio('intro3', 'assets/sounds/countdown/funkin/intro3.ogg');
+        this.load.audio('intro2', 'assets/sounds/countdown/funkin/intro2.ogg');
+        this.load.audio('intro1', 'assets/sounds/countdown/funkin/intro1.ogg');
         this.load.audio('introGo', 'assets/sounds/countdown/funkin/introGo.ogg');
-        this.load.image('set', 'assets/PlayState/countdown/funkin/set.png');
+
         this.load.image('ready', 'assets/PlayState/countdown/funkin/ready.png');
+        this.load.image('set', 'assets/PlayState/countdown/funkin/set.png');
         this.load.image('go', 'assets/PlayState/countdown/funkin/go.png');
 
-        // Precargar freakyMenu
         this.load.audio('freakyMenu', 'assets/music/FreakyMenu.mp3');
 
-        // Cargar canciones si la playlist no está vacía
-        if (this.songList.length > 0) {
+        if (this.dataManager.songList.length > 0) {
             this.loadCurrentAndNextSong();
         } else {
             console.error("No hay canciones para cargar.");
             this.redirectToNextState();
         }
 
-        // Actualizar la barra de carga
         this.load.on('progress', (value) => {
             this.loadBar.clear();
             this.loadBar.fillStyle(0x8A2BE2, 1);
@@ -69,177 +62,96 @@ class PlayState extends Phaser.Scene {
         });
     }
 
-    loadCurrentAndNextSong() {
-        const currentSong = this.songList[this.currentSongIndex];
+    async loadCurrentAndNextSong() {
+        const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
         if (typeof currentSong !== 'string') {
             console.error("La canción actual no es válida.");
             this.redirectToNextState();
             return;
         }
-    
-        console.log("Cargando datos de la canción:", currentSong);
-    
-        // Construir la ruta del JSON con la primera letra en mayúscula
-        let jsonPath = `assets/weeks/data/${currentSong}/${currentSong}.json`;
-        if (this.selectedDifficulty && this.selectedDifficulty !== "normal") {
-            jsonPath = `assets/weeks/data/${currentSong}/${currentSong}-${this.selectedDifficulty}.json`;
-        }
-    
-        this.load.json(`songData_${currentSong}`, jsonPath);
-    
-        this.load.once('fileerror', (file) => {
-            if (file.key === `songData_${currentSong}`) {
-                console.warn(`No se encontró ${jsonPath}, intentando con la primera letra en minúscula.`);
-    
-                // Convertir la primera letra de la carpeta y el archivo a minúscula
-                let altSongName = currentSong.charAt(0).toLowerCase() + currentSong.slice(1);
-                let altJsonPath = `assets/weeks/data/${altSongName}/${altSongName}.json`;
-    
-                if (this.selectedDifficulty && this.selectedDifficulty !== "normal") {
-                    altJsonPath = `assets/weeks/data/${altSongName}/${altSongName}-${this.selectedDifficulty}.json`;
-                }
-    
-                console.log(`Intentando cargar: ${altJsonPath}`);
-                this.load.json(`songData_${currentSong}`, altJsonPath);
-                this.load.start();
-            }
-        });
-    
+
+        await this.audioManager.loadSongAudio(currentSong);
+
+        // Cargar el JSON de la canción
+        const songIndex = this.dataManager.currentSongIndex;
+        const difficulty = this.dataManager.selectedDifficulty;
+        const jsonPath = difficulty === 'normal' ? 
+            `assets/weeks/data/${currentSong}/${currentSong}.json` :
+            `assets/weeks/data/${currentSong}/${currentSong}-${difficulty}.json`;
+
+        this.load.json('songData', jsonPath);
+        this.load.start();
+
         this.load.once('complete', () => {
-            const songData = this.cache.json.get(`songData_${currentSong}`);
-            if (!songData || !songData.song) {
-                console.warn(`No se encontró el JSON en ninguna de las rutas, probando con carpeta en minúsculas...`);
-    
-                // Convertir toda la carpeta a minúsculas
-                let lowerCaseFolder = currentSong.toLowerCase();
-                let lowerCaseJsonPath = `assets/weeks/data/${lowerCaseFolder}/${lowerCaseFolder}.json`;
-    
-                if (this.selectedDifficulty && this.selectedDifficulty !== "normal") {
-                    lowerCaseJsonPath = `assets/weeks/data/${lowerCaseFolder}/${lowerCaseFolder}-${this.selectedDifficulty}.json`;
-                }
-    
-                console.log(`Intentando cargar desde carpeta en minúscula: ${lowerCaseJsonPath}`);
-                this.load.json(`songData_${currentSong}`, lowerCaseJsonPath);
-    
-                this.load.once('complete', () => {
-                    const finalData = this.cache.json.get(`songData_${currentSong}`);
-                    if (!finalData || !finalData.song) {
-                        console.error("No se pudo cargar el JSON de la canción en ninguna de las rutas posibles.");
-                        this.redirectToNextState();
-                        return;
-                    }
-    
-                    this.processSongData(finalData, currentSong);
-                });
-    
-                this.load.start();
+            const songData = this.cache.json.get('songData');
+            console.log("songData:", songData);
+
+            if (!songData) {
+                console.error("Error: No se pudo cargar el JSON de la canción.");
                 return;
             }
-    
-            this.processSongData(songData, currentSong);
-        });
-    
-        this.load.start();
-    }     
 
-    processSongData(songData, songName) {
-        const playerCharacter = songData.song.player1 || 'bf';
-        const enemyCharacter = songData.song.player2 || 'gf';
-    
-        console.log(`Jugador: ${playerCharacter}, Enemigo: ${enemyCharacter}`);
-    
-        // Cargar los archivos de audio usando los personajes extraídos
-        this.loadSongAssets(songName, playerCharacter, enemyCharacter);
-    
-        this.load.once('complete', () => {
+            // Pasar el BPM y la velocidad al ArrowsManager
+            this.arrowsManager.loadNotes(songData.song.notes, songData.song.bpm, songData.song.speed);
+
             this.loadingImage.destroy();
             this.loadBar.destroy();
             this.cameras.main.setBackgroundColor("#000000");
-            this.showData();
+            this.dataManager.showData();
             this.startCountdown();
         });
-    
-        this.load.start();
     }
-
-    loadSongAssets(songName, playerCharacter, enemyCharacter) {
-        const instPath = `assets/songs/${songName}/Inst.ogg`;
-        let playerPath = `assets/songs/${songName}/Voices-${playerCharacter}.ogg`;
-        let enemyPath = `assets/songs/${songName}/Voices-${enemyCharacter}.ogg`;
-    
-        // Cargar la instrumental
-        this.load.audio(`inst_${songName}`, instPath);
-    
-        // Verificar si los archivos personalizados existen antes de cargarlos
-        fetch(playerPath, { method: 'HEAD' }).then(response => {
-            if (response.ok) {
-                this.load.audio(`player_${songName}`, playerPath);
-            } else {
-                console.warn(`No se encontró ${playerPath}, usando Voices-Player.ogg`);
-                this.load.audio(`player_${songName}`, `assets/songs/${songName}/Voices-Player.ogg`);
-            }
-        });
-    
-        fetch(enemyPath, { method: 'HEAD' }).then(response => {
-            if (response.ok) {
-                this.load.audio(`enemy_${songName}`, enemyPath);
-            } else {
-                console.warn(`No se encontró ${enemyPath}, usando Voices-Opponent.ogg`);
-                this.load.audio(`enemy_${songName}`, `assets/songs/${songName}/Voices-Opponent.ogg`);
-            }
-        });
-    
-        this.load.start();
-    }    
 
     create() {
         console.log("PlayState iniciado.");
         this.sound.stopAll();
-
-        // Configurar el fondo
+        this.dataManager.setupF3Toggle();
         this.cameras.main.setBackgroundColor("#000000");
+        this.dataManager.setStartTime(this.time.now);
+
+        // Crear las flechas estáticas
+        this.arrowsManager.createPlayerArrows();
+        this.arrowsManager.createEnemyArrows();
     }
 
-    showData() {
-        const { width } = this.scale;
+    update(time, delta) {
+        // Actualizar el tiempo de la canción solo si la música está reproduciéndose
+        if (this.isMusicPlaying) {
+            this.songPosition += delta;
 
-        // Posición inicial para los textos (parte superior derecha)
-        let startX = width - 20; // Margen derecho
-        let startY = 20; // Margen superior
-        const lineHeight = 24; // Altura de cada línea de texto
+            // Actualizar las notas móviles
+            this.arrowsManager.update(this.songPosition);
+        }
 
-        // Crear un texto para cada dato
-        const dataToShow = {
-            "Semana": this.weekName || "No disponible",
-            "Playlist": this.storyPlaylist ? this.storyPlaylist.join(", ") : "No disponible",
-            "Dificultad": this.storyDifficulty || "No disponible",
-            "Fondo": this.weekBackground || "No disponible",
-            "Personajes": this.weekCharacters ? this.weekCharacters.join(", ") : "No disponible",
-            "Puntuación": this.campaignScore || 0,
-            "Fallos": this.campaignMisses || 0,
-            "Modo Historia": this.isStoryMode ? "Activado" : "Desactivado",
-        };
-
-        // Recorrer los datos y mostrarlos en pantalla
-        Object.entries(dataToShow).forEach(([key, value], index) => {
-            const text = this.add.text(startX, startY + index * lineHeight, `${key}: ${value}`, {
-                fontFamily: 'Arial',
-                fontSize: '18px',
-                color: '#FFFFFF',
-                align: 'right'
-            }).setOrigin(1, 0); // Alinear a la derecha
-        });
+        if (this.dataManager.isDataVisible) {
+            this.dataManager.updateData();
+        }
     }
 
     startCountdown() {
-        const countdownImages = ['set', 'ready', 'go'];
+        const countdownData = [
+            { sound: 'intro3', image: null },
+            { sound: 'intro2', image: 'ready' },
+            { sound: 'intro1', image: 'set' },
+            { sound: 'introGo', image: 'go' }
+        ];
+
         let step = 0;
 
         const showStep = () => {
-            if (step < countdownImages.length) {
-                const image = this.add.image(this.scale.width / 2, this.scale.height / 2, countdownImages[step]);
-                this.time.delayedCall(1000, () => {
-                    image.destroy();
+            if (step < countdownData.length) {
+                const { sound, image } = countdownData[step];
+                const countdownSound = this.sound.add(sound);
+                countdownSound.play();
+
+                if (image) {
+                    const countdownImage = this.add.image(this.scale.width / 2, this.scale.height / 2, image);
+                    countdownSound.on('complete', () => {
+                        countdownImage.destroy();
+                    });
+                }
+
+                countdownSound.on('complete', () => {
                     step++;
                     showStep();
                 });
@@ -252,52 +164,22 @@ class PlayState extends Phaser.Scene {
     }
 
     startMusic() {
-        const currentSong = this.songList[this.currentSongIndex];
-        const inst = this.sound.add(`inst_${currentSong}`);
-        const player = this.sound.add(`player_${currentSong}`);
-        const enemy = this.sound.add(`enemy_${currentSong}`);
+        const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
+        const inst = this.audioManager.playSongAudio(currentSong);
 
-        inst.play();
-        player.play();
-        enemy.play();
+        // Indicar que la música está reproduciéndose
+        this.isMusicPlaying = true;
 
         inst.on('complete', () => {
-            this.currentSongIndex++;
-            if (this.currentSongIndex < this.songList.length) {
-                if (this.isPreloaded(this.songList[this.currentSongIndex])) {
-                    this.scene.restart(this.getSceneData());
-                } else {
-                    console.error("Error: La siguiente canción no está precargada.");
-                    this.redirectToNextState();
-                }
+            this.dataManager.currentSongIndex++;
+            if (this.dataManager.currentSongIndex < this.dataManager.songList.length) {
+                this.scene.restart(this.dataManager.getSceneData());
             } else {
                 this.playFreakyMenuAndRedirect();
             }
         });
 
         console.log("Reproduciendo canción:", currentSong);
-    }
-
-    isPreloaded(songName) {
-        return this.cache.audio.exists(`inst_${songName}`) &&
-               this.cache.audio.exists(`player_${songName}`) &&
-               this.cache.audio.exists(`enemy_${songName}`);
-    }
-
-    getSceneData() {
-        return {
-            storyPlaylist: this.storyPlaylist,
-            storyDifficulty: this.storyDifficulty,
-            isStoryMode: this.isStoryMode,
-            campaignScore: this.campaignScore,
-            campaignMisses: this.campaignMisses,
-            weekName: this.weekName,
-            weekBackground: this.weekBackground,
-            weekCharacters: this.weekCharacters,
-            weekTracks: this.weekTracks,
-            selectedDifficulty: this.selectedDifficulty,
-            currentSongIndex: this.currentSongIndex
-        };
     }
 
     playFreakyMenuAndRedirect() {
@@ -310,7 +192,7 @@ class PlayState extends Phaser.Scene {
     }
 
     redirectToNextState() {
-        const target = this.isStoryMode ? "StoryModeState" : "FreePlayState";
+        const target = this.dataManager.isStoryMode ? "StoryModeState" : "FreePlayState";
         this.scene.start(target);
     }
 }

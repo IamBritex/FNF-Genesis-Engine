@@ -14,8 +14,6 @@ class GfDanceState extends Phaser.Scene {
     }
 
     create() {
-        let gfX = 880;
-        let gfY = 380;
 
         // ====== ANIMACIONES ======
         this.anims.create({
@@ -31,7 +29,7 @@ class GfDanceState extends Phaser.Scene {
             repeat: -1
         });
 
-        let gf = this.add.sprite(gfX, gfY, 'gfDance').setScale(1).setOrigin(0.5);
+        let gf = this.add.sprite(910, 380, 'gfDance').setScale(1).setOrigin(0.5);
         gf.play('gf_dance');
 
         this.anims.create({
@@ -57,11 +55,11 @@ class GfDanceState extends Phaser.Scene {
                 prefix: 'logo bumpin000',
                 suffix: ''
             }),
-            frameRate: 19,
+            frameRate: 23,
             repeat: -1
         });
 
-        let logo = this.add.sprite(340, 250, 'logoBumpin').setScale(0.9).setOrigin(0.5);
+        let logo = this.add.sprite(340, 240, 'logoBumpin').setScale(1).setOrigin(0.5);
         logo.play('logo_bumpin');
 
         this.anims.create({
@@ -80,7 +78,9 @@ class GfDanceState extends Phaser.Scene {
         this.input.keyboard.on('keydown-ENTER', () => {
             enterLogo.play('enter_pressed');
             this.sound.play('confirm');
-            this.scene.get("TransitionScene").startTransition("MainMenuState");
+            this.time.delayedCall(800, () => { 
+                this.scene.get("TransitionScene").startTransition("MainMenuState");
+            });
         });
     }
 }

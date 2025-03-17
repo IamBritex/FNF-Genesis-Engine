@@ -44,7 +44,8 @@ class IntroMenu extends Phaser.Scene {
 
             if (index >= steps.length) {
                 this.time.delayedCall(190, () => { 
-                    this.scene.start("GfDanceState");
+                    // Usar la transición antes de cambiar de escena
+                    this.scene.get("FlashEffect").startTransition("GfDanceState");
                 });
                 return;
             }
@@ -91,10 +92,12 @@ class IntroMenu extends Phaser.Scene {
         this.input.keyboard.on('keydown-ENTER', () => {
             if (!sceneEnded) {
                 sceneEnded = true; 
-                this.scene.start("GfDanceState");
+                // Usar la transición antes de cambiar de escena
+                this.scene.get("FlashEffect").startTransition("GfDanceState");
             }
         });
     }
 }
 
+// Añadir la escena al juego
 game.scene.add("IntroMenu", IntroMenu);

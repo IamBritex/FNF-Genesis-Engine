@@ -1,0 +1,40 @@
+{
+    "categories": [
+        {
+            "name": "CONTROLS",
+            "options": [
+                { "name": "Movement", "type": "text", "value": "Arrow keys", "description": "Configure the keys used to control the game." },
+                { "name": "Left", "type": "keybind", "value": "Left", "description": "Set the key for moving left." },
+                { "name": "Down", "type": "keybind", "value": "Down", "description": "Set the key for moving down." },
+                { "name": "Up", "type": "keybind", "value": "Up", "description": "Set the key for moving up." },
+                { "name": "Right", "type": "keybind", "value": "Right", "description": "Set the key for moving right." },
+                { "name": "Accept", "type": "keybind", "value": "Enter", "description": "Change the key used to confirm selections." },
+                { "name": "Back", "type": "keybind", "value": "Escape", "description": "Change the key used to go back or cancel." },
+                { "name": "Pause", "type": "keybind", "value": "P", "description": "Set the key used to pause the game." }
+            ]
+        },
+        {
+            "name": "OPTIMIZATION",
+            "options": [
+                { "name": "Max Frames", "type": "checkbox", "value": true, "description": "Enable or disable maximum frame rate." },
+                { "name": "Low Quality", "type": "checkbox", "value": false, "description": "Reduce graphics quality for better performance." },
+                { "name": "GPU Caching", "type": "checkbox", "value": true, "description": "Enable GPU caching for faster rendering." }
+            ]
+        },
+        {
+            "name": "GRAPHICS",
+            "options": [
+                { "name": "Resolution", "type": "number", "value": 1080, "description": "Set the resolution of the game." },
+                { "name": "Fullscreen", "type": "checkbox", "value": false, "description": "Enable or disable fullscreen mode." }
+            ]
+        },
+        {
+            "name": "SOUND",
+            "options": [
+                { "name": "Master Volume", "type": "number", "value": 80, "description": "Adjust the master volume of the game." },
+                { "name": "Music Volume", "type": "number", "value": 70, "description": "Adjust the volume of the background music." },
+                { "name": "SFX Volume", "type": "number", "value": 90, "description": "Adjust the volume of sound effects." }
+            ]
+        }
+    ]
+}
