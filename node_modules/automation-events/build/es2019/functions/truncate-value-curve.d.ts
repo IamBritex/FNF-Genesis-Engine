@@ -1,2 +1,0 @@
-export declare const truncateValueCurve: <Values extends number[] | Float32Array>(values: Values, originalDuration: number, targetDuration: number) => Values;
-//# sourceMappingURL=truncate-value-curve.d.ts.map
