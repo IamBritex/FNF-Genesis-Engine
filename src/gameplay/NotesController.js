@@ -1,34 +1,53 @@
-// NotesController.js
-
 import { RatingManager } from './RatingManager.js'
+
 export class NotesController {
     constructor(scene) {
         this.scene = scene;
+        
+        // Core game properties - Propiedades básicas del juego
+        this.bpm = 100;
+        this.speed = 1;
+        this.safeFrames = 10;
+        this.safeZoneOffset = 0;
+        
+        // Arrow sprite groups - Grupos de sprites de flechas
         this.playerArrows = [];
         this.enemyArrows = [];
+        
+        // Note tracking arrays - Arrays para seguimiento de notas
         this.playerNotes = [];
         this.enemyNotes = [];
         this.songNotes = [];
-        this.bpm = 100;
-        this.speed = 1;
-        this.crochet = 0;
-        this.stepCrochet = 0;
-        this.safeFrames = 10;
-        this.safeZoneOffset = 0;
+        
+        // Game statistics - Estadísticas del juego
         this.notesHit = 0;
         this.notesMissed = 0;
         this.combo = 0;
         this.maxCombo = 0;
         this.score = 0;
         
-        // Inicializar RatingManager con la escena
+        // Rating system initialization - Inicialización del sistema de calificación
         this.ratingManager = new RatingManager(scene);
-
-        // La configuración del RatingManager se mantiene simple
         this.configureRatingManager();
 
+        // Input configuration - Configuración de entrada
+        this.setupKeyBindings();
         
-        // Updated key bindings with both arrow keys and WASD
+        // Hold note configuration - Configuración de notas sostenidas
+        this.holdScoreRate = 100;
+        this.holdScoreInterval = 100;
+        this.holdPenalty = 50;
+        this.holdSegmentHeight = 50 * this.arrowConfigs.scale.holds;
+        
+        // State tracking - Seguimiento de estado
+        this.keysHeld = { left: false, down: false, up: false, right: false };
+        this.activeHoldNotes = [null, null, null, null];
+        
+        this.setupInputHandlers();
+    }
+
+    // Input setup
+    setupKeyBindings() {
         this.keyBindings = {
             left: [
                 this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
@@ -47,82 +66,71 @@ export class NotesController {
                 this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
             ]
         };
-        
-        // Arrow configurations
-        this.arrowConfigs = {
-            playerStatic: [
-                { x: 795, y: 100 }, // Left
-                { x: 899, y: 100 }, // Down
-                { x: 999, y: 100 }, // Up
-                { x: 1100, y: 100 } // Right
-            ],
-            enemyStatic: [
-                { x: 99, y: 100 }, // Left
-                { x: 199, y: 100 }, // Down
-                { x: 299, y: 100 }, // Up
-                { x: 399, y: 100 } // Right
-            ],
-            playerNotes: [
-                { x: 820, y: 0 }, // Left
-                { x: 920, y: 0 }, // Down
-                { x: 1020, y: 0 }, // Up
-                { x: 1120, y: 0 } // Right
-            ],
-            enemyNotes: [
-                { x: 125, y: 0 }, // Left
-                { x: 225, y: 0 }, // Down
-                { x: 325, y: 0 }, // Up
-                { x: 425, y: 0 } // Right
-            ],
-            playerConfirm: [
-                { x: 820, y: 120 }, // Left
-                { x: 920, y: 120 }, // Down
-                { x: 1020, y: 120 }, // Up
-                { x: 1120, y: 120 } // Right
-            ],
-            playerPress: [
-                { x: 820, y: 120 }, // Left
-                { x: 920, y: 120 }, // Down
-                { x: 1020, y: 120 }, // Up
-                { x: 1120, y: 120 } // Right
-            ],
-            enemyConfirm: [
-                { x: 125, y: 125 }, // Left
-                { x: 225, y: 125 }, // Down
-                { x: 325, y: 125 }, // Up
-                { x: 425, y: 125 } // Right
-            ],
-            enemyPress: [
-                { x: 125, y: 120 }, // Left
-                { x: 225, y: 120 }, // Down
-                { x: 325, y: 120 }, // Up
-                { x: 425, y: 120 } // Right
-            ],
-            scale: {
-                static: 0.68,
-                notes: 0.68,
-                holds: 0.68,
-                confirm: 0.58,
-                press: 0.68
-            },
-            confirmHoldTime: 103 // 103ms
-        };
-        
-        this.directions = ['left', 'down', 'up', 'right'];
-        this.holdColors = ['purple', 'blue', 'green', 'red'];
-        
-        // Track key states and active holds
-        this.keysHeld = { left: false, down: false, up: false, right: false };
-        this.activeHoldNotes = [null, null, null, null];
-        
-        // Scoring and timing
-        this.holdScoreRate = 100;
-        this.holdScoreInterval = 100;
-        this.holdPenalty = 50;
-        this.holdSegmentHeight = 48 * this.arrowConfigs.scale.holds;
-        
-        this.setupInputHandlers();
     }
+
+    // Game constants
+    directions = ['left', 'down', 'up', 'right'];
+    holdColors = ['purple', 'blue', 'green', 'red'];
+
+    // Arrow positioning and animation configuration
+    arrowConfigs = {
+        playerStatic: [
+            { x: 795, y: 100 }, // Left
+            { x: 899, y: 100 }, // Down
+            { x: 999, y: 100 }, // Up
+            { x: 1100, y: 100 } // Right
+        ],
+        enemyStatic: [
+            { x: 99, y: 100 }, // Left
+            { x: 199, y: 100 }, // Down
+            { x: 299, y: 100 }, // Up
+            { x: 399, y: 100 } // Right
+        ],
+        playerNotes: [
+            { x: 820, y: 0 }, // Left
+            { x: 920, y: 0 }, // Down
+            { x: 1020, y: 0 }, // Up
+            { x: 1120, y: 0 } // Right
+        ],
+        enemyNotes: [
+            { x: 125, y: 0 }, // Left
+            { x: 225, y: 0 }, // Down
+            { x: 325, y: 0 }, // Up
+            { x: 425, y: 0 } // Right
+        ],
+        playerConfirm: [
+            { x: 820, y: 120 }, // Left
+            { x: 920, y: 120 }, // Down
+            { x: 1020, y: 120 }, // Up
+            { x: 1120, y: 120 } // Right
+        ],
+        playerPress: [
+            { x: 820, y: 120 }, // Left
+            { x: 920, y: 120 }, // Down
+            { x: 1020, y: 120 }, // Up
+            { x: 1120, y: 120 } // Right
+        ],
+        enemyConfirm: [
+            { x: 125, y: 125 }, // Left
+            { x: 225, y: 125 }, // Down
+            { x: 325, y: 125 }, // Up
+            { x: 425, y: 125 } // Right
+        ],
+        enemyPress: [
+            { x: 125, y: 120 }, // Left
+            { x: 225, y: 120 }, // Down
+            { x: 325, y: 120 }, // Up
+            { x: 425, y: 120 } // Right
+        ],
+        scale: {
+            static: 0.68,
+            notes: 0.68,
+            holds: 0.68,
+            confirm: 0.58,
+            press: 0.68
+        },
+        confirmHoldTime: 103 // 103ms
+    };
 
     configureRatingManager() {
         this.ratingManager.configure({
@@ -416,6 +424,13 @@ export class NotesController {
         const direction = this.directions[directionIndex];
         const holdColor = this.holdColors[directionIndex];
         const posConfig = isPlayer ? this.arrowConfigs.playerNotes : this.arrowConfigs.enemyNotes;
+        
+        // Validación de configuraciones
+        if (!posConfig || !posConfig[directionIndex]) {
+            console.error('Configuración de posición no válida:', {isPlayer, directionIndex});
+            return;
+        }
+        
         const pos = posConfig[directionIndex];
         
         const noteSprite = this.scene.add.sprite(
@@ -502,8 +517,14 @@ export class NotesController {
                         this.missNote(note);
                     }
                 } else {
+                    // Only auto-hit if it's specifically an enemy note
                     if (Math.abs(timeDiff) <= 10 && !note.wasHit) {
                         this.autoHitEnemyNote(note);
+                    }
+                    
+                    // Handle enemy hold notes separately
+                    if (note.isHoldNote && note.wasHit && note.enemyHoldActive) {
+                        this.updateEnemyHoldNote(note, currentTime);
                     }
                 }
                 
@@ -533,23 +554,28 @@ export class NotesController {
         const directionIndex = note.noteDirection;
         const direction = this.directions[directionIndex];
     
+        // Only handle player notes in this method
+        if (!note.isPlayerNote) return;
+    
         if (currentTime <= holdEndTime) {
             const arrow = this.playerArrows[directionIndex];
             const confirmPos = this.arrowConfigs.playerConfirm[directionIndex];
             
-            arrow.x = confirmPos.x;
-            arrow.y = confirmPos.y;
-            arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-            arrow.setScale(this.arrowConfigs.scale.confirm);
+            // Only animate player arrows
+            if (note.isPlayerNote) {
+                arrow.x = confirmPos.x;
+                arrow.y = confirmPos.y;
+                arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                arrow.setScale(this.arrowConfigs.scale.confirm);
+            }
     
             if (note.isPlayerNote && currentTime - note.holdScoreTime >= this.holdScoreInterval) {
                 this.score += this.holdScoreRate;
                 note.holdScoreTime = currentTime;
             }
     
-            // Limpiar segmentos de hold note que ya han pasado
+            // Clean up hold segments
             if (note.holdSprites && note.holdSprites.length > 0) {
-                const scrollSpeed = 0.45 * this.speed;
                 const holdProgress = (currentTime - note.strumTime) / note.sustainLength;
                 const segmentsToDestroy = Math.floor(holdProgress * note.holdSprites.length);
     
@@ -561,14 +587,16 @@ export class NotesController {
                 }
             }
         } else {
-            // La hold note ha terminado
+            // Hold note finished
             this.cleanUpNote(note);
-            const arrow = this.playerArrows[directionIndex];
-            arrow.x = arrow.originalX;
-            arrow.y = arrow.originalY;
-            arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-            arrow.setScale(this.arrowConfigs.scale.static);
-            this.activeHoldNotes[directionIndex] = null;
+            if (note.isPlayerNote) {
+                const arrow = this.playerArrows[directionIndex];
+                arrow.x = arrow.originalX;
+                arrow.y = arrow.originalY;
+                arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                arrow.setScale(this.arrowConfigs.scale.static);
+                this.activeHoldNotes[directionIndex] = null;
+            }
         }
     }
     
@@ -597,6 +625,11 @@ export class NotesController {
     }
     
     autoHitEnemyNote(note) {
+        if (note.isPlayerNote) {
+            console.error("Attempted to auto-hit a player note!");
+            return;
+        }
+
         note.wasHit = true;
         const direction = this.directions[note.noteDirection];
         const arrow = this.enemyArrows[note.noteDirection];
@@ -607,12 +640,14 @@ export class NotesController {
         arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
         arrow.setScale(this.arrowConfigs.scale.confirm);
         
-        this.scene.time.delayedCall(this.arrowConfigs.confirmHoldTime, () => {
-            arrow.x = arrow.originalX;
-            arrow.y = arrow.originalY;
-            arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-            arrow.setScale(this.arrowConfigs.scale.static);
-        });
+        if (!note.isHoldNote) {
+            this.scene.time.delayedCall(this.arrowConfigs.confirmHoldTime, () => {
+                arrow.x = arrow.originalX;
+                arrow.y = arrow.originalY;
+                arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                arrow.setScale(this.arrowConfigs.scale.static);
+            });
+        }
         
         if (note.sprite?.active) {
             note.sprite.destroy();
@@ -621,11 +656,47 @@ export class NotesController {
         
         if (note.isHoldNote) {
             note.isBeingHeld = true;
-        } else if (note.holdSprites) {
-            note.holdSprites.forEach(sprite => {
-                if (sprite?.active) sprite.destroy();
-            });
-            note.holdSprites = [];
+            // Track enemy hold notes separately from player hold notes
+            note.enemyHoldActive = true;
+        }
+    }
+
+    updateEnemyHoldNote(note, currentTime) {
+        const holdEndTime = note.strumTime + note.sustainLength;
+        const directionIndex = note.noteDirection;
+        const direction = this.directions[directionIndex];
+    
+        if (currentTime <= holdEndTime) {
+            const arrow = this.enemyArrows[directionIndex];
+            const confirmPos = this.arrowConfigs.enemyConfirm[directionIndex];
+            
+            arrow.x = confirmPos.x;
+            arrow.y = confirmPos.y;
+            arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+            arrow.setScale(this.arrowConfigs.scale.confirm);
+    
+            // Clean up passed hold segments
+            if (note.holdSprites && note.holdSprites.length > 0) {
+                const scrollSpeed = 0.45 * this.speed;
+                const holdProgress = (currentTime - note.strumTime) / note.sustainLength;
+                const segmentsToDestroy = Math.floor(holdProgress * note.holdSprites.length);
+    
+                for (let i = 0; i < segmentsToDestroy; i++) {
+                    if (note.holdSprites[i]?.active) {
+                        note.holdSprites[i].destroy();
+                        note.holdSprites[i] = null;
+                    }
+                }
+            }
+        } else {
+            // Hold note finished
+            this.cleanUpNote(note);
+            const arrow = this.enemyArrows[directionIndex];
+            arrow.x = arrow.originalX;
+            arrow.y = arrow.originalY;
+            arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+            arrow.setScale(this.arrowConfigs.scale.static);
+            note.enemyHoldActive = false;
         }
     }
     
