@@ -1,6 +1,5 @@
 # 🎵 Genesis Engine
 
-
 > Bienvenido a Genesis Engine, una versión mejorada de Psych Engine, pero en Phaser.js. ¿Por qué Phaser? Porque es más fácil, más rápido y no te hace llorar sangre tratando de compilar con Haxe.
 
 Este motor está diseñado para que no tengas que tocar el código fuente, porque sabemos que lo único que quieres es agregar tu OC edgy y jugar con tus amigos sin sufrir. Es totalmente personalizable, multijugador y fácil de modificar, pero esta es la versión Source Code para los que les gusta meter mano y romper cosas.
@@ -9,7 +8,7 @@ Este motor está diseñado para que no tengas que tocar el código fuente, porqu
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=JavaScript&logoColor=black)](https://developer.mozilla.org/es/docs/Web/JavaScript)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-Genesis Engine es una reimaginación moderna de Psych Engine usando Phaser.js. Diseñado para ser accesible, rápido y fácil de modificar.
+(https://i.pinimg.com/originals/45/0a/50/450a50d67cc1585977586d1380d51332.gif)
 
 ## ✨ Características
 
@@ -91,8 +90,5 @@ Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detal
 
 ---
 
-<<<<<<< HEAD
- **Genesis Engine** - El motor que hace que jugar FNF sea fácil, rápido y sin compilaciones ridículas
-=======
- **Genesis Engine** - El motor que hace que jugar FNF sea fácil, rápido y sin compilaciones ridículas
->>>>>>> eb7ae9d (Update Readme and LICENSE)
+<
+ **Genesis Engine** - El motor que hace que jugar FNF sea fácil, rápido y sin compilaciones ridículas 
