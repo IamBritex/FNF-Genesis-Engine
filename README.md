@@ -74,7 +74,7 @@ Visita `http://localhost:5555` en tu navegador.
 Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detalles. (nada interesante, lo de siempre)
 
 ## Contribuir
-SI CONTRUBYES TE LO AGRADECERIA DEMASIADO
+> SI CONTRUBYES TE LO AGRADECERIA DEMASIADO y te ganarias una galleta de mi parte
 
 ![yeiii](https://i.pinimg.com/originals/0b/6a/3a/0b6a3a24b13dc400863f2ff129086be0.gif)
 
@@ -84,13 +84,16 @@ SI CONTRUBYES TE LO AGRADECERIA DEMASIADO
 4. Push a la rama (`git push origin feature/tralaleroTralala`)
 5. Abre un Pull Request
 
-## ⭐ Agradecimientos
+## Agradecimientos
 
-- Al equipo original de Friday Night Funkin'
-- A la comunidad de Phaser.js
-- A toda mi comunidad de YouTube
+- Al equipo original de Friday Night Funkin' [![FNF](https://avatars.githubusercontent.com/u/117059284?s=200&v=4)(https://github.com/FunkinCrew)]
+- A Alejo GD [![ALEE](https://cdn.discordapp.com/avatars/840045663730794526/f9372c252386c6dc27f0c1185aa163ac.webp?size=80)](https://github.com/AlejoGDOfficial)
+- A la comunidad de Phaser.js [![PHASER](https://avatars.githubusercontent.com/u/54856938?s=200&v=4)(https://github.com/phaserjs)]
+- A toda mi comunidad de YouTube [![:3](https://yt3.googleusercontent.com/ukK2-jZQ_APyd21GcdFnbZfNDbOKJxurxxMk7Sit9gmZO8a7RjZkIwrIvEF7h_J1ItM2v1LPb5Q=s160-c-k-c0x00ffffff-no-rj)(https://www.youtube.com/@ImBritex)]
 
 ---
 
 <
- **Genesis Engine** - El motor que hace que jugar FNF sea fácil, rápido y sin compilaciones ridículas 
+ **Genesis Engine** - Que es ```bash
+lime test windows
+```?
