@@ -90,4 +90,8 @@ Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detal
 
 ---
 
+<<<<<<< HEAD
  **Genesis Engine** - El motor que hace que jugar FNF sea fácil, rápido y sin compilaciones ridículas
+=======
+ **Genesis Engine** - El motor que hace que jugar FNF sea fácil, rápido y sin compilaciones ridículas
+>>>>>>> eb7ae9d (Update Readme and LICENSE)
