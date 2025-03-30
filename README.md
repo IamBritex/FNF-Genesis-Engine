@@ -1,8 +1,6 @@
-# 🎵 Genesis Engine
+# Genesis Engine
 
-> Bienvenido a Genesis Engine, una versión mejorada de Psych Engine, pero en Phaser.js. ¿Por qué Phaser? Porque es más fácil, más rápido y no te hace llorar sangre tratando de compilar con Haxe.
-
-Este motor está diseñado para que no tengas que tocar el código fuente, porque sabemos que lo único que quieres es agregar tu OC edgy y jugar con tus amigos sin sufrir. Es totalmente personalizable, multijugador y fácil de modificar, pero esta es la versión Source Code para los que les gusta meter mano y romper cosas.
+Estoy harto de compilar esta mierda, tanto la original, el PsychEngine y etc solo para terminar viendo un error de paquetes por que los desarrolladores no se atrevieron a poner los paquetes exactos para descargar y ahi tengo que estar investignado cual descargar... si, este engine es un desquito de eso y un poco más, aqui te presentare el metodo de compilacion (no descargaras 30GB de nada y no tardaras mil y un horas).
 
 [![Made with Phaser](https://img.shields.io/badge/Made%20With-Phaser-red.svg?style=for-the-badge&logo=phaser)](https://phaser.io)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=JavaScript&logoColor=black)](https://developer.mozilla.org/es/docs/Web/JavaScript)
@@ -11,15 +9,14 @@ Este motor está diseñado para que no tengas que tocar el código fuente, porqu
 
 ![WTF](https://i.pinimg.com/originals/45/0a/50/450a50d67cc1585977586d1380d51332.gif)
 
-## ✨ Características
+## Características
 
-- 🚀 **Sin compilación** - Ejecuta el juego directamente en tu navegador
-- 🎮 **Multijugador integrado** - Juega con amigos en tiempo real
-- 🛠 **Motor modular** - Personaliza y extiende fácilmente
-- 📦 **Liviano** - Menos de 100MB para una experiencia completa
-- 🌐 **Multiplataforma** - Funciona en cualquier navegador moderno
+- ![icon](https://iambritex.github.io/FNF-Genesis-Engine/public/html/icon16.png)**Sin compilación (por lo menos no como haxe)** - Ejecuta el juego directamente en tu navegador
+- ![icon](https://iambritex.github.io/FNF-Genesis-Engine/public/html/icon16.png) **Motor modular** - Personaliza y extiende fácilmente tus scripts
+- ![icon](https://iambritex.github.io/FNF-Genesis-Engine/public/html/icon16.png) **Multiplataforma** - Funciona en cualquier navegador y dispostivo que lo soporte
 
-## 🚀 Inicio Rápido
+## Inicio Rápido
+![:000](https://i.pinimg.com/originals/ec/ec/33/ecec330a1bb6b15b03ebd93c63f29d6c.gif)
 
 ### Prerrequisitos
 
@@ -46,7 +43,7 @@ npm install
 
 1. Instala la extensión [Five Server](https://marketplace.visualstudio.com/items?itemName=yandeu.five-server)
 2. Presiona `Ctrl + Shift + P`
-3. Busca y ejecuta "Five Server: Start Server"
+3. Busca y ejecuta "Five-Server: Start"
 
 #### 🔹 Terminal
 
@@ -62,20 +59,23 @@ Visita `http://localhost:5555` en tu navegador.
 - `npm test`: Ejecuta las pruebas
 - `npm run build`: Construye para producción
 
-## 🎮 Modding
+## Modding
+![uuuh](https://i.pinimg.com/originals/63/f9/52/63f952e836e2a95b8ce3ccfea410dd6d.gif)
 
 ¿Quieres agregar tu propio contenido? ¡Es fácil!
 
 1. Crea una nueva carpeta en `public/mods/tu-mod/`
 2. Añade tus recursos (sprites, música, etc.)
 3. Define tu mod en `modsList.txt`
-4. ¡Listo! Tu mod aparecerá en el menú de mods
+4. Y ya, a la mierda, aparece tu mod en la lista de mods
 
 ## 📝 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
+Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detalles. (nada interesante, lo de siempre)
 
-## 🤝 Contribuir
+## Contribuir
+SI CONTRUBYES TE LO AGRADECERIA DEMASIADO
+![yeiii](https://i.pinimg.com/originals/0b/6a/3a/0b6a3a24b13dc400863f2ff129086be0.gif)
 
 1. Fork el proyecto
 2. Crea tu rama (`git checkout -b feature/tralaleroTralala`)
