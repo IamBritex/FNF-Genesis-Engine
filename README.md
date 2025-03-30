@@ -8,7 +8,8 @@ Este motor está diseñado para que no tengas que tocar el código fuente, porqu
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=JavaScript&logoColor=black)](https://developer.mozilla.org/es/docs/Web/JavaScript)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-(https://i.pinimg.com/originals/45/0a/50/450a50d67cc1585977586d1380d51332.gif)
+
+![WTF](https://i.pinimg.com/originals/45/0a/50/450a50d67cc1585977586d1380d51332.gif)
 
 ## ✨ Características
 
