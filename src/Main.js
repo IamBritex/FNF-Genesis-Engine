@@ -1,44 +1,57 @@
+import { initVolumeControl, VolumeUIScene } from './core/soundtray.js';
+
+class MainScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'MainScene' });
+    }
+
+    preload() {
+        this.load.image('startImage', 'public/assets/images/touchHereToPlay.png');
+        this.load.image('funkay', 'public/assets/images/funkay.png');
+    }
+
+    create() {
+        let startButton = this.add.image(640, 360, 'startImage').setScale(0.5).setInteractive();
+
+        startButton.on('pointerdown', () => {
+            startButton.destroy();
+            this.scene.start('IntroMenu');
+            this.scene.get('VolumeUIScene').scene.bringToTop();
+        });
+
+        startButton.on('pointerover', () => {
+            startButton.setScale(0.55);
+            this.input.manager.canvas.style.cursor = 'pointer';
+        });
+
+        startButton.on('pointerout', () => {
+            startButton.setScale(0.5);
+            this.input.manager.canvas.style.cursor = 'default';
+        });
+    }
+
+    shutdown() {
+        this.input.keyboard.shutdown();
+        this.input.mouse.shutdown();
+        this.events.shutdown();
+        super.shutdown();
+    }
+}
 
 let config = {
     type: Phaser.AUTO,
     width: 1280,
     height: 720,
     parent: 'game-container',
-    scene: {
-        preload: preload,
-        create: create
-    },
+    scene: [MainScene, VolumeUIScene],
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     }
 };
 
-function preload() {
-    this.load.image('startImage', 'public/assets/images/touchHereToPlay.png');
-    this.load.image('funkay', 'public/assets/images/funkay.png');
-}
-
-function create() {
-    let startButton = this.add.image(640, 360, 'startImage').setScale(0.5).setInteractive(); // Adjust scale to 0.5
-
-    startButton.on('pointerdown', () => {
-        startButton.destroy();
-        this.scene.start('IntroMenu');
-    });
-
-    startButton.on('pointerover', () => {
-        startButton.setScale(0.55); // Increase size on hover
-        this.input.manager.canvas.style.cursor = 'pointer'; // Change cursor to pointer
-    });
-
-    startButton.on('pointerout', () => {
-        startButton.setScale(0.5); // Reset size when not hovering
-        this.input.manager.canvas.style.cursor = 'default'; // Reset cursor
-    });
-}
-
 window.game = new Phaser.Game(config);
+initVolumeControl();
 
 // ====== CONTROL DE PAUSA SEGÚN FOCO ======
 document.addEventListener("visibilitychange", () => {
