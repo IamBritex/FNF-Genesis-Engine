@@ -44,20 +44,41 @@ export class AudioManager {
 
     // Reproducir los archivos de audio de una canción
     playSongAudio(currentSong) {
-        // Crear instancia de Inst.ogg
-        const inst = this.scene.sound.add(`inst_${currentSong}`);
-        inst.play();
-
-        // Verificar si Voices.ogg existe antes de intentar reproducirlo
+        // Crear instancia del instrumental
+        const inst = this.scene.sound.add(`inst_${currentSong}`, {
+            loop: false,
+            volume: 1
+        });
+        
+        // Intentar crear instancia de las voces si existen
+        let voices = null;
         if (this.scene.cache.audio.exists(`voices_${currentSong}`)) {
-            const voices = this.scene.sound.add(`voices_${currentSong}`);
-            voices.play();
-            console.log(`Reproduciendo Voices.ogg para ${currentSong}`);
-        } else {
-            console.warn(`No se encontró Voices.ogg para ${currentSong}, solo se reproducirá Inst.ogg.`);
+            voices = this.scene.sound.add(`voices_${currentSong}`, {
+                loop: false,
+                volume: 1
+            });
         }
+        
+        // Reproducir ambas pistas sincronizadas
+        inst.play({ seek: 0 });
+        if (voices) {
+            voices.play({ seek: 0 });
+        }
+        
+        // Retornar ambas instancias
+        return {
+            inst,
+            voices
+        };
+    }
 
-        return inst;
+    stopSongAudio(audioInstances) {
+        if (audioInstances.inst) {
+            audioInstances.inst.stop();
+        }
+        if (audioInstances.voices) {
+            audioInstances.voices.stop();
+        }
     }
 
     // Obtener datos de audio (si es necesario)

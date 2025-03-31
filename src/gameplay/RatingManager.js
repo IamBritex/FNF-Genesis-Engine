@@ -32,8 +32,7 @@ export class RatingManager {
     initProperties() {
         this.combo = this.maxCombo = this.misses = 0;
         this.totalNotesHit = this.totalNotes = 0;
-        this.showInitialZeros = false;
-
+        
         this.ratings = {
             sick: { timing: 58, count: 0, weight: 1 },
             good: { timing: 95, count: 0, weight: 0.75 },
@@ -129,13 +128,11 @@ export class RatingManager {
         }
     }
 
-    updateComboNumbers() {
-        if (this.combo === 0 && !this.showInitialZeros) {
-            this.clearComboNumbers();
-            return;
-        }
-        
+    updateComboNumbers(shouldAnimate = true) {
         this.clearComboNumbers();
+        
+        // Si el combo es 0, no mostramos nada
+        if (this.combo === 0) return;
         
         const comboStr = this.combo.toString().padStart(3, '0');
         const { positions, imagePaths } = this.defaultConfig;
@@ -147,7 +144,6 @@ export class RatingManager {
         const totalWidth = (comboStr.length - 1) * comboNumbers.spacing;
         const startX = baseX - (totalWidth / 2) + comboNumbers.x;
 
-        // Create and show all numbers at once
         for (let i = 0; i < comboStr.length; i++) {
             const digit = parseInt(comboStr[i]);
             const x = startX + (i * comboNumbers.spacing);
@@ -168,7 +164,9 @@ export class RatingManager {
             this.comboNumbers.push(numberImage);
         }
         
-        this.animateComboNumbers();
+        if (shouldAnimate) {
+            this.animateComboNumbers();
+        }
     }
 
     clearComboNumbers() {
@@ -234,12 +232,14 @@ export class RatingManager {
 
     recordHit(timeDiff) {
         const rating = this.getRatingForTimeDiff(timeDiff);
+        const previousCombo = this.combo;
         
-        if (rating === "bad" || rating === "shit") {
+        if (rating === "shit") {
             this.combo = 0;
-            this.showInitialZeros = true;
+            this.clearComboNumbers(); // Solo limpiamos los números sin mostrar 000
         } else {
             this.combo++;
+            this.updateComboNumbers(true); // Actualizamos con animación
         }
         
         this.maxCombo = Math.max(this.maxCombo, this.combo);
@@ -248,7 +248,6 @@ export class RatingManager {
         this.totalNotes++;
         
         this.showRatingImage(rating);
-        this.updateComboNumbers();
         
         return rating;
     }
@@ -263,10 +262,9 @@ export class RatingManager {
         this.combo = 0;
         this.ratings.miss.count++;
         this.totalNotes++;
-        this.showInitialZeros = true;
         
         this.showRatingImage("miss");
-        this.updateComboNumbers();
+        this.clearComboNumbers(); // Solo limpiamos los números sin mostrar 000
     }
 
     showRatingImage(rating) {
@@ -335,7 +333,6 @@ export class RatingManager {
         
         this.combo = this.maxCombo = this.misses = 0;
         this.totalNotes = this.totalNotesHit = 0;
-        this.showInitialZeros = false;
 
         Object.values(this.ratings).forEach(rating => rating.count = 0);
         this.clearComboNumbers();
