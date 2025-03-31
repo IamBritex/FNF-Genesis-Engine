@@ -85,15 +85,21 @@ Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detal
 5. Abre un Pull Request
 
 ## Agradecimientos
+![pupapa](https://i.pinimg.com/originals/0e/9d/82/0e9d828e88b41dd819d9575b4a6a0f27.gif)
 
-- Al equipo original de Friday Night Funkin' [![FNF](https://avatars.githubusercontent.com/u/117059284?s=200&v=4)(https://github.com/FunkinCrew)]
-- A Alejo GD [![ALEE](https://cdn.discordapp.com/avatars/840045663730794526/f9372c252386c6dc27f0c1185aa163ac.webp?size=80)](https://github.com/AlejoGDOfficial)
-- A la comunidad de Phaser.js [![PHASER](https://avatars.githubusercontent.com/u/54856938?s=200&v=4)(https://github.com/phaserjs)]
-- A toda mi comunidad de YouTube [![:3](https://yt3.googleusercontent.com/ukK2-jZQ_APyd21GcdFnbZfNDbOKJxurxxMk7Sit9gmZO8a7RjZkIwrIvEF7h_J1ItM2v1LPb5Q=s160-c-k-c0x00ffffff-no-rj)(https://www.youtube.com/@ImBritex)]
+- Al equipo original de Friday Night Funkin' 
+[![FNF](https://avatars.githubusercontent.com/u/117059284?s=200&v=4)](https://github.com/FunkinCrew)
+- A Alejo GD 
+[![ALEE](https://cdn.discordapp.com/avatars/840045663730794526/f9372c252386c6dc27f0c1185aa163ac.webp?size=80)](https://github.com/AlejoGDOfficial)
+- A la comunidad de Phaser.js 
+[![PHASER](https://avatars.githubusercontent.com/u/54856938?s=200&v=4)](https://github.com/phaserjs)
+- A toda mi comunidad de YouTube 
+[![:3](https://yt3.googleusercontent.com/ukK2-jZQ_APyd21GcdFnbZfNDbOKJxurxxMk7Sit9gmZO8a7RjZkIwrIvEF7h_J1ItM2v1LPb5Q=s160-c-k-c0x00ffffff-no-rj)](https://www.youtube.com/@ImBritex)
 
 ---
 
 <
- **Genesis Engine** - Que es ```bash
+ **Genesis Engine** - El futuro es ahora, o algo así. 
+ ```bash
 lime test windows
 ```?
