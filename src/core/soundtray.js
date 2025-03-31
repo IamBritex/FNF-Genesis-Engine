@@ -91,6 +91,7 @@ function initVolumeControl() {
         switch(event.code) {
             case 'NumpadAdd':
             case 'Equal':
+            case 'Plus':  // Para algunos navegadores que usan 'Plus'
                 if (event.shiftKey || event.code === 'NumpadAdd') {
                     if (globalVolume >= VOLUME_SETTINGS.MAX) {
                         volumeSounds.max.play({ volume: 0.5 });
@@ -119,20 +120,22 @@ function initVolumeControl() {
                 
             case 'Numpad0':
             case 'Digit0':
-                if (isMuted) {
-                    globalVolume = roundVolume(previousVolume);
-                    game.sound.volume = globalVolume;
-                    isMuted = false;
-                    volumeSounds.up.play({ volume: 0.5 });
-                } else {
-                    previousVolume = roundVolume(globalVolume);
-                    globalVolume = 0;
-                    game.sound.volume = 0;
-                    isMuted = true;
-                    volumeSounds.down.play({ volume: 0.5 });
+                if (event.shiftKey || event.code === 'Numpad0' || event.code === 'Digit0') {
+                    if (isMuted) {
+                        globalVolume = roundVolume(previousVolume);
+                        game.sound.volume = globalVolume;
+                        isMuted = false;
+                        volumeSounds.up.play({ volume: 0.5 });
+                    } else {
+                        previousVolume = roundVolume(globalVolume);
+                        globalVolume = 0;
+                        game.sound.volume = 0;
+                        isMuted = true;
+                        volumeSounds.down.play({ volume: 0.5 });
+                    }
+                    updateVolumeUI();
+                    saveVolumeState();
                 }
-                updateVolumeUI();
-                saveVolumeState();
                 break;
         }
     });
