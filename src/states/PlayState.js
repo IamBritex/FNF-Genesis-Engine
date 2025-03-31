@@ -76,7 +76,6 @@ class PlayState extends Phaser.Scene {
 
         await this.audioManager.loadSongAudio(currentSong);
 
-        const songIndex = this.dataManager.currentSongIndex;
         const difficulty = this.dataManager.selectedDifficulty;
         const jsonPath = difficulty === 'normal' ? 
             `public/assets/data/data/${currentSong}/${currentSong}.json` :
@@ -128,8 +127,9 @@ class PlayState extends Phaser.Scene {
     }
 
     update(time, delta) {
-        if (this.isMusicPlaying) {
-            this.songPosition += delta;
+        if (this.isMusicPlaying && this.currentInst) {
+            // Obtener el tiempo exacto de la canción en milisegundos
+            this.songPosition = this.currentInst.seek * 1000;
             this.arrowsManager.update(this.songPosition);
         }
 
@@ -140,11 +140,20 @@ class PlayState extends Phaser.Scene {
 
     startMusic() {
         const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
-        const inst = this.audioManager.playSongAudio(currentSong);
+        const audioInstances = this.audioManager.playSongAudio(currentSong);
     
         this.isMusicPlaying = true;
+        
+        // Guardar referencias a ambas pistas
+        this.currentInst = audioInstances.inst;
+        this.currentVoices = audioInstances.voices;
     
-        inst.on('complete', () => {
+        // Configurar evento de finalización
+        this.currentInst.once('complete', () => {
+            this.isMusicPlaying = false;
+            if (this.currentVoices) {
+                this.currentVoices.stop();
+            }
             this.dataManager.currentSongIndex++;
             if (this.dataManager.currentSongIndex < this.dataManager.songList.length) {
                 // Clean up before restarting
@@ -175,6 +184,15 @@ class PlayState extends Phaser.Scene {
         // Reset song position and music playing flag
         this.songPosition = 0;
         this.isMusicPlaying = false;
+        
+        if (this.currentInst) {
+            this.currentInst.stop();
+        }
+        if (this.currentVoices) {
+            this.currentVoices.stop();
+        }
+        this.currentInst = null;
+        this.currentVoices = null;
         
         this.children.removeAll();
     }

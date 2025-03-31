@@ -293,12 +293,11 @@ export class NotesController {
                 this.keysHeld[direction] = false;
                 const arrow = this.playerArrows[index];
                 
-                if (!this.activeHoldNotes[index]) {
-                    arrow.x = arrow.originalX;
-                    arrow.y = arrow.originalY;
-                    arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                    arrow.setScale(this.arrowConfigs.scale.static);
-                }
+                // Always reset the arrow state when releasing the key
+                arrow.x = arrow.originalX;
+                arrow.y = arrow.originalY;
+                arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                arrow.setScale(this.arrowConfigs.scale.static);
                 
                 if (this.activeHoldNotes[index]) {
                     const holdNote = this.activeHoldNotes[index];
