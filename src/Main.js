@@ -1,4 +1,105 @@
-import { initVolumeControl, VolumeUIScene } from './core/soundtray.js';
+import { initVolumeControl, setVolumeUI, setCurrentScene, setVolumeSounds, updateVolumeUI } from './core/soundtray.js';
+
+class VolumeUIScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'VolumeUIScene', active: true });  // Hacemos la escena siempre activa
+    }
+
+    preload() {
+        this.load.image('volumeBox', 'public/assets/images/soundtray/volumebox.png');
+        for (let i = 1; i <= 10; i++) {
+            this.load.image(`volumeBar${i}`, `public/assets/images/soundtray/bars_${i}.png`);
+        }
+        
+        // Cargar los sonidos del control de volumen
+        this.load.audio('volUp', 'public/assets/sounds/soundtray/Volup.ogg');
+        this.load.audio('volDown', 'public/assets/sounds/soundtray/Voldown.ogg');
+        this.load.audio('volMax', 'public/assets/sounds/soundtray/VolMAX.ogg');
+    }
+
+    create() {
+        // Posiciones iniciales ajustadas
+        const initialY = -70;
+        const showY = 80; // Bajamos la posición de la caja en la ventana
+        const barOffset = -22; // Ajustamos el offset de la barra para que esté más arriba en la caja
+        
+        this.volumeUI = {
+            box: this.add.sprite(640, initialY, 'volumeBox'),
+            barBackground: this.add.sprite(640, initialY + barOffset, 'volumeBar10'),
+            bar: this.add.sprite(640, initialY + barOffset, 'volumeBar1')
+        };
+        
+        // Configurar la opacidad del fondo de las barras
+        this.volumeUI.barBackground.setAlpha(0.5); // Ajusta este valor entre 0 y 1
+        
+        // Configurar las profundidades
+        this.volumeUI.box.setDepth(9000);
+        this.volumeUI.barBackground.setDepth(9001);
+        this.volumeUI.bar.setDepth(9002);
+        
+        // Asignar la referencia global
+        setVolumeUI(this.volumeUI);
+        setCurrentScene(this);
+
+        // Método para animar la UI
+        this.showVolumeUI = () => {
+            if (this.hideTimeline) {
+                this.hideTimeline.stop();
+            }
+            
+            // Animar todos los elementos
+            this.tweens.add({
+                targets: [
+                    this.volumeUI.box,
+                    this.volumeUI.barBackground,
+                    this.volumeUI.bar
+                ],
+                y: function (target) {
+                    return target === this.volumeUI.box ? showY : showY + barOffset;
+                }.bind(this),
+                duration: 300,
+                ease: 'Back.easeOut'
+            });
+
+            if (this.hideTimer) clearTimeout(this.hideTimer);
+            this.hideTimer = setTimeout(() => this.hideVolumeUI(), 2000);
+        };
+
+        // Método para ocultar la UI
+        this.hideVolumeUI = () => {
+            this.hideTimeline = this.tweens.add({
+                targets: [
+                    this.volumeUI.box,
+                    this.volumeUI.barBackground,
+                    this.volumeUI.bar
+                ],
+                y: function (target) {
+                    return target === this.volumeUI.box ? initialY : initialY + barOffset;
+                }.bind(this),
+                duration: 300,
+                ease: 'Back.easeIn'
+            });
+        };
+
+        // Crear los sonidos
+        this.volumeSounds = {
+            up: this.sound.add('volUp'),
+            down: this.sound.add('volDown'),
+            max: this.sound.add('volMax')
+        };
+        
+        // Asignar los sonidos globalmente
+        setVolumeSounds(this.volumeSounds);
+
+        // Hacer que esta escena persista
+        this.scene.get('VolumeUIScene').scene.bringToTop();
+    }
+
+    shutdown() {
+        // Evitamos que la escena se destruya
+        return;
+    }
+}
 
 class MainScene extends Phaser.Scene {
     constructor() {
@@ -15,6 +116,7 @@ class MainScene extends Phaser.Scene {
 
         startButton.on('pointerdown', () => {
             startButton.destroy();
+            // Mantener la escena del volumen al cambiar
             this.scene.start('IntroMenu');
             this.scene.get('VolumeUIScene').scene.bringToTop();
         });
@@ -30,7 +132,9 @@ class MainScene extends Phaser.Scene {
         });
     }
 
+    // Método para limpiar la escena
     shutdown() {
+        // Limpiar todos los eventos y objetos
         this.input.keyboard.shutdown();
         this.input.mouse.shutdown();
         this.events.shutdown();
@@ -50,6 +154,7 @@ let config = {
     }
 };
 
+// Iniciar el juego después de definir las escenas
 window.game = new Phaser.Game(config);
 initVolumeControl();
 
