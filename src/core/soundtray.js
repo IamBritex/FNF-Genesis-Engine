@@ -88,55 +88,45 @@ function initVolumeControl() {
     document.addEventListener('keydown', (event) => {
         if (!volumeSounds || !game || !game.sound) return;
 
-        switch(event.code) {
-            case 'NumpadAdd':
-            case 'Equal':
-            case 'Plus':  // Para algunos navegadores que usan 'Plus'
-                if (event.shiftKey || event.code === 'NumpadAdd') {
-                    if (globalVolume >= VOLUME_SETTINGS.MAX) {
-                        volumeSounds.max.play({ volume: 0.5 });
-                    } else {
-                        globalVolume = roundVolume(Math.min(globalVolume + VOLUME_SETTINGS.STEP, VOLUME_SETTINGS.MAX));
-                        game.sound.volume = globalVolume;
-                        volumeSounds.up.play({ volume: 0.5 });
-                        updateVolumeUI();
-                        saveVolumeState();
-                    }
-                }
-                break;
-                
-            case 'NumpadSubtract':
-            case 'Minus':
-                if (event.shiftKey || event.code === 'NumpadSubtract') {
-                    if (globalVolume > VOLUME_SETTINGS.MIN) {
-                        globalVolume = roundVolume(Math.max(globalVolume - VOLUME_SETTINGS.STEP, VOLUME_SETTINGS.MIN));
-                        game.sound.volume = globalVolume;
-                        volumeSounds.down.play({ volume: 0.5 });
-                        updateVolumeUI();
-                        saveVolumeState();
-                    }
-                }
-                break;
-                
-            case 'Numpad0':
-            case 'Digit0':
-                if (event.shiftKey || event.code === 'Numpad0' || event.code === 'Digit0') {
-                    if (isMuted) {
-                        globalVolume = roundVolume(previousVolume);
-                        game.sound.volume = globalVolume;
-                        isMuted = false;
-                        volumeSounds.up.play({ volume: 0.5 });
-                    } else {
-                        previousVolume = roundVolume(globalVolume);
-                        globalVolume = 0;
-                        game.sound.volume = 0;
-                        isMuted = true;
-                        volumeSounds.down.play({ volume: 0.5 });
-                    }
-                    updateVolumeUI();
-                    saveVolumeState();
-                }
-                break;
+        // Uncomment to debug key codes
+        // console.log('Key pressed:', event.code, event.key);
+
+        // Handle volume controls based on both key code and character
+        if (event.code === 'NumpadAdd' || event.key === '+') {
+            if (globalVolume >= VOLUME_SETTINGS.MAX) {
+                volumeSounds.max.play({ volume: 0.5 });
+            } else {
+                globalVolume = roundVolume(Math.min(globalVolume + VOLUME_SETTINGS.STEP, VOLUME_SETTINGS.MAX));
+                game.sound.volume = globalVolume;
+                volumeSounds.up.play({ volume: 0.5 });
+                updateVolumeUI();
+                saveVolumeState();
+            }
+        } 
+        else if (event.code === 'NumpadSubtract' || event.key === '-') {
+            if (globalVolume > VOLUME_SETTINGS.MIN) {
+                globalVolume = roundVolume(Math.max(globalVolume - VOLUME_SETTINGS.STEP, VOLUME_SETTINGS.MIN));
+                game.sound.volume = globalVolume;
+                volumeSounds.down.play({ volume: 0.5 });
+                updateVolumeUI();
+                saveVolumeState();
+            }
+        }
+        else if (event.code === 'Numpad0' || event.code === 'Digit0') {
+            if (isMuted) {
+                globalVolume = roundVolume(previousVolume);
+                game.sound.volume = globalVolume;
+                isMuted = false;
+                volumeSounds.up.play({ volume: 0.5 });
+            } else {
+                previousVolume = roundVolume(globalVolume);
+                globalVolume = 0;
+                game.sound.volume = 0;
+                isMuted = true;
+                volumeSounds.down.play({ volume: 0.5 });
+            }
+            updateVolumeUI();
+            saveVolumeState();
         }
     });
 }
