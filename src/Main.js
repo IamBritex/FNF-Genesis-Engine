@@ -143,6 +143,7 @@ class MainScene extends Phaser.Scene {
 }
 
 let config = {
+    autoFocus: true,
     type: Phaser.AUTO,
     width: 1280,
     height: 720,
@@ -151,7 +152,8 @@ let config = {
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
-    }
+    },
+    debug: true // Habilita el modo debug general
 };
 
 // Iniciar el juego después de definir las escenas

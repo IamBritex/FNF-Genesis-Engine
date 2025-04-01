@@ -9,6 +9,8 @@ class PlayState extends Phaser.Scene {
         super({ key: "PlayState" });
         this.songPosition = 0;
         this.isMusicPlaying = false;
+        this.currentBPM = 0;
+        this.bpmChangePoints = [];
     }
 
     init(data) {
@@ -99,6 +101,7 @@ class PlayState extends Phaser.Scene {
             
             // IMPORTANTE: Guardar una copia en la escena
             this.songData = songData;
+            this.processBPMChanges(songData);
             
             // Pasar directamente el objeto songData al NotesController
             this.arrowsManager.loadNotes(songData);
@@ -122,15 +125,26 @@ class PlayState extends Phaser.Scene {
 
         this.arrowsManager.createPlayerArrows();
         this.arrowsManager.createEnemyArrows();
-        // En la escena de creación
         this.ratingManager.create();
     }
 
-    update(time, delta) {
+    update() {
         if (this.isMusicPlaying && this.currentInst) {
-            // Obtener el tiempo exacto de la canción en milisegundos
             this.songPosition = this.currentInst.seek * 1000;
+            
+            // Check for BPM changes
+            this.bpmChangePoints.forEach(change => {
+                if (this.songPosition >= change.time && this.currentBPM !== change.bpm) {
+                    this.currentBPM = change.bpm;
+                    // Update scroll speed based on new BPM
+                    if (this.arrowsManager) {
+                        this.arrowsManager.updateScrollSpeed(this.currentBPM);
+                    }
+                }
+            });
+            
             this.arrowsManager.update(this.songPosition);
+            this.arrowsManager.updateEnemyNotes(this.songPosition);
         }
 
         if (this.dataManager.isDataVisible) {
@@ -169,7 +183,6 @@ class PlayState extends Phaser.Scene {
 
     // New method to clean up resources before restarting
     cleanupBeforeRestart() {
-        // Stop all sounds
         this.sound.stopAll();
         
         // Clean up ArrowsManager resources
@@ -221,6 +234,24 @@ class PlayState extends Phaser.Scene {
         this.countdownManager = null;
         
         super.shutdown();
+    }
+
+    // Add this method to process BPM changes
+    processBPMChanges(songData) {
+        this.currentBPM = songData.bpm || 100;
+        this.bpmChangePoints = [];
+        
+        // Process BPM changes if they exist
+        if (songData.notes) {
+            songData.notes.forEach((section, index) => {
+                if (section.bpm && section.bpm !== this.currentBPM) {
+                    this.bpmChangePoints.push({
+                        time: section.sectionBeats * (60000 / this.currentBPM) * index,
+                        bpm: section.bpm
+                    });
+                }
+            });
+        }
     }
 }
 

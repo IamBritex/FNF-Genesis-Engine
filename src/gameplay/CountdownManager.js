@@ -22,6 +22,9 @@ export class CountdownManager {
 
     start(callback) {
         let step = 0;
+        const songData = this.scene.songData;
+        const bpm = songData?.bpm || 100; // Default to 100 if no BPM specified
+        const crochet = (60 / bpm) * 1000; // Convert BPM to milliseconds
 
         const showStep = () => {
             if (step < this.countdownData.length) {
@@ -35,12 +38,15 @@ export class CountdownManager {
                         this.scene.scale.height / 2, 
                         image
                     );
-                    countdownSound.on('complete', () => {
+                    
+                    // Destroy image after one beat
+                    this.scene.time.delayedCall(crochet, () => {
                         countdownImage.destroy();
                     });
                 }
 
-                countdownSound.on('complete', () => {
+                // Wait one beat before next step
+                this.scene.time.delayedCall(crochet, () => {
                     step++;
                     showStep();
                 });
