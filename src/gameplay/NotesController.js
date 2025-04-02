@@ -52,6 +52,8 @@ export class NotesController {
 
         this.setupInputHandlers();
         this.currentBPM = 100;
+
+        this.events = new Phaser.Events.EventEmitter();
     }
 
     // Input setup
@@ -253,6 +255,7 @@ export class NotesController {
             const direction = this.directions[i];
             const arrow = this.scene.add.sprite(pos.x, pos.y, 'noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
             arrow.setScale(this.arrowConfigs.scale.static);
+            arrow.setDepth(10); // Mayor profundidad que los personajes
             arrow.direction = direction;
             arrow.directionIndex = i;
             arrow.originalX = pos.x;
@@ -268,6 +271,7 @@ export class NotesController {
             const direction = this.directions[i];
             const arrow = this.scene.add.sprite(pos.x, pos.y, 'noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
             arrow.setScale(this.arrowConfigs.scale.static);
+            arrow.setDepth(10); // Mayor profundidad que los personajes
             arrow.direction = direction;
             arrow.directionIndex = i;
             arrow.originalX = pos.x;
@@ -394,6 +398,13 @@ export class NotesController {
         const rating = this.ratingManager.recordHit(timeDiff);
         this.combo = this.ratingManager.combo;
         this.maxCombo = this.ratingManager.maxCombo;
+
+        // Emitir evento de nota golpeada
+        this.events.emit('noteHit', {
+            direction: note.noteDirection,
+            isPlayerNote: true,
+            timeDiff: timeDiff
+        });
     }
     
     missNote(note) {
@@ -446,7 +457,7 @@ export class NotesController {
             `note${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`
         );
         noteSprite.setScale(this.arrowConfigs.scale.notes);
-        noteSprite.setDepth(10);
+        noteSprite.setDepth(5); // Profundidad entre personajes y flechas estáticas
         note.sprite = noteSprite;
         note.spawned = true;
         
@@ -685,13 +696,16 @@ export class NotesController {
         if (this.activeHoldNotes[dirIndex] === note) {
             this.activeHoldNotes[dirIndex] = null;
         }
+
+        // En NotesController donde manejas el fin de una nota confirmed
+        this.events.emit('noteEnd', {
+            direction: note.noteDirection,
+            isPlayerNote: note.isPlayerNote
+        });
     }
     
     autoHitEnemyNote(note) {
-        if (note.isPlayerNote) {
-            console.error("Attempted to auto-hit a player note!");
-            return;
-        }
+        if (note.isPlayerNote) return;
 
         note.wasHit = true;
         const direction = this.directions[note.noteDirection];
@@ -722,6 +736,13 @@ export class NotesController {
             // Track enemy hold notes separately from player hold notes
             note.enemyHoldActive = true;
         }
+
+        // Emitir evento de nota golpeada para el enemigo
+        this.events.emit('noteHit', {
+            direction: note.noteDirection,
+            isPlayerNote: false,
+            timeDiff: 0
+        });
     }
 
     updateEnemyHoldNote(note, currentTime) {
@@ -944,5 +965,18 @@ export class NotesController {
         this.currentBPM = bpm;
         // Adjust scroll speed based on BPM
         this.speed = this.currentBPM / 100; // Base speed normalized to 100 BPM
+    }
+
+    // Método helper para suscribirse a eventos
+    on(event, fn) {
+        this.events.on(event, fn);
+    }
+
+    // Add this method to handle note release
+    onNoteRelease(note) {
+        this.events.emit('noteRelease', {
+            direction: note.noteDirection,
+            isPlayerNote: note.isPlayerNote
+        });
     }
 }
