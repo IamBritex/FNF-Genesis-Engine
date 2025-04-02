@@ -71,12 +71,44 @@ export class DataManager {
       this.hideData();
 
       const { width, height } = this.scene.scale;
+      const songData = this.scene.songData?.song || {};
+      
+      // Calculate total notes and separate them by player/enemy
+      let totalNotes = 0;
+      let enemyNotes = 0;
+      let playerNotes = 0;
+
+      if (songData.notes) {
+          songData.notes.forEach(section => {
+              if (section.sectionNotes) {
+                  section.sectionNotes.forEach(note => {
+                      totalNotes++;
+                      // En FNF, las notas con mustHitSection true son del jugador
+                      if (section.mustHitSection) {
+                          if (note[1] < 4) playerNotes++;
+                          else enemyNotes++;
+                      } else {
+                          if (note[1] < 4) enemyNotes++;
+                          else playerNotes++;
+                      }
+                  });
+              }
+          });
+      }
+
       const leftData = {
           FPS: Math.round(this.scene.game.loop.actualFps),
           "Current Song": this.songList[this.currentSongIndex] || "None",
+          "Enemy": songData.player2 || "Unknown",
+          "Player": songData.player1 || "Unknown",
+          "GF Version": songData.gfVersion || "Unknown",
+          "Total Notes": totalNotes,
+          "Enemy Notes": enemyNotes,
+          "Player Notes": playerNotes,
+          "Total Sections": songData.notes ? songData.notes.length : 0,
+          "Speed": songData.speed || 1,
+          "BPM": songData.bpm || 100,
           Playtime: this.formatTime(this.scene.time.now - this.startTime),
-          "Loaded Images": Object.keys(this.scene.textures.list).length,
-          "Loaded Audio": this.scene.cache.audio.entries.size,
       };
 
       const rightData = {

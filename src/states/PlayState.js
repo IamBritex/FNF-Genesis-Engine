@@ -3,6 +3,7 @@ import { DataManager } from '../gameplay/DataManager.js';
 import { NotesController } from '../gameplay/NotesController.js';
 import { CountdownManager } from '../gameplay/CountdownManager.js'
 import { RatingManager } from '../gameplay/RatingManager.js';
+import { Characters } from '../gameplay/utils/Characters.js';
 
 class PlayState extends Phaser.Scene {
     constructor() {
@@ -11,6 +12,7 @@ class PlayState extends Phaser.Scene {
         this.isMusicPlaying = false;
         this.currentBPM = 0;
         this.bpmChangePoints = [];
+        this.characters = null;
     }
 
     init(data) {
@@ -20,7 +22,8 @@ class PlayState extends Phaser.Scene {
         this.dataManager = new DataManager(this);
         this.arrowsManager = new NotesController(this);
         this.countdownManager = new CountdownManager(this);
-        this.ratingManager = new RatingManager(this)
+        this.ratingManager = new RatingManager(this);
+        this.characters = new Characters(this);
         
         // Reset state variables
         this.songPosition = 0;
@@ -111,8 +114,11 @@ class PlayState extends Phaser.Scene {
             this.cameras.main.setBackgroundColor("#000000");
             this.dataManager.showData();
             
-            // Iniciar el conteo regresivo usando el CountdownManager
-            this.countdownManager.start(() => this.startMusic());
+            // Load characters after song data is loaded
+            this.characters.loadCharacterFromSong(songData).then(() => {
+                // Continue with countdown and music start
+                this.countdownManager.start(() => this.startMusic());
+            });
         });
     }
 
@@ -251,6 +257,24 @@ class PlayState extends Phaser.Scene {
                     });
                 }
             });
+        }
+    }
+
+    // In the keydown handler or note hit function:
+    handleNoteHit(direction) {
+        switch(direction) {
+            case 0: // LEFT
+                this.characters.playAnimation('bf', 'singLEFT');
+                break;
+            case 1: // DOWN
+                this.characters.playAnimation('bf', 'singDOWN');
+                break;
+            case 2: // UP
+                this.characters.playAnimation('bf', 'singUP');
+                break;
+            case 3: // RIGHT
+                this.characters.playAnimation('bf', 'singRIGHT');
+                break;
         }
     }
 }
