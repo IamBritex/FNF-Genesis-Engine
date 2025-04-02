@@ -1,5 +1,5 @@
-import { initVolumeControl, setVolumeUI, setCurrentScene, setVolumeSounds, updateVolumeUI } from './core/soundtray.js';
-
+import { initVolumeControl, setVolumeUI, setCurrentScene, setVolumeSounds } from './core/soundtray.js';
+import { MainScene } from './states/MainScene.js';
 class VolumeUIScene extends Phaser.Scene {
     constructor() {
         super({ key: 'VolumeUIScene', active: true });  // Hacemos la escena siempre activa
@@ -101,47 +101,6 @@ class VolumeUIScene extends Phaser.Scene {
     }
 }
 
-class MainScene extends Phaser.Scene {
-    constructor() {
-        super({ key: 'MainScene' });
-    }
-
-    preload() {
-        this.load.image('startImage', 'public/assets/images/touchHereToPlay.png');
-        this.load.image('funkay', 'public/assets/images/funkay.png');
-    }
-
-    create() {
-        let startButton = this.add.image(640, 360, 'startImage').setScale(0.5).setInteractive();
-
-        startButton.on('pointerdown', () => {
-            startButton.destroy();
-            // Mantener la escena del volumen al cambiar
-            this.scene.start('IntroMenu');
-            this.scene.get('VolumeUIScene').scene.bringToTop();
-        });
-
-        startButton.on('pointerover', () => {
-            startButton.setScale(0.55);
-            this.input.manager.canvas.style.cursor = 'pointer';
-        });
-
-        startButton.on('pointerout', () => {
-            startButton.setScale(0.5);
-            this.input.manager.canvas.style.cursor = 'default';
-        });
-    }
-
-    // Método para limpiar la escena
-    shutdown() {
-        // Limpiar todos los eventos y objetos
-        this.input.keyboard.shutdown();
-        this.input.mouse.shutdown();
-        this.events.shutdown();
-        super.shutdown();
-    }
-}
-
 let config = {
     autoFocus: true,
     type: Phaser.AUTO,
@@ -149,11 +108,13 @@ let config = {
     height: 720,
     parent: 'game-container',
     scene: [MainScene, VolumeUIScene],
+    backgrounColor: '#000000',
     scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        expandParent: true,
+        fullscreenTarget: 'game-container',
     },
-    debug: true // Habilita el modo debug general
 };
 
 // Iniciar el juego después de definir las escenas
