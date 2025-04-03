@@ -292,16 +292,44 @@ window.hitboxAndroid = class hitboxAndroid {
             { hitbox: this.hitboxRight, key: 'ArrowRight', keyCode: 39 }
         ];
 
+        // Track active pointers for each hitbox
+        const activePointers = new Map();
+
         hitboxes.forEach(({ hitbox, key, keyCode }) => {
             if (!hitbox) return;
 
-            hitbox.on('pointerdown', () => {
+            hitbox.on('pointerdown', (pointer) => {
+                // Store the pointer ID for this hitbox
+                activePointers.set(pointer.id, { key, keyCode });
                 this.createKeyEvent(key, keyCode, true);
             });
 
-            hitbox.on('pointerup', () => {
-                this.createKeyEvent(key, keyCode, false);
+            hitbox.on('pointerup', (pointer) => {
+                // Check if this pointer was pressing this hitbox
+                if (activePointers.has(pointer.id)) {
+                    const data = activePointers.get(pointer.id);
+                    this.createKeyEvent(data.key, data.keyCode, false);
+                    activePointers.delete(pointer.id);
+                }
             });
+
+            hitbox.on('pointerout', (pointer) => {
+                // Handle case where pointer leaves hitbox
+                if (activePointers.has(pointer.id)) {
+                    const data = activePointers.get(pointer.id);
+                    this.createKeyEvent(data.key, data.keyCode, false);
+                    activePointers.delete(pointer.id);
+                }
+            });
+        });
+
+        // Handle case where touch ends outside of hitbox
+        scene.input.on('pointerup', (pointer) => {
+            if (activePointers.has(pointer.id)) {
+                const data = activePointers.get(pointer.id);
+                this.createKeyEvent(data.key, data.keyCode, false);
+                activePointers.delete(pointer.id);
+            }
         });
     }
 

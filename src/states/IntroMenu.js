@@ -8,6 +8,7 @@ class IntroMenu extends Phaser.Scene {
     preload() {
         this.load.audio('introMusic', 'public/assets/sounds/FreakyMenu.mp3');
         this.load.image('newgrounds', 'public/assets/images/newgrounds.svg');
+        this.load.image('phaserLogo', 'public/assets/images/phaser.png');
         this.load.text('introRandomText', 'public/assets/data/introRandomText.txt'); // Cargar el archivo de texto
     }
 
@@ -36,8 +37,8 @@ class IntroMenu extends Phaser.Scene {
         this.randomTexts = textFile.split('\n').filter(line => line.trim() !== ''); // Dividir por líneas y eliminar vacías
 
         const steps = [
-            { text: "The Funkin Crew Inc", wait: 1 },
-            { text: "Presents", wait: 1.5 },
+            { text: "created with", wait: 1 },
+            { text: "Phaser", image: "phaserLogo", wait: 1.5 },
             { clear: true, wait: 1.6 },
             { text: "Not associated with", wait: 1.3 },
             { text: "Newgrounds", image: "newgrounds", wait: 1.3 },
