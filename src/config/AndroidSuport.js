@@ -213,6 +213,7 @@ window.hitboxAndroid = class hitboxAndroid {
     static isEnabled = false;
     static gameWidth = 0;
     static gameHeight = 0;
+    static currentScene = null;  // Add scene reference
 
     static initialize(scene) {
         if (!scene?.game?.device?.os?.android) return false;
@@ -222,6 +223,7 @@ window.hitboxAndroid = class hitboxAndroid {
             this.isEnabled = true;
             this.gameWidth = scene.game.config.width;
             this.gameHeight = scene.game.config.height;
+            this.currentScene = scene;  // Store scene reference
             this.createHitboxes(scene);
         }
         
@@ -270,7 +272,7 @@ window.hitboxAndroid = class hitboxAndroid {
             ...hitboxConfig
         });
 
-        this.setupHitboxEvents();
+        this.setupHitboxEvents();  // No need to pass scene anymore
     }
 
     static createHitbox(scene, config) {
@@ -285,6 +287,8 @@ window.hitboxAndroid = class hitboxAndroid {
     }
 
     static setupHitboxEvents() {
+        if (!this.currentScene) return;  // Use stored scene reference
+
         const hitboxes = [
             { hitbox: this.hitboxUp, key: 'ArrowUp', keyCode: 38 },
             { hitbox: this.hitboxDown, key: 'ArrowDown', keyCode: 40 },
@@ -292,44 +296,47 @@ window.hitboxAndroid = class hitboxAndroid {
             { hitbox: this.hitboxRight, key: 'ArrowRight', keyCode: 39 }
         ];
 
-        // Track active pointers for each hitbox
-        const activePointers = new Map();
+        const activeTouches = new Map();
 
         hitboxes.forEach(({ hitbox, key, keyCode }) => {
             if (!hitbox) return;
 
             hitbox.on('pointerdown', (pointer) => {
-                // Store the pointer ID for this hitbox
-                activePointers.set(pointer.id, { key, keyCode });
+                if (!activeTouches.has(hitbox)) {
+                    activeTouches.set(hitbox, new Set());
+                }
+                activeTouches.get(hitbox).add(pointer.id);
                 this.createKeyEvent(key, keyCode, true);
             });
 
             hitbox.on('pointerup', (pointer) => {
-                // Check if this pointer was pressing this hitbox
-                if (activePointers.has(pointer.id)) {
-                    const data = activePointers.get(pointer.id);
-                    this.createKeyEvent(data.key, data.keyCode, false);
-                    activePointers.delete(pointer.id);
-                }
-            });
-
-            hitbox.on('pointerout', (pointer) => {
-                // Handle case where pointer leaves hitbox
-                if (activePointers.has(pointer.id)) {
-                    const data = activePointers.get(pointer.id);
-                    this.createKeyEvent(data.key, data.keyCode, false);
-                    activePointers.delete(pointer.id);
+                if (activeTouches.has(hitbox)) {
+                    const touches = activeTouches.get(hitbox);
+                    if (touches.has(pointer.id)) {
+                        touches.delete(pointer.id);
+                        if (touches.size === 0) {
+                            this.createKeyEvent(key, keyCode, false);
+                            activeTouches.delete(hitbox);
+                        }
+                    }
                 }
             });
         });
 
-        // Handle case where touch ends outside of hitbox
-        scene.input.on('pointerup', (pointer) => {
-            if (activePointers.has(pointer.id)) {
-                const data = activePointers.get(pointer.id);
-                this.createKeyEvent(data.key, data.keyCode, false);
-                activePointers.delete(pointer.id);
-            }
+        // Global pointerup handler
+        this.currentScene.input.on('pointerup', (pointer) => {
+            activeTouches.forEach((touches, hitbox) => {
+                if (touches.has(pointer.id)) {
+                    touches.delete(pointer.id);
+                    if (touches.size === 0) {
+                        const hitboxData = hitboxes.find(h => h.hitbox === hitbox);
+                        if (hitboxData) {
+                            this.createKeyEvent(hitboxData.key, hitboxData.keyCode, false);
+                            activeTouches.delete(hitbox);
+                        }
+                    }
+                }
+            });
         });
     }
 
@@ -373,5 +380,6 @@ window.hitboxAndroid = class hitboxAndroid {
         this.instance = null;
         this.gameWidth = 0;
         this.gameHeight = 0;
+        this.currentScene = null;  // Reset scene reference
     }
 }

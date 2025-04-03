@@ -34,7 +34,7 @@ export class RatingManager {
         this.totalNotesHit = this.totalNotes = 0;
         
         this.ratings = {
-            sick: { timing: 58, count: 0, weight: 1 },
+            sick: { timing: 45, count: 0, weight: 1 },      // Changed from 58 to 45
             good: { timing: 95, count: 0, weight: 0.75 },
             bad: { timing: 140, count: 0, weight: 0.5 },
             shit: { timing: 180, count: 0, weight: 0.25 },

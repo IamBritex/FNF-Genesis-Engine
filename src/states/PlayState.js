@@ -128,8 +128,27 @@ class PlayState extends Phaser.Scene {
         this.dataManager.setupF3Toggle();
         this.cameras.main.setBackgroundColor("#000000");
         this.dataManager.setStartTime(this.time.now);
+        
+        // Set depth for different elements
         this.arrowsManager.createPlayerArrows();
         this.arrowsManager.createEnemyArrows();
+        
+        // Set depth for notes to be above strums
+        this.children.list.forEach(child => {
+            if (child.texture && child.texture.key === 'notes') {
+                child.setDepth(15); // Notes above strums
+            }
+            if (child.texture && child.texture.key === 'noteStrumline') {
+                child.setDepth(10); // Strums above characters
+            }
+        });
+
+        // Initialize Android hitbox if not already present
+        if (this.game.device.os.android && !this.hitboxInitialized) {
+            hitboxAndroid.initialize(this);
+            this.hitboxInitialized = true;
+        }
+        
         this.ratingManager.create();
         if (this.game.device.os.android) {
             hitboxAndroid.initialize(this);
@@ -215,7 +234,13 @@ class PlayState extends Phaser.Scene {
         this.currentInst = null;
         this.currentVoices = null;
         
-        this.children.removeAll();
+        // Do NOT destroy hitboxAndroid
+        // Remove everything except hitboxAndroid
+        this.children.list.forEach(child => {
+            if (!(child.texture && child.texture.key === 'hitbox')) {
+                child.destroy();
+            }
+        });
     }
 
     playFreakyMenuAndRedirect() {
