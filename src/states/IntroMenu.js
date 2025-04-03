@@ -15,6 +15,22 @@ class IntroMenu extends Phaser.Scene {
         console.log("IntroMenu cargado correctamente");
         const bpmTime = Math.floor((60 / 102) * 1235);
 
+        // Inicializar soporte Android si es necesario y está disponible
+        if (this.game.device.os.android) {
+            // Añadir soporte táctil directo además del AndroidSupport
+            this.input.on('pointerdown', () => {
+                if (!sceneEnded) {
+                    sceneEnded = true;
+                    this.scene.get("FlashEffect").startTransition("GfDanceState");
+                }
+            });
+
+            // Inicializar AndroidSupport si está disponible
+            if (window.AndroidSupport) {
+                window.AndroidSupport.initialize(this);
+            }
+        }
+
         // Obtener las líneas del archivo de texto
         const textFile = this.cache.text.get('introRandomText');
         this.randomTexts = textFile.split('\n').filter(line => line.trim() !== ''); // Dividir por líneas y eliminar vacías

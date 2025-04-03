@@ -220,6 +220,8 @@ class VolumeUIScene extends Phaser.Scene {
     }
 }
 
+
+
 // Exportar funciones necesarias
 export {
     initVolumeControl,

@@ -4,8 +4,12 @@ export class MainScene extends Phaser.Scene {
     }
 
     preload() {
+        this.load.image('newgrounds', 'public/assets/images/newgrounds.svg');
         this.load.image('startImage', 'public/assets/images/touchHereToPlay.png');
         this.load.image('funkay', 'public/assets/images/funkay.png');
+        this.load.atlasXML('gfDance', 'public/assets/images/states/IntroMenu/gfDanceTitle.png', 'public/assets/images/states/IntroMenu/gfDanceTitle.xml');
+        this.load.atlasXML('titleEnter', 'public/assets/images/states/IntroMenu/titleEnter.png', 'public/assets/images/states/IntroMenu/titleEnter.xml');
+        this.load.atlasXML('logoBumpin', 'public/assets/images/states/IntroMenu/logoBumpin.png', 'public/assets/images/states/IntroMenu/logoBumpin.xml');
     }
 
     create() {

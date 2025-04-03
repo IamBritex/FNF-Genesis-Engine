@@ -128,10 +128,12 @@ class PlayState extends Phaser.Scene {
         this.dataManager.setupF3Toggle();
         this.cameras.main.setBackgroundColor("#000000");
         this.dataManager.setStartTime(this.time.now);
-
         this.arrowsManager.createPlayerArrows();
         this.arrowsManager.createEnemyArrows();
         this.ratingManager.create();
+        if (this.game.device.os.android) {
+            hitboxAndroid.initialize(this);
+        }
     }
 
     update() {

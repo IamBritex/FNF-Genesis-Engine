@@ -1,5 +1,6 @@
 import { initVolumeControl, setVolumeUI, setCurrentScene, setVolumeSounds } from './core/soundtray.js';
 import { MainScene } from './states/MainScene.js';
+
 class VolumeUIScene extends Phaser.Scene {
     constructor() {
         super({ key: 'VolumeUIScene', active: true });  // Hacemos la escena siempre activa
@@ -9,9 +10,8 @@ class VolumeUIScene extends Phaser.Scene {
         this.load.image('volumeBox', 'public/assets/images/soundtray/volumebox.png');
         for (let i = 1; i <= 10; i++) {
             this.load.image(`volumeBar${i}`, `public/assets/images/soundtray/bars_${i}.png`);
-        }
-        
-        // Cargar los sonidos del control de volumen
+        }this.load.atlasXML('hitbox', 'public/assets/android/hitbox.png', 'public/assets/android/hitbox.xml');
+        this.load.atlasXML('virtualpad', 'public/assets/android/virtualpad.png', 'public/assets/android/virtualpad.xml');
         this.load.audio('volUp', 'public/assets/sounds/soundtray/Volup.ogg');
         this.load.audio('volDown', 'public/assets/sounds/soundtray/Voldown.ogg');
         this.load.audio('volMax', 'public/assets/sounds/soundtray/VolMAX.ogg');

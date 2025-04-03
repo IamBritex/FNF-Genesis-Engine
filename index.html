@@ -21,6 +21,7 @@
 
     <!-- Scripts del juego -->
     <script type="module" src="src/Main.js"></script>
+    <script src="src/config/AndroidSuport.js"></script>
     <script type="module" src="src/states/PlayState.js"></script>
     <script type="module" src="src/states/StoryModeState.js"></script>
     <script type="module" src="src/effects/flash.js"></script>
@@ -31,9 +32,17 @@
     <script type="module" src="src/states/MainMenuState.js"></script>
 
     <script>
-        document.getElementById('fullscreen-btn').addEventListener('focus', function(event) {
-            event.target.blur();
-        });
+        // Check if device is mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        
+        if (isMobile) {
+            fullscreenBtn.addEventListener('focus', function(event) {
+                event.target.blur();
+            });
+        } else {
+            fullscreenBtn.style.display = 'none';
+        }
     </script>
 </body>
 </html>
