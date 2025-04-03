@@ -74,7 +74,7 @@ class GfDanceState extends Phaser.Scene {
             repeat: -1
         });
 
-        // ====== DETECTAR TECLA ENTER ======
+        // ====== DETECTAR TECLA ENTER Y TOUCH EN ANDROID ======
         this.input.keyboard.on('keydown-ENTER', () => {
             enterLogo.play('enter_pressed');
             this.sound.play('confirm');
@@ -82,6 +82,22 @@ class GfDanceState extends Phaser.Scene {
                 this.scene.get("TransitionScene").startTransition("MainMenuState");
             });
         });
+
+        // Añadir soporte táctil para Android
+        if (this.game.device.os.android) {
+            this.input.on('pointerdown', () => {
+                enterLogo.play('enter_pressed');
+                this.sound.play('confirm');
+                this.time.delayedCall(800, () => { 
+                    this.scene.get("TransitionScene").startTransition("MainMenuState");
+                });
+            });
+
+            // Inicializar AndroidSupport si está disponible
+            if (window.AndroidSupport) {
+                window.AndroidSupport.initialize(this);
+            }
+        }
     }
 }
 

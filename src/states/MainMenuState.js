@@ -58,6 +58,29 @@ class MainMenuState extends Phaser.Scene {
 
         this.updateSelection();
 
+        // Añadir interactividad táctil para Android
+        if (this.game.device.os.android) {
+            this.menuOptions.forEach((option, index) => {
+                option.setInteractive();
+                
+                option.on('pointerdown', () => {
+                    if (this.selectedIndex === index) {
+                        // Si ya está seleccionada, ejecutar la opción
+                        this.selectOption();
+                    } else {
+                        // Si no está seleccionada, seleccionarla
+                        const difference = index - this.selectedIndex;
+                        this.changeSelection(difference);
+                    }
+                });
+            });
+
+            // Inicializar AndroidSupport si está disponible
+            if (window.AndroidSupport) {
+                window.AndroidSupport.initialize(this);
+            }
+        }
+
         // ====== INPUT KEYS ======
         this.input.keyboard.on('keydown', (event) => this.handleInput(event.code));
     }

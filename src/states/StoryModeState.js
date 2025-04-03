@@ -1,4 +1,3 @@
-// ====== CLASE CHARACTER ======
 // ====== CHARACTER CLASS ======
 class Character extends Phaser.GameObjects.Sprite {
     constructor(scene, x, y, characterData) {
@@ -287,6 +286,33 @@ class StoryModeState extends Phaser.Scene {
 
         this.loadCharacters();
 
+        // Añadir soporte táctil para Android
+        if (this.game.device.os.android) {
+            if (window.AndroidSupport) {
+                window.AndroidSupport.initialize(this);
+                
+                // Precargar el atlas de virtualpad si no está cargado
+                if (!this.textures.exists('virtualpad')) {
+                    this.load.atlasXML('virtualpad', 'public/assets/android/virtualpad.png', 'public/assets/android/virtualpad.xml');
+                    this.load.once('complete', () => {
+                        window.AndroidSupport.createVirtualButtons(this);
+                    });
+                    this.load.start();
+                } else {
+                    window.AndroidSupport.createVirtualButtons(this);
+                }
+            }
+        }
+
+        // Modificar los listeners existentes para incluir los eventos de Android
+        this.input.keyboard.on('keydown-ENTER', () => {
+            this.handleConfirm();
+        });
+
+        this.input.keyboard.on('keydown-BACKSPACE', () => {
+            this.handleBack();
+        });
+
         // Listener para la tecla Enter
         this.input.keyboard.on('keydown-ENTER', () => {
             if (!this.canPressEnter || this.keyState['ENTER']) return; // Evitar pulsaciones mantenidas
@@ -346,9 +372,7 @@ class StoryModeState extends Phaser.Scene {
         });
 
         this.input.keyboard.on('keydown-BACKSPACE', () => {
-            if (this.keyState['BACKSPACE']) return; // Evitar pulsaciones mantenidas
-            this.keyState['BACKSPACE'] = true; // Marcar la tecla como presionada
-            this.scene.start("MainMenuState");
+            this.handleBack();
         });
 
         this.input.keyboard.on('keyup-BACKSPACE', () => {
@@ -514,6 +538,23 @@ class StoryModeState extends Phaser.Scene {
         this.time.delayedCall(1500, () => {
             this.scene.start("PlayState", storyData);
         });
+    }
+
+    handleConfirm() {
+        if (!this.canPressEnter || this.keyState['ENTER']) return;
+        this.canPressEnter = false;
+        this.keyState['ENTER'] = true;
+        this.sound.play('confirmSound');
+        this.characters.forEach(character => {
+            character.playConfirmAnim();
+        });
+        this.selectWeek();
+    }
+    
+    handleBack() {
+        if (this.keyState['BACKSPACE']) return;
+        this.keyState['BACKSPACE'] = true;
+        this.scene.start("MainMenuState");
     }
     
 }

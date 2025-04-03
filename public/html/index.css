@@ -7,6 +7,8 @@
     box-sizing: border-box;
     overflow: hidden;
     background-color: black;
+    margin: 0%;
+    padding: 0%;
 }
 
 body html {
@@ -31,4 +33,12 @@ body html {
     border: none;
     color: white;
     z-index: 1000;
+    display: none; /* Hide by default */
+}
+
+/* Show only on mobile devices */
+@media screen and (max-width: 768px) {
+    #fullscreen-btn {
+        display: block;
+    }
 }
