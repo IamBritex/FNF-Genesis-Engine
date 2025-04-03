@@ -457,7 +457,7 @@ export class NotesController {
             `note${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`
         );
         noteSprite.setScale(this.arrowConfigs.scale.notes);
-        noteSprite.setDepth(5); // Profundidad entre personajes y flechas estáticas
+        noteSprite.setDepth(15); // Notes above everything
         note.sprite = noteSprite;
         note.spawned = true;
         
@@ -490,7 +490,7 @@ export class NotesController {
                 // Enhanced visibility settings
                 holdPiece.setScale(this.arrowConfigs.scale.holds);
                 holdPiece.setOrigin(0.5, 0);
-                holdPiece.setDepth(5);
+                holdPiece.setDepth(14); // Hold notes slightly below regular notes
                 holdPiece.setAlpha(1);
                 holdPiece.setVisible(true);
                 holdPiece.setActive(true);
@@ -511,7 +511,7 @@ export class NotesController {
             
             holdEnd.setScale(this.arrowConfigs.scale.holds);
             holdEnd.setOrigin(0.5, 0);
-            holdEnd.setDepth(5);
+            holdEnd.setDepth(14); // Hold notes slightly below regular notes
             holdEnd.setAlpha(1);
             holdEnd.setVisible(true);
             holdEnd.setActive(true);

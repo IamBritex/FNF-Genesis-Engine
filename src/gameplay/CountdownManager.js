@@ -1,6 +1,7 @@
 export class CountdownManager {
     constructor(scene) {
         this.scene = scene;
+        this.depth = 12; // Store depth value
         this.countdownData = [
             { sound: 'intro3', image: null },
             { sound: 'intro2', image: 'ready' },
@@ -20,6 +21,12 @@ export class CountdownManager {
         this.scene.load.image('go', 'public/assets/images/states/PlayState/countdown/funkin/go.png');
     }
 
+    create() {
+        this.countdownSprites.forEach(sprite => {
+            sprite.setDepth(12); // Above characters, below notes
+        });
+    }
+
     start(callback) {
         let step = 0;
         const songData = this.scene.songData;
@@ -37,7 +44,7 @@ export class CountdownManager {
                         this.scene.scale.width / 2, 
                         this.scene.scale.height / 2, 
                         image
-                    );
+                    ).setDepth(this.depth); // Set depth when creating image
                     
                     // Destroy image after one beat
                     this.scene.time.delayedCall(crochet, () => {
