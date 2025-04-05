@@ -87,7 +87,20 @@
 				-9
 			],
 			"fps": 24,
-			"anim": "danceLeft",
+			"anim": "e",
+			"indices": [
+
+			],
+			"name": "GF Dancing Beat"
+		},
+		{
+			"loop": false,
+			"offsets": [
+				0,
+				-9
+			],
+			"fps": 24,
+			"anim": "idle",
 			"indices": [
 				30,
 				0,
@@ -104,19 +117,7 @@
 				11,
 				12,
 				13,
-				14
-			],
-			"name": "GF Dancing Beat"
-		},
-		{
-			"loop": false,
-			"offsets": [
-				0,
-				-9
-			],
-			"fps": 24,
-			"anim": "idle",
-			"indices": [
+				14,
 				15,
 				16,
 				17,

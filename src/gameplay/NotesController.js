@@ -293,11 +293,30 @@ export class NotesController {
                     const pressPos = this.arrowConfigs.playerPress[index];
                     const arrow = this.playerArrows[index];
                     
+                    // Verificar si hay una nota para golpear
+                    const hasHittableNote = this.songNotes.some(note => 
+                        note.isPlayerNote && 
+                        note.noteDirection === index && 
+                        !note.wasHit && 
+                        !note.tooLate && 
+                        note.spawned && 
+                        Math.abs(note.strumTime - this.scene.songPosition) <= this.safeZoneOffset
+                    );
+
                     arrow.x = pressPos.x;
                     arrow.y = pressPos.y;
-                    arrow.setTexture('noteStrumline', `press${direction.charAt(0).toUpperCase() + direction.slice(1)}0003`);
-                    arrow.setScale(this.arrowConfigs.scale.press);
-                    this.checkNoteHit(index);
+                    
+                    // Usar textura diferente según si hay nota o no
+                    if (hasHittableNote) {
+                        // Usar la animación de confirm si hay nota para golpear
+                        arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                        arrow.setScale(this.arrowConfigs.scale.confirm);
+                        this.checkNoteHit(index);
+                    } else {
+                        // Usar la animación de press si no hay nota
+                        arrow.setTexture('noteStrumline', `press${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                        arrow.setScale(this.arrowConfigs.scale.press);
+                    }
                 }
             };
             
@@ -305,11 +324,17 @@ export class NotesController {
                 this.keysHeld[direction] = false;
                 const arrow = this.playerArrows[index];
                 
-                // SIEMPRE restaurar la flecha a su estado estático al soltar la tecla
+                // Volver al estado static
                 arrow.x = arrow.originalX;
                 arrow.y = arrow.originalY;
                 arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
                 arrow.setScale(this.arrowConfigs.scale.static);
+
+                // Emitir evento de noteReleased
+                this.events.emit('noteReleased', {
+                    direction: index,
+                    isPlayerNote: true
+                });
                 
                 if (this.activeHoldNotes[index]) {
                     const holdNote = this.activeHoldNotes[index];
@@ -717,32 +742,31 @@ export class NotesController {
         arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
         arrow.setScale(this.arrowConfigs.scale.confirm);
         
-        if (!note.isHoldNote) {
-            this.scene.time.delayedCall(this.arrowConfigs.confirmHoldTime, () => {
-                arrow.x = arrow.originalX;
-                arrow.y = arrow.originalY;
-                arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                arrow.setScale(this.arrowConfigs.scale.static);
-            });
-        }
-        
+        // Emitir evento para que el enemigo anime
+        this.events.emit('cpuNoteHit', {
+            direction: note.noteDirection,
+            isPlayerNote: false,
+            strumTime: note.strumTime
+        });
+
         if (note.sprite?.active) {
             note.sprite.destroy();
             note.sprite = null;
         }
         
-        if (note.isHoldNote) {
+        if (!note.isHoldNote) {
+            this.scene.time.delayedCall(this.arrowConfigs.confirmHoldTime, () => {
+                if (arrow.active) {
+                    arrow.x = arrow.originalX;
+                    arrow.y = arrow.originalY;
+                    arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                    arrow.setScale(this.arrowConfigs.scale.static);
+                }
+            });
+        } else {
             note.isBeingHeld = true;
-            // Track enemy hold notes separately from player hold notes
             note.enemyHoldActive = true;
         }
-
-        // Emitir evento de nota golpeada para el enemigo
-        this.events.emit('noteHit', {
-            direction: note.noteDirection,
-            isPlayerNote: false,
-            timeDiff: 0
-        });
     }
 
     updateEnemyHoldNote(note, currentTime) {
@@ -933,6 +957,13 @@ export class NotesController {
         if (note.isHoldNote) {
             note.enemyHoldActive = true;
         }
+
+        // Emitir evento para la animación del enemigo
+        this.events.emit('cpuNoteHit', {
+            direction: note.noteDirection,
+            isPlayerNote: false,
+            strumTime: note.strumTime
+        });
     }
 
     handleNoteRelease(noteData) {
@@ -978,5 +1009,18 @@ export class NotesController {
             direction: note.noteDirection,
             isPlayerNote: note.isPlayerNote
         });
+    }
+
+    handleCPUNote(note) {
+        // ...existing CPU note handling code...
+
+        // Emit cpuNoteHit event
+        this.events.emit('cpuNoteHit', {
+            direction: note.direction,
+            isPlayerNote: false,
+            strumTime: note.strumTime
+        });
+
+        // ...rest of CPU note handling...
     }
 }

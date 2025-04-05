@@ -49,8 +49,50 @@ export class Characters {
             // Establecer depth para que los personajes estén debajo de las flechas
             sprite.setDepth(1);
             
-            // Aplicar flip_x desde el JSON del personaje
-            sprite.setFlipX(characterData.flip_x);
+            // Si es jugador, volteamos cada frame de la textura
+            if (isPlayer) {
+                const texture = this.scene.textures.get(textureKey);
+                const frames = texture.getFrameNames();
+                
+                frames.forEach(frameName => {
+                    const frame = texture.frames[frameName];
+                    if (frame && !frame._flipped) {
+                        // Crear un canvas temporal para voltear el frame
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = frame.width;
+                        canvas.height = frame.height;
+                        
+                        // Dibujar el frame volteado
+                        ctx.save();
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(
+                            frame.source.image,
+                            -frame.cutX - frame.width,
+                            frame.cutY,
+                            frame.width,
+                            frame.height,
+                            0,
+                            0,
+                            frame.width,
+                            frame.height
+                        );
+                        ctx.restore();
+                        
+                        // Actualizar la textura con el frame volteado
+                        texture.add(frameName, 0, 
+                            frame.cutX, frame.cutY, 
+                            frame.width, frame.height,
+                            canvas
+                        );
+                        frame._flipped = true;
+                    }
+                });
+            } else {
+                // Para personajes que no son jugador, usar flip_x del JSON
+                sprite.setFlipX(characterData.flip_x);
+            }
+
             sprite.setScale(characterData.scale || 1);
             
             const characterInfo = {
@@ -171,9 +213,45 @@ export class Characters {
     subscribeToNoteEvents(characterId) {
         if (!this.notesController) return;
 
+        const heldDirections = new Map();
+        const IDLE_DELAY = 400; // 500ms delay before returning to idle
+
+        // Listen for CPU/enemy note hits
+        this.notesController.events.on('cpuNoteHit', (noteData) => {
+            const character = this.loadedCharacters.get(characterId);
+            if (!character || characterId !== this.currentEnemy) return;
+
+            const directionAnims = {
+                0: 'singLEFT',
+                1: 'singDOWN',
+                2: 'singUP',
+                3: 'singRIGHT'
+            };
+            
+            const animName = directionAnims[noteData.direction];
+            heldDirections.set(noteData.direction, animName);
+            
+            // Play the animation
+            this.playAnimation(characterId, animName);
+
+            // Set a timeout with fixed 500ms delay
+            if (character.idleTimeout) {
+                character.idleTimeout.remove();
+            }
+            
+            character.idleTimeout = this.scene.time.delayedCall(
+                IDLE_DELAY, // Use fixed 500ms delay instead of stepCrochet
+                () => {
+                    heldDirections.delete(noteData.direction);
+                    this.playAnimation(characterId, 'idle');
+                }
+            );
+        });
+
+        // Regular player note events
         this.notesController.events.on('noteHit', (noteData) => {
             const character = this.loadedCharacters.get(characterId);
-            if (!character) return;
+            if (!character || characterId !== this.currentPlayer) return;
 
             const isCorrectPlayer = (noteData.isPlayerNote && characterId === this.currentPlayer) || 
                                  (!noteData.isPlayerNote && characterId === this.currentEnemy);
@@ -185,12 +263,68 @@ export class Characters {
                     2: 'singUP',
                     3: 'singRIGHT'
                 };
+                
+                const animName = directionAnims[noteData.direction];
+                heldDirections.set(noteData.direction, animName);
+                
+                // Reproducir animación en loop mientras la nota esté presionada
+                this.playLoopingAnimation(characterId, animName);
+            }
+        });
 
-                this.playAnimation(characterId, directionAnims[noteData.direction]);
+        // For player note release
+        this.notesController.events.on('noteReleased', (noteData) => {
+            const character = this.loadedCharacters.get(characterId);
+            if (!character || characterId !== this.currentPlayer) return;
+
+            const isCorrectPlayer = (noteData.isPlayerNote && characterId === this.currentPlayer) || 
+                                 (!noteData.isPlayerNote && characterId === this.currentEnemy);
+
+            if (isCorrectPlayer) {
+                heldDirections.delete(noteData.direction);
+                
+                // Add delay before returning to idle
+                if (character.idleTimeout) {
+                    character.idleTimeout.remove();
+                }
+                
+                character.idleTimeout = this.scene.time.delayedCall(
+                    IDLE_DELAY,
+                    () => this.playAnimation(characterId, 'idle')
+                );
             }
         });
 
         // Iniciar con idle animation
         this.playAnimation(characterId, 'idle');
+    }
+
+    playLoopingAnimation(characterId, animName, isHolding = true) {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character) return;
+
+        const animation = character.data.animations.find(a => a.anim === animName);
+        if (!animation) return;
+
+        const animKey = `${character.textureKey}_${animation.anim}`;
+
+        // Si la tecla se suelta (isHolding = false), volver a idle
+        if (!isHolding) {
+            const idleAnim = `${character.textureKey}_idle`;
+            character.sprite.play(idleAnim, true);
+            character.currentAnimation = 'idle';
+            return;
+        }
+
+        // Forzar que la animación se reproduzca en loop mientras se mantiene
+        if (character.currentAnimation !== animName) {
+            if (character.idleTimeout) {
+                character.idleTimeout.remove();
+                character.idleTimeout = null;
+            }
+
+            character.sprite.play(animKey, true);
+            character.currentAnimation = animName;
+        }
     }
 }
