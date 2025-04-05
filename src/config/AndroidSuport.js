@@ -287,7 +287,7 @@ window.hitboxAndroid = class hitboxAndroid {
     }
 
     static setupHitboxEvents() {
-        if (!this.currentScene) return;  // Use stored scene reference
+        if (!this.currentScene) return;
 
         const hitboxes = [
             { hitbox: this.hitboxUp, key: 'ArrowUp', keyCode: 38 },
@@ -296,48 +296,52 @@ window.hitboxAndroid = class hitboxAndroid {
             { hitbox: this.hitboxRight, key: 'ArrowRight', keyCode: 39 }
         ];
 
-        const activeTouches = new Map();
+        // Track active touches per hitbox
+        const activePointers = new Map();
 
         hitboxes.forEach(({ hitbox, key, keyCode }) => {
             if (!hitbox) return;
 
+            hitbox.setInteractive({ draggable: false, pixelPerfect: false });
+
             hitbox.on('pointerdown', (pointer) => {
-                if (!activeTouches.has(hitbox)) {
-                    activeTouches.set(hitbox, new Set());
+                // Enable multi-touch by tracking each pointer separately
+                if (!activePointers.has(pointer.id)) {
+                    activePointers.set(pointer.id, { hitbox, key, keyCode });
+                    this.createKeyEvent(key, keyCode, true);
                 }
-                activeTouches.get(hitbox).add(pointer.id);
-                this.createKeyEvent(key, keyCode, true);
+            });
+
+            hitbox.on('pointerout', (pointer) => {
+                // Handle pointer leaving the hitbox
+                if (activePointers.has(pointer.id)) {
+                    const data = activePointers.get(pointer.id);
+                    this.createKeyEvent(data.key, data.keyCode, false);
+                    activePointers.delete(pointer.id);
+                }
             });
 
             hitbox.on('pointerup', (pointer) => {
-                if (activeTouches.has(hitbox)) {
-                    const touches = activeTouches.get(hitbox);
-                    if (touches.has(pointer.id)) {
-                        touches.delete(pointer.id);
-                        if (touches.size === 0) {
-                            this.createKeyEvent(key, keyCode, false);
-                            activeTouches.delete(hitbox);
-                        }
-                    }
+                // Handle pointer release
+                if (activePointers.has(pointer.id)) {
+                    const data = activePointers.get(pointer.id);
+                    this.createKeyEvent(data.key, data.keyCode, false);
+                    activePointers.delete(pointer.id);
                 }
             });
         });
 
-        // Global pointerup handler
+        // Global pointer up handler to catch all releases
         this.currentScene.input.on('pointerup', (pointer) => {
-            activeTouches.forEach((touches, hitbox) => {
-                if (touches.has(pointer.id)) {
-                    touches.delete(pointer.id);
-                    if (touches.size === 0) {
-                        const hitboxData = hitboxes.find(h => h.hitbox === hitbox);
-                        if (hitboxData) {
-                            this.createKeyEvent(hitboxData.key, hitboxData.keyCode, false);
-                            activeTouches.delete(hitbox);
-                        }
-                    }
-                }
-            });
+            if (activePointers.has(pointer.id)) {
+                const data = activePointers.get(pointer.id);
+                this.createKeyEvent(data.key, data.keyCode, false);
+                activePointers.delete(pointer.id);
+            }
         });
+
+        // Enable multi-touch in the scene
+        this.currentScene.input.addPointer(3); // Support up to 4 simultaneous touches
     }
 
     static createKeyEvent(key, keyCode, isDown) {

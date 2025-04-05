@@ -153,6 +153,10 @@ class PlayState extends Phaser.Scene {
         if (this.game.device.os.android) {
             hitboxAndroid.initialize(this);
         }
+
+        // Initialize controllers
+        this.notesController = new NotesController(this);
+        this.countdownManager = new CountdownManager(this, this.notesController);
     }
 
     update() {

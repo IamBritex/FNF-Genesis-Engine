@@ -8,7 +8,6 @@ export class RatingManager {
                 good: 'public/assets/images/ratings/good.png',
                 bad: 'public/assets/images/ratings/bad.png',
                 shit: 'public/assets/images/ratings/shit.png',
-                miss: 'public/assets/images/ratings/miss.png',
                 numbers: Array(10).fill().map((_, i) => `public/assets/images/states/PlayState/PopNum/num${i}.png`)
             },
             positions: {
@@ -268,6 +267,9 @@ export class RatingManager {
     }
 
     showRatingImage(rating) {
+        // Skip showing image for misses
+        if (rating === "miss") return;
+
         const { positions, animation } = this.defaultConfig;
         const centerX = positions.rating.x !== null ? positions.rating.x : this.scene.cameras.main.width / 2;
         const startY = positions.rating.y;
