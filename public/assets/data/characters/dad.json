@@ -124,7 +124,7 @@
 	"image": "characters/DADDY_DEAREST",
 	"position": [
 		0,
-		0
+		10
 	],
 	"healthicon": "dad",
 	"flip_x": false,

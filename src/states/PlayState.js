@@ -4,6 +4,7 @@ import { NotesController } from '../gameplay/NotesController.js';
 import { CountdownManager } from '../gameplay/CountdownManager.js'
 import { RatingManager } from '../gameplay/RatingManager.js';
 import { Characters } from '../gameplay/utils/Characters.js';
+import { CameraController } from '../gameplay/utils/Camera.js';
 
 class PlayState extends Phaser.Scene {
     constructor() {
@@ -13,6 +14,7 @@ class PlayState extends Phaser.Scene {
         this.currentBPM = 0;
         this.bpmChangePoints = [];
         this.characters = null;
+        this.cameraController = null;
     }
 
     init(data) {
@@ -24,6 +26,7 @@ class PlayState extends Phaser.Scene {
         this.countdownManager = new CountdownManager(this);
         this.ratingManager = new RatingManager(this);
         this.characters = new Characters(this);
+        this.cameraController = new CameraController(this);
         
         // Reset state variables
         this.songPosition = 0;
@@ -89,34 +92,83 @@ class PlayState extends Phaser.Scene {
         this.load.json('songData', jsonPath);
         this.load.start();
 
-        this.load.once('complete', () => {
-            // Obtener los datos de la canción
+        this.load.once('complete', async () => {
             const songData = this.cache.json.get('songData');
-            console.log("songData:", songData);
-
-            if (!songData) {
-                console.error("Error: No se pudo cargar el JSON de la canción.");
+            
+            if (!songData || !songData.song) {
+                console.error("Error: Invalid song data");
+                this.redirectToNextState();
                 return;
+            }
+
+            // Store song data
+            this.songData = songData;
+            
+            // Update camera section length based on actual BPM
+            const stepCrochet = (60000 / songData.song.bpm) / 4;
+            const sectionLength = stepCrochet * 16;
+            this.cameraController.initialize(sectionLength);
+            
+            this.processBPMChanges(songData);
+            this.arrowsManager.loadNotes(songData);
+
+            // Precargar assets de personajes antes de continuar
+            if (songData.song) {
+                const { player1, player2, gfVersion } = songData.song;
+                
+                // Cargar JSONs de personajes
+                const characterPromises = [
+                    fetch(`public/assets/data/characters/${player1}.json`).then(r => r.json()),
+                    fetch(`public/assets/data/characters/${player2}.json`).then(r => r.json())
+                ];
+
+                // Añadir GF si está especificada
+                if (gfVersion) {
+                    characterPromises.push(
+                        fetch(`public/assets/data/characters/${gfVersion}.json`).then(r => r.json())
+                    );
+                }
+
+                try {
+                    const characterData = await Promise.all(characterPromises);
+                    
+                    // Cargar texturas de personajes
+                    const loadTexture = (characterId, data) => {
+                        const baseImagePath = `public/assets/images/${data.image}`;
+                        const textureKey = `character_${characterId}`;
+                        this.load.atlasXML(
+                            textureKey,
+                            `${baseImagePath}.png`,
+                            `${baseImagePath}.xml`
+                        );
+                    };
+
+                    loadTexture(player1, characterData[0]);
+                    loadTexture(player2, characterData[1]);
+                    if (gfVersion) {
+                        loadTexture(gfVersion, characterData[2]);
+                    }
+
+                    // Iniciar la carga de texturas
+                    await new Promise(resolve => {
+                        this.load.once('complete', resolve);
+                        this.load.start();
+                    });
+                } catch (error) {
+                    console.error("Error loading character assets:", error);
+                }
             }
 
             // Guardar una referencia global para debugging
             window.currentSongData = songData;
             
-            // IMPORTANTE: Guardar una copia en la escena
-            this.songData = songData;
-            this.processBPMChanges(songData);
-            
-            // Pasar directamente el objeto songData al NotesController
-            this.arrowsManager.loadNotes(songData);
-
             this.loadingImage.destroy();
             this.loadBar.destroy();
             this.cameras.main.setBackgroundColor("#000000");
             this.dataManager.showData();
             
-            // Load characters after song data is loaded
+            // Ahora llamamos a loadCharacterFromSong que ya no necesita cargar assets
             this.characters.loadCharacterFromSong(songData).then(() => {
-                // Continue with countdown and music start
                 this.countdownManager.start(() => this.startMusic());
             });
         });
@@ -128,6 +180,9 @@ class PlayState extends Phaser.Scene {
         this.dataManager.setupF3Toggle();
         this.cameras.main.setBackgroundColor("#000000");
         this.dataManager.setStartTime(this.time.now);
+        
+        // Initialize camera with default values first
+        this.cameraController.initialize(1600); // Default section length for 100 BPM
         
         // Set depth for different elements
         this.arrowsManager.createPlayerArrows();
@@ -143,16 +198,13 @@ class PlayState extends Phaser.Scene {
             }
         });
 
-        // Initialize Android hitbox if not already present
+        // Initialize Android hitbox if needed
         if (this.game.device.os.android && !this.hitboxInitialized) {
             hitboxAndroid.initialize(this);
             this.hitboxInitialized = true;
         }
         
         this.ratingManager.create();
-        if (this.game.device.os.android) {
-            hitboxAndroid.initialize(this);
-        }
 
         // Initialize controllers
         this.notesController = new NotesController(this);
@@ -167,6 +219,8 @@ class PlayState extends Phaser.Scene {
             this.bpmChangePoints.forEach(change => {
                 if (this.songPosition >= change.time && this.currentBPM !== change.bpm) {
                     this.currentBPM = change.bpm;
+                    // Actualizar BPM en el controlador de cámara
+                    this.cameraController.updateBPM(this.currentBPM);
                     // Update scroll speed based on new BPM
                     if (this.arrowsManager) {
                         this.arrowsManager.updateScrollSpeed(this.currentBPM);
@@ -176,6 +230,9 @@ class PlayState extends Phaser.Scene {
             
             this.arrowsManager.update(this.songPosition);
             this.arrowsManager.updateEnemyNotes(this.songPosition);
+
+            // Actualizar la cámara
+            this.cameraController.update(this.songPosition);
         }
 
         if (this.dataManager.isDataVisible) {
@@ -188,6 +245,7 @@ class PlayState extends Phaser.Scene {
         const audioInstances = this.audioManager.playSongAudio(currentSong);
     
         this.isMusicPlaying = true;
+        this.cameraController.startBoping(); // Iniciar el bop de la cámara
         
         // Guardar referencias a ambas pistas
         this.currentInst = audioInstances.inst;
@@ -245,6 +303,13 @@ class PlayState extends Phaser.Scene {
                 child.destroy();
             }
         });
+
+        if (this.cameraController) {
+            this.cameraController.reset();
+            this.cameraController.initialize(1600); // Reset to default section length
+        }
+
+        this.songData = null;
     }
 
     playFreakyMenuAndRedirect() {
