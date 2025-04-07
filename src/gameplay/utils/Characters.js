@@ -1,330 +1,399 @@
 export class Characters {
-    constructor(scene) {
-        this.scene = scene;
-        this.loadedCharacters = new Map();
-        this.notesController = scene.arrowsManager;
-        this.currentPlayer = null;
-        this.currentEnemy = null;
+  constructor(scene) {
+    this.scene = scene;
+    this.loadedCharacters = new Map();
+    this.notesController = scene.arrowsManager;
+    this.currentPlayer = null;
+    this.currentEnemy = null;
+    this.currentGF = null;
+    this.tweens = new Map();
+  }
+
+  async loadCharacterFromSong(songData) {
+    // Carga los personajes desde los datos de la canción - Load characters from song data
+    if (!songData.song) return;
+
+    const { player1, player2, gfVersion } = songData.song;
+    this.currentPlayer = player1;
+    this.currentEnemy = player2;
+    this.currentGF = gfVersion;
+
+    const loadPromises = [
+      this.createCharacter(player1, true),
+      this.createCharacter(player2, false),
+    ];
+
+    if (gfVersion) {
+      loadPromises.push(this.createGFCharacter(gfVersion));
     }
 
-    async loadCharacterFromSong(songData) {
-        if (!songData.song) return;
+    await Promise.all(loadPromises);
+  }
 
-        const { player1, player2 } = songData.song;
-        
-        this.currentPlayer = player1;
-        this.currentEnemy = player2;
-        
-        await Promise.all([
-            this.loadCharacter(player1, true),
-            this.loadCharacter(player2, false)
-        ]);
+  async createCharacter(characterId, isPlayer) {
+    try {
+      // Crea la textura y carga el JSON del personaje - Create texture and load character JSON
+      const textureKey = `character_${characterId}`;
+      const characterPath = `public/assets/data/characters/${characterId}.json`;
+      const response = await fetch(characterPath);
+      const characterData = await response.json();
+
+      const sprite = this.scene.add.sprite(0, 0, textureKey);
+      sprite.setOrigin(0, 0);
+      sprite.setDepth(isPlayer ? 2 : 1);
+
+      // Voltea los frames si es el jugador - Flip frames if it's the player
+      if (isPlayer) {
+        const texture = this.scene.textures.get(textureKey);
+        this.flipPlayerFrames(texture);
+      } else {
+        sprite.setFlipX(characterData.flip_x);
+      }
+
+      sprite.setScale(characterData.scale || 1);
+
+      // Configura la información base del personaje - Set up base character info
+      const characterInfo = {
+        data: characterData,
+        sprite: sprite,
+        textureKey: textureKey,
+        isPlayer: isPlayer,
+        currentAnimation: null,
+        basePosition: {
+          x: characterData.position[0],
+          y: characterData.position[1],
+        },
+      };
+
+      gsap.set(sprite, {
+        x: characterData.position[0],
+        y: characterData.position[1],
+      });
+
+      // Inicializa animaciones y eventos - Initialize animations and events
+      this.setupAnimations(characterInfo);
+      this.loadedCharacters.set(characterId, characterInfo);
+      this.playAnimation(characterId, "idle");
+      this.subscribeToNoteEvents(characterId);
+
+      return characterInfo;
+    } catch (error) {
+      console.error(`Error loading character ${characterId}:`, error);
+      return null;
     }
+  }
 
-    async loadCharacter(characterId, isPlayer) {
-        try {
-            const characterPath = `public/assets/data/characters/${characterId}.json`;
-            const characterData = await fetch(characterPath).then(r => r.json());
+  async createGFCharacter(characterId) {
+    try {
+      const textureKey = `character_${characterId}`;
+      const characterPath = `public/assets/data/characters/${characterId}.json`;
+      const response = await fetch(characterPath);
+      const characterData = await response.json();
 
-            const baseImagePath = `public/assets/images/${characterData.image}`;
-            const textureKey = `character_${characterId}`;
+      const sprite = this.scene.add.sprite(0, 0, textureKey);
+      sprite.setOrigin(0, 0);
+      sprite.setDepth(0);
+      sprite.setScale(characterData.scale || 1);
 
-            this.scene.load.atlasXML(
-                textureKey,
-                `${baseImagePath}.png`,
-                `${baseImagePath}.xml`
-            );
-            
-            await new Promise(resolve => {
-                this.scene.load.once('complete', resolve);
-                this.scene.load.start();
-            });
+      const characterInfo = {
+        data: characterData,
+        sprite: sprite,
+        textureKey: textureKey,
+        isPlayer: false,
+        currentAnimation: null,
+        isGF: true,
+        basePosition: {
+          x: characterData.position[0],
+          y: characterData.position[1],
+        },
+      };
 
-            const sprite = this.scene.add.sprite(
-                characterData.position[0],
-                characterData.position[1],
-                textureKey
-            );
+      gsap.set(sprite, {
+        x: characterData.position[0],
+        y: characterData.position[1],
+      });
 
-            // Establecer depth para que los personajes estén debajo de las flechas
-            sprite.setDepth(1);
-            
-            // Si es jugador, volteamos cada frame de la textura
-            if (isPlayer) {
-                const texture = this.scene.textures.get(textureKey);
-                const frames = texture.getFrameNames();
-                
-                frames.forEach(frameName => {
-                    const frame = texture.frames[frameName];
-                    if (frame && !frame._flipped) {
-                        // Crear un canvas temporal para voltear el frame
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = frame.width;
-                        canvas.height = frame.height;
-                        
-                        // Dibujar el frame volteado
-                        ctx.save();
-                        ctx.scale(-1, 1);
-                        ctx.drawImage(
-                            frame.source.image,
-                            -frame.cutX - frame.width,
-                            frame.cutY,
-                            frame.width,
-                            frame.height,
-                            0,
-                            0,
-                            frame.width,
-                            frame.height
-                        );
-                        ctx.restore();
-                        
-                        // Actualizar la textura con el frame volteado
-                        texture.add(frameName, 0, 
-                            frame.cutX, frame.cutY, 
-                            frame.width, frame.height,
-                            canvas
-                        );
-                        frame._flipped = true;
-                    }
-                });
-            } else {
-                // Para personajes que no son jugador, usar flip_x del JSON
-                sprite.setFlipX(characterData.flip_x);
-            }
+      this.setupGFAnimation(characterInfo);
+      this.loadedCharacters.set(characterId, characterInfo);
+      this.playGFIdleAnimation(characterId);
 
-            sprite.setScale(characterData.scale || 1);
-            
-            const characterInfo = {
-                data: characterData,
-                sprite: sprite,
-                textureKey: textureKey,
-                isPlayer: isPlayer,
-                currentAnimation: null
-            };
+      return characterInfo;
+    } catch (error) {
+      console.error(`Error creating GF character ${characterId}:`, error);
+      return null;
+    }
+  }
 
-            this.setupAnimations(characterInfo);
-            this.loadedCharacters.set(characterId, characterInfo);
-            
-            // Iniciar con animación idle
-            this.playAnimation(characterId, 'idle');
+  setupGFAnimation(characterInfo) {
+    const { data, textureKey } = characterInfo;
+    const idleAnimation = data.animations.find((anim) => anim.anim === "idle");
 
-            // Suscribirse a eventos de notas
-            this.subscribeToNoteEvents(characterId);
+    if (idleAnimation) {
+      const frames = this.scene.textures.get(textureKey).getFrameNames();
+      let idleFrames;
 
-            return characterInfo;
+      if (idleAnimation.indices?.length > 0) {
+        idleFrames = idleAnimation.indices
+          .map((index) => {
+            const paddedIndex = String(index).padStart(4, "0");
+            return frames.find((frame) => frame.startsWith(`${idleAnimation.name}${paddedIndex}`));
+          })
+          .filter(Boolean);
+      } else {
+        idleFrames = frames.filter((frame) => frame.startsWith(idleAnimation.name)).sort();
+      }
 
-        } catch (error) {
-            console.error(`Error loading character ${characterId}:`, error);
-            return null;
+      if (idleFrames.length > 0) {
+        const animKey = `${textureKey}_idle`;
+
+        if (!this.scene.anims.exists(animKey)) {
+          this.scene.anims.create({
+            key: animKey,
+            frames: idleFrames.map((frameName) => ({
+              key: textureKey,
+              frame: frameName,
+            })),
+            frameRate: idleAnimation.fps || 24,
+            repeat: -1,
+          });
         }
+      }
     }
+  }
 
-    setupAnimations(characterInfo) {
-        const { data, textureKey } = characterInfo;
-        
-        data.animations.forEach(animation => {
-            const frames = this.scene.textures.get(textureKey).getFrameNames();
-            let animationFrames;
+  playGFIdleAnimation(characterId) {
+    const character = this.loadedCharacters.get(characterId);
+    if (!character || !character.isGF) return;
 
-            // Special handling for idle animation
-            const isIdle = animation.anim === 'idle';
+    const animKey = `${character.textureKey}_idle`;
+    character.sprite.play(animKey);
+    character.currentAnimation = "idle";
+    this.applyOffsets(characterId, "idle");
+  }
 
-            if (animation.indices && animation.indices.length > 0) {
-                // Use specific indices
-                animationFrames = animation.indices.map(index => {
-                    const paddedIndex = String(index).padStart(4, '0');
-                    return frames.find(frame => frame.startsWith(`${animation.name}${paddedIndex}`));
-                }).filter(Boolean);
-            } else {
-                // Get all frames that match the animation name
-                animationFrames = frames.filter(frame => 
-                    frame.startsWith(animation.name)
-                ).sort();
-            }
+  flipPlayerFrames(texture) {
+    const frames = texture.getFrameNames();
+    frames.forEach((frameName) => {
+      const frame = texture.frames[frameName];
+      if (frame && !frame._flipped) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = frame.width;
+        canvas.height = frame.height;
 
-            if (animationFrames.length > 0) {
-                const animKey = `${textureKey}_${animation.anim}`;
-                
-                if (!this.scene.anims.exists(animKey)) {
-                    const config = {
-                        key: animKey,
-                        frames: animationFrames.map(frameName => ({
-                            key: textureKey,
-                            frame: frameName
-                        })),
-                        frameRate: animation.fps || 24,
-                        repeat: isIdle ? -1 : (animation.loop ? -1 : 0) // Force idle to loop
-                    };
-                    
-                    this.scene.anims.create(config);
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.drawImage(
+          frame.source.image,
+          -frame.cutX - frame.width,
+          frame.cutY,
+          frame.width,
+          frame.height,
+          0,
+          0,
+          frame.width,
+          frame.height
+        );
+        ctx.restore();
 
-                    // Debug log for idle animation
-                    if (isIdle) {
-                        console.log('Idle animation setup:', {
-                            key: animKey,
-                            frames: animationFrames,
-                            frameRate: animation.fps || 24
-                        });
-                    }
-                }
-            }
-        });
-    }
+        texture.add(frameName, 0, frame.cutX, frame.cutY, frame.width, frame.height, canvas);
+        frame._flipped = true;
+      }
+    });
+  }
 
-    playAnimation(characterId, animName) {
-        const character = this.loadedCharacters.get(characterId);
-        if (!character) return;
+  setupAnimations(characterInfo) {
+    const { data, textureKey } = characterInfo;
 
-        const animation = character.data.animations.find(a => a.anim === animName);
-        if (!animation) return;
+    data.animations.forEach((animation) => {
+      const frames = this.scene.textures.get(textureKey).getFrameNames();
+      let animationFrames;
 
-        const animKey = `${character.textureKey}_${animation.anim}`;
-        const isIdle = animName === 'idle';
+      if (animation.indices?.length > 0) {
+        animationFrames = animation.indices
+          .map((index) => {
+            const paddedIndex = String(index).padStart(4, "0");
+            return frames.find((frame) => frame.startsWith(`${animation.name}${paddedIndex}`));
+          })
+          .filter(Boolean);
+      } else {
+        animationFrames = frames.filter((frame) => frame.startsWith(animation.name)).sort();
+      }
 
-        // Solo interrumpir si la nueva animación es diferente
-        if (character.currentAnimation !== animName) {
-            // Cancelar timeout anterior si existe
-            if (character.idleTimeout) {
-                character.idleTimeout.remove();
-                character.idleTimeout = null;
-            }
+      if (animationFrames.length > 0) {
+        const animKey = `${textureKey}_${animation.anim}`;
 
-            // Reproducir la animación
-            character.sprite.play(animKey);
-            character.currentAnimation = animName;
-
-            // Si no es idle y no es una animación en loop, programar retorno a idle
-            if (!isIdle && !animation.loop) {
-                const bpm = this.scene.songData?.song?.bpm || 100;
-                const stepCrochet = (60 / bpm) * 1000 / 4;
-                
-                character.idleTimeout = this.scene.time.delayedCall(
-                    stepCrochet * 2,
-                    () => this.playAnimation(characterId, 'idle')
-                );
-            }
-        } else if (isIdle && !character.sprite.anims.isPlaying) {
-            // Ensure idle animation keeps playing
-            character.sprite.play(animKey);
+        if (!this.scene.anims.exists(animKey)) {
+          this.scene.anims.create({
+            key: animKey,
+            frames: animationFrames.map((frameName) => ({
+              key: textureKey,
+              frame: frameName,
+            })),
+            frameRate: animation.fps || 24,
+            repeat: animation.anim === "idle" || animation.loop ? -1 : 0,
+          });
         }
+      }
+    });
+  }
+
+  applyOffsets(characterId, animName) {
+    const character = this.loadedCharacters.get(characterId);
+    if (!character) return;
+
+    const animation = character.data.animations.find((a) => a.anim === animName);
+    if (!animation) return;
+
+    if (this.tweens.has(characterId)) {
+      this.tweens.get(characterId).kill();
+      this.tweens.delete(characterId);
     }
 
-    subscribeToNoteEvents(characterId) {
-        if (!this.notesController) return;
+    gsap.set(character.sprite, {
+      x: character.basePosition.x,
+      y: character.basePosition.y,
+    });
 
-        const heldDirections = new Map();
-        const IDLE_DELAY = 400; // 500ms delay before returning to idle
+    const offsets = animation.offsets || [0, 0];
+    const [offsetX, offsetY] = offsets;
 
-        // Listen for CPU/enemy note hits
-        this.notesController.events.on('cpuNoteHit', (noteData) => {
-            const character = this.loadedCharacters.get(characterId);
-            if (!character || characterId !== this.currentEnemy) return;
+    const tween = gsap.to(character.sprite, {
+      x: character.basePosition.x + offsetX,
+      y: character.basePosition.y + offsetY,
+      duration: 0,
+      ease: "none",
+      overwrite: "auto",
+    });
 
-            const directionAnims = {
-                0: 'singLEFT',
-                1: 'singDOWN',
-                2: 'singUP',
-                3: 'singRIGHT'
-            };
-            
-            const animName = directionAnims[noteData.direction];
-            heldDirections.set(noteData.direction, animName);
-            
-            // Play the animation
-            this.playAnimation(characterId, animName);
+    this.tweens.set(characterId, tween);
+  }
 
-            // Set a timeout with fixed 500ms delay
-            if (character.idleTimeout) {
-                character.idleTimeout.remove();
-            }
-            
-            character.idleTimeout = this.scene.time.delayedCall(
-                IDLE_DELAY, // Use fixed 500ms delay instead of stepCrochet
-                () => {
-                    heldDirections.delete(noteData.direction);
-                    this.playAnimation(characterId, 'idle');
-                }
-            );
-        });
+  playAnimation(characterId, animName) {
+    const character = this.loadedCharacters.get(characterId);
+    if (!character) return;
 
-        // Regular player note events
-        this.notesController.events.on('noteHit', (noteData) => {
-            const character = this.loadedCharacters.get(characterId);
-            if (!character || characterId !== this.currentPlayer) return;
+    const animation = character.data.animations.find((a) => a.anim === animName);
+    if (!animation) return;
 
-            const isCorrectPlayer = (noteData.isPlayerNote && characterId === this.currentPlayer) || 
-                                 (!noteData.isPlayerNote && characterId === this.currentEnemy);
+    if (character.currentAnimation !== animName) {
+      if (character.idleTimeout) {
+        character.idleTimeout.remove();
+        character.idleTimeout = null;
+      }
 
-            if (isCorrectPlayer) {
-                const directionAnims = {
-                    0: 'singLEFT',
-                    1: 'singDOWN',
-                    2: 'singUP',
-                    3: 'singRIGHT'
-                };
-                
-                const animName = directionAnims[noteData.direction];
-                heldDirections.set(noteData.direction, animName);
-                
-                // Reproducir animación en loop mientras la nota esté presionada
-                this.playLoopingAnimation(characterId, animName);
-            }
-        });
+      this.applyOffsets(characterId, animName);
 
-        // For player note release
-        this.notesController.events.on('noteReleased', (noteData) => {
-            const character = this.loadedCharacters.get(characterId);
-            if (!character || characterId !== this.currentPlayer) return;
+      const animKey = `${character.textureKey}_${animation.anim}`;
+      character.sprite.play(animKey);
+      character.currentAnimation = animName;
 
-            const isCorrectPlayer = (noteData.isPlayerNote && characterId === this.currentPlayer) || 
-                                 (!noteData.isPlayerNote && characterId === this.currentEnemy);
-
-            if (isCorrectPlayer) {
-                heldDirections.delete(noteData.direction);
-                
-                // Add delay before returning to idle
-                if (character.idleTimeout) {
-                    character.idleTimeout.remove();
-                }
-                
-                character.idleTimeout = this.scene.time.delayedCall(
-                    IDLE_DELAY,
-                    () => this.playAnimation(characterId, 'idle')
-                );
-            }
-        });
-
-        // Iniciar con idle animation
-        this.playAnimation(characterId, 'idle');
+      if (animName !== "idle" && !animation.loop) {
+        const stepCrochet = ((60 / (this.scene.songData?.song?.bpm || 100)) * 1000) / 4;
+        character.idleTimeout = this.scene.time.delayedCall(stepCrochet * 2, () =>
+          this.playAnimation(characterId, "idle")
+        );
+      }
     }
+  }
 
-    playLoopingAnimation(characterId, animName, isHolding = true) {
-        const character = this.loadedCharacters.get(characterId);
-        if (!character) return;
+  subscribeToNoteEvents(characterId) {
+    if (!this.notesController) return;
 
-        const animation = character.data.animations.find(a => a.anim === animName);
-        if (!animation) return;
+    // Mapa para direcciones presionadas - Map for held note directions
+    const heldDirections = new Map();
+    // Retraso para volver al idle - Delay before returning to idle
+    const IDLE_DELAY = 400;
 
-        const animKey = `${character.textureKey}_${animation.anim}`;
+    // Eventos para notas de CPU - CPU note hit events
+    this.notesController.events.on("cpuNoteHit", (noteData) => {
+      const character = this.loadedCharacters.get(characterId);
+      if (!character || characterId !== this.currentEnemy) return;
 
-        // Si la tecla se suelta (isHolding = false), volver a idle
-        if (!isHolding) {
-            const idleAnim = `${character.textureKey}_idle`;
-            character.sprite.play(idleAnim, true);
-            character.currentAnimation = 'idle';
-            return;
+      // Mapeo de direcciones a animaciones - Direction to animation mapping
+      const directionAnims = {
+        0: "singLEFT",
+        1: "singDOWN",
+        2: "singUP",
+        3: "singRIGHT",
+      };
+
+      const animName = directionAnims[noteData.direction];
+      heldDirections.set(noteData.direction, animName);
+      this.playAnimation(characterId, animName);
+
+      if (character.idleTimeout) {
+        character.idleTimeout.remove();
+      }
+
+      character.idleTimeout = this.scene.time.delayedCall(IDLE_DELAY, () => {
+        heldDirections.delete(noteData.direction);
+        this.playAnimation(characterId, "idle");
+      });
+    });
+
+    // Eventos para notas del jugador - Player note hit events
+    this.notesController.events.on("noteHit", (noteData) => {
+      const character = this.loadedCharacters.get(characterId);
+      if (!character || characterId !== this.currentPlayer) return;
+
+      const isCorrectPlayer =
+        (noteData.isPlayerNote && characterId === this.currentPlayer) ||
+        (!noteData.isPlayerNote && characterId === this.currentEnemy);
+
+      if (isCorrectPlayer) {
+        const directionAnims = {
+          0: "singLEFT",
+          1: "singDOWN",
+          2: "singUP",
+          3: "singRIGHT",
+        };
+
+        const animName = directionAnims[noteData.direction];
+        heldDirections.set(noteData.direction, animName);
+        this.playAnimation(characterId, animName);
+      }
+    });
+
+    // Eventos para soltar notas - Note release events
+    this.notesController.events.on("noteReleased", (noteData) => {
+      const character = this.loadedCharacters.get(characterId);
+      if (!character || characterId !== this.currentPlayer) return;
+
+      const isCorrectPlayer =
+        (noteData.isPlayerNote && characterId === this.currentPlayer) ||
+        (!noteData.isPlayerNote && characterId === this.currentEnemy);
+
+      if (isCorrectPlayer) {
+        heldDirections.delete(noteData.direction);
+
+        if (character.idleTimeout) {
+          character.idleTimeout.remove();
         }
 
-        // Forzar que la animación se reproduzca en loop mientras se mantiene
-        if (character.currentAnimation !== animName) {
-            if (character.idleTimeout) {
-                character.idleTimeout.remove();
-                character.idleTimeout = null;
-            }
+        character.idleTimeout = this.scene.time.delayedCall(IDLE_DELAY, () =>
+          this.playAnimation(characterId, "idle")
+        );
+      }
+    });
 
-            character.sprite.play(animKey, true);
-            character.currentAnimation = animName;
-        }
+    this.playAnimation(characterId, "idle");
+  }
+
+  playLoopingAnimation(characterId, animName, isHolding = true) {
+    const character = this.loadedCharacters.get(characterId);
+    if (!character) return;
+
+    const animation = character.data.animations.find((a) => a.anim === animName);
+    if (!animation) return;
+
+    if (!isHolding) {
+      this.playAnimation(characterId, "idle");
+      return;
     }
+
+    if (character.currentAnimation !== animName) {
+      this.playAnimation(characterId, animName);
+    }
+  }
 }

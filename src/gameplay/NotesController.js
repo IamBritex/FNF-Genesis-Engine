@@ -213,7 +213,7 @@ export class NotesController {
                     
                     // Validar dirección
                     if (noteDirection < 0 || noteDirection > 3) {
-                        console.error("Dirección de nota inválida:", noteData[1], "en sección:", sectionIndex);
+                        console.warn("Dirección de nota inválida:", noteData[1], "en sección:", sectionIndex);
                         return;
                     }
                     
@@ -994,7 +994,6 @@ export class NotesController {
 
     updateScrollSpeed(bpm) {
         this.currentBPM = bpm;
-        // Adjust scroll speed based on BPM
         this.speed = this.currentBPM / 100; // Base speed normalized to 100 BPM
     }
 
@@ -1012,15 +1011,11 @@ export class NotesController {
     }
 
     handleCPUNote(note) {
-        // ...existing CPU note handling code...
-
         // Emit cpuNoteHit event
         this.events.emit('cpuNoteHit', {
             direction: note.direction,
             isPlayerNote: false,
             strumTime: note.strumTime
         });
-
-        // ...rest of CPU note handling...
     }
 }

@@ -86,10 +86,20 @@ class MainMenuState extends Phaser.Scene {
     }
 
     handleInput(key) {
-        if (this.keyCooldown) return; // Evita mantener presionadas las teclas
+        if (this.keyCooldown) return; 
 
         this.keyCooldown = true;
-        this.time.delayedCall(150, () => { this.keyCooldown = false; }); // Cooldown corto para evitar spam
+        this.time.delayedCall(150, () => { this.keyCooldown = false; });
+
+        // Añadir detección de tecla 7
+        if (key === "Digit7") {
+            if (!this.scene.get("EditorsState")) {
+                console.warn("Escena EditorsState no existe.");
+                return;
+            }
+            this.scene.get("TransitionScene").startTransition("EditorsState");
+            return;
+        }
 
         if (key === "ArrowDown") this.changeSelection(1);
         if (key === "ArrowUp") this.changeSelection(-1);

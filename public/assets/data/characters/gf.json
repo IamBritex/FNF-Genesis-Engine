@@ -15,7 +15,7 @@
 			"loop": false,
 			"offsets": [
 				0,
-				-19
+				0
 			],
 			"fps": 24,
 			"anim": "singLEFT",
@@ -26,7 +26,7 @@
 			"loop": false,
 			"offsets": [
 				0,
-				-20
+				0
 			],
 			"fps": 24,
 			"anim": "singDOWN",
@@ -37,7 +37,7 @@
 			"loop": false,
 			"offsets": [
 				0,
-				4
+				-15
 			],
 			"fps": 24,
 			"anim": "singUP",
@@ -48,7 +48,7 @@
 			"loop": false,
 			"offsets": [
 				0,
-				-20
+				0
 			],
 			"fps": 24,
 			"anim": "singRIGHT",
@@ -191,8 +191,8 @@
 	"no_antialiasing": false,
 	"image": "characters/GF_assets",
 	"position": [
-		350,
-		350
+		270,
+		20
 	],
 	"healthicon": "gf",
 	"flip_x": false,
