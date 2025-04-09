@@ -3,6 +3,8 @@ class EditorsState extends Phaser.Scene {
         super({ key: 'EditorsState' });
         this.selectedIndex = 0;
         this.bgMusic = null;
+        this.enterCooldown = false;
+        this.backspaceCooldown = false;
     }
 
     preload() {
@@ -83,34 +85,25 @@ class EditorsState extends Phaser.Scene {
         // Input handlers
         this.input.keyboard.on('keydown-LEFT', () => this.changeSelection(-1));
         this.input.keyboard.on('keydown-RIGHT', () => this.changeSelection(1));
-        this.input.keyboard.on('keydown-ENTER', () => this.confirmSelection());
-        this.input.keyboard.on('keydown-BACKSPACE', () => {
-            // Fade out de la música actual
-            this.tweens.add({
-                targets: this.bgMusic,
-                volume: 0,
-                duration: 500, // 0.5 segundos de fade out
-                ease: 'Linear',
-                onComplete: () => {
-                    this.bgMusic.stop();
-                    // Iniciar música del menú
-                    const menuMusic = this.sound.add('menuMusic');
-                    menuMusic.play({
-                        volume: 0,
-                        loop: true
-                    });
-                    // Fade in de la música del menú
-                    this.tweens.add({
-                        targets: menuMusic,
-                        volume: 1,
-                        duration: 500,
-                        ease: 'Linear'
-                    });
-                    // Cambiar de escena
-                    this.scene.get('TransitionScene').startTransition('MainMenuState');
-                }
-            });
+        this.input.keyboard.on('keydown-ENTER', () => {
+            if (!this.enterCooldown) {
+                this.enterCooldown = true;
+                this.confirmSelection();
+                this.time.delayedCall(500, () => {
+                    this.enterCooldown = false;
+                });
+            }
         });
+        this.input.keyboard.on('keydown-BACKSPACE', () => {
+            if (!this.backspaceCooldown) {
+                this.backspaceCooldown = true;
+                this.returnToMainMenu();
+            }
+        });
+
+        // Resetear el cooldown cuando la escena se inicia
+        this.backspaceCooldown = false;
+        this.enterCooldown = false;
 
         // Actualizar selección inicial
         this.updateSelection();
@@ -129,32 +122,67 @@ class EditorsState extends Phaser.Scene {
     }
 
     confirmSelection() {
-        this.confirmSound.play();
         const scenes = ['CharacterEditorState', 'StageEditorState'];
         const targetScene = scenes[this.selectedIndex];
         
         // Verificar si la escena existe
         if (!this.scene.get(targetScene)) {
             console.warn(`La escena ${targetScene} no existe`);
+            this.enterCooldown = false; // Resetear el cooldown si la escena no existe
             return;
         }
 
+        this.confirmSound.play();
+
         // Efecto de parpadeo antes de cambiar de escena
-        let blinkCount = 0;
         const blinkEvent = this.time.addEvent({
-            delay: 100,
+            delay: 90,
+            repeat: 24,
             callback: () => {
                 this.editorOptions[this.selectedIndex].visible = !this.editorOptions[this.selectedIndex].visible;
-                blinkCount++;
-                
-                if (blinkCount >= 6) {
-                    blinkEvent.remove();
-                    this.editorOptions[this.selectedIndex].visible = true;
-                    // Cambiar a la escena seleccionada usando TransitionScene
-                    this.scene.get('TransitionScene').startTransition(targetScene);
-                }
-            },
-            repeat: 5
+            }
+        });
+
+        // Transición después del parpadeo
+        this.time.delayedCall(1700, () => {
+            blinkEvent.remove();
+            this.editorOptions[this.selectedIndex].visible = true;
+            
+            // Ya no detenemos la música aquí
+            this.enterCooldown = false;
+            this.scene.get('TransitionScene').startTransition(targetScene);
+        });
+    }
+
+    returnToMainMenu() {
+        // Fade out de la música actual
+        this.tweens.add({
+            targets: this.bgMusic,
+            volume: 0,
+            duration: 1500,
+            ease: 'Linear',
+            onComplete: () => {
+                this.bgMusic.stop();
+                // Iniciar música del menú
+                const menuMusic = this.sound.add('menuMusic');
+                menuMusic.play({
+                    volume: 0,
+                    loop: true
+                });
+                // Fade in de la música del menú
+                this.tweens.add({
+                    targets: menuMusic,
+                    volume: 1,
+                    duration: 1500,
+                    ease: 'Linear',
+                    onComplete: () => {
+                        // Resetear el cooldown después de la transición completa
+                        this.backspaceCooldown = false;
+                    }
+                });
+                // Cambiar de escena
+                this.scene.get('TransitionScene').startTransition('MainMenuState');
+            }
         });
     }
 }

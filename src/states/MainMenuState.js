@@ -2,54 +2,77 @@ class MainMenuState extends Phaser.Scene {
     constructor() {
         super({ key: "MainMenuState" });
         this.selectedIndex = 0;
-        this.scrollSpeed = 50;
-        this.bgScrollSpeed = 50;
-        this.keyCooldown = false; // Cooldown general para evitar spam de teclas
-        this.enterCooldown = false; // Cooldown específico para ENTER
+        this.scrollSpeed = 70;
+        this.bgScrollSpeed = 70;
+        this.keyCooldown = false;
+        this.enterCooldown = false;
     }
 
     preload() {
-        console.log("MainMenuState cargado correctamente");
-
+        console.log("MainMenuState cargando...");
+        
+        // Load config file
+        this.load.json('menuConfig', 'src/config/menuConfig.json');
+        
         this.load.image('menuBackground', 'public/assets/images/states/MainMenuState/menuBG.png');
-
-        // ====== LOAD SPRITESHEETS ======
-        this.load.atlasXML('menuStoryMode', 'public/assets/images/states/MainMenuState/options/menu_story_mode.png', 'public/assets/images/states/MainMenuState/options/menu_story_mode.xml');
-        this.load.atlasXML('menuFreePlay', 'public/assets/images/states/MainMenuState/options/menu_freeplay.png', 'public/assets/images/states/MainMenuState/options/menu_freeplay.xml');
-        this.load.atlasXML('menuAwards', 'public/assets/images/states/MainMenuState/options/menu_awards.png', 'public/assets/images/states/MainMenuState/options/menu_awards.xml');
-        this.load.atlasXML('menuOptions', 'public/assets/images/states/MainMenuState/options/menu_options.png', 'public/assets/images/states/MainMenuState/options/menu_options.xml');
-        this.load.atlasXML('menuMods', 'public/assets/images/states/MainMenuState/options/menu_mods.png', 'public/assets/images/states/MainMenuState/options/menu_mods.xml');
-        this.load.atlasXML('menuCredits', 'public/assets/images/states/MainMenuState/options/menu_credits.png', 'public/assets/images/states/MainMenuState/options/menu_credits.xml');
-
-        // ====== LOAD SOUNDS ======
+        
+        // Load sounds
         this.load.audio('selectSound', 'public/assets/sounds/scrollMenu.ogg');
         this.load.audio('confirmSound', 'public/assets/sounds/confirmMenu.ogg');
+        this.load.audio('cancelSound', 'public/assets/sounds/cancelMenu.ogg');
     }
 
     create() {
+        // Load config
+        this.config = this.cache.json.get('menuConfig');
+        
+        // Load sprites first
+        this.config.menuOptions.forEach(option => {
+            this.load.atlasXML(
+                option.spritesheetKey,
+                `${option.spritePath}.png`,
+                `${option.spritePath}.xml`
+            );
+        });
+        
+        // Start loading sprites
+        this.load.start();
+        
+        // Wait for sprites to load before creating animations and menu
+        this.load.once('complete', () => {
+            this.createAnimations();
+            this.setupMenu();
+        });
+    }
+
+    setupMenu() {
+        // Move all the menu setup code here
         const { width, height } = this.scale;
 
         // ====== BACKGROUND ======
         this.bg = this.add.image(width / 2, 0, 'menuBackground')
             .setOrigin(0.5, 0)
-            .setScale(1.4);
+            .setScale(1.6);
 
         this.selectSound = this.sound.add('selectSound');
         this.confirmSound = this.sound.add('confirmSound');
+        this.cancelSound = this.sound.add('cancelSound');
 
         this.createAnimations();
 
         // ====== OPTIONS CONTAINER ======
         this.menuContainer = this.add.container(0, 0);
 
-        this.menuOptions = [
-            this.add.sprite(650, 100, 'menuStoryMode'),
-            this.add.sprite(650, 250, 'menuFreePlay'),
-            this.add.sprite(650, 400, 'menuAwards'),
-            this.add.sprite(650, 550, 'menuOptions'),
-            this.add.sprite(650, 700, 'menuMods'),
-            this.add.sprite(650, 850, 'menuCredits')
-        ];
+        // Ajustar el espaciado vertical entre opciones
+        const spacing = 140; // Aumentamos de 120 a 140 para dar más espacio
+
+        this.menuOptions = this.config.menuOptions.map((option, index) => {
+            return this.add.sprite(650, 100 + spacing * index, option.spritesheetKey);
+        });
+
+        // Ajustar la cámara para mostrar todo el contenido
+        const lastOptionY = this.menuOptions[this.menuOptions.length - 1].y;
+        this.cameras.main.setBounds(0, 0, width, lastOptionY + 150); // Padding
 
         this.menuOptions.forEach((option, index) => {
             option.play(this.getAnimationKey(index));
@@ -82,7 +105,24 @@ class MainMenuState extends Phaser.Scene {
         }
 
         // ====== INPUT KEYS ======
-        this.input.keyboard.on('keydown', (event) => this.handleInput(event.code));
+        this.setupInputs();
+    }
+
+    setupInputs() {
+        const inputs = {
+            'ArrowDown': () => this.changeSelection(1),
+            'ArrowUp': () => this.changeSelection(-1),
+            'Enter': () => this.selectOption(),
+            'Digit7': () => this.handleEditorState()
+        };
+
+        this.input.keyboard.on('keydown', (event) => {
+            if (!this.keyCooldown && inputs[event.code]) {
+                this.keyCooldown = true;
+                inputs[event.code]();
+                this.time.delayedCall(150, () => this.keyCooldown = false);
+            }
+        });
     }
 
     handleInput(key) {
@@ -107,50 +147,37 @@ class MainMenuState extends Phaser.Scene {
     }
 
     createAnimations() {
-        const keys = [
-            { name: 'menuStoryMode', prefix: 'story_mode' },
-            { name: 'menuFreePlay', prefix: 'freeplay' },
-            { name: 'menuAwards', prefix: 'awards' },
-            { name: 'menuOptions', prefix: 'options' },
-            { name: 'menuMods', prefix: 'mods' },
-            { name: 'menuCredits', prefix: 'credits' }
-        ];
+        this.config.menuOptions.forEach(option => {
+            ['basic', 'white'].forEach(type => {
+                const animKey = `${option.animPrefix}_${type === 'basic' ? 'animation' : 'white'}`;
+                
+                // Verificar si la animación ya existe
+                if (this.anims.exists(animKey)) {
+                    return; // Skip if animation already exists
+                }
 
-        keys.forEach(({ name, prefix }) => {
-            this.anims.create({
-                key: `${prefix}_animation`,
-                frames: this.anims.generateFrameNames(name, {
-                    prefix: `${prefix} basic000`,
-                    start: 0,
-                    end: 8,
-                    zeroPad: 1
-                }),
-                frameRate: 19,
-                repeat: -1
-            });
-
-            this.anims.create({
-                key: `${prefix}_white`,
-                frames: this.anims.generateFrameNames(name, {
-                    prefix: `${prefix} white000`,
-                    start: 0,
-                    end: 2,
-                    zeroPad: 1
-                }),
-                frameRate: 20,
-                repeat: -1
+                const config = this.config.animations[type];
+                this.anims.create({
+                    key: animKey,
+                    frames: this.anims.generateFrameNames(option.spritesheetKey, {
+                        prefix: `${option.animPrefix} ${type}000`,
+                        start: 0,
+                        end: config.endFrame,
+                        zeroPad: 1
+                    }),
+                    frameRate: config.frameRate,
+                    repeat: -1
+                });
             });
         });
     }
 
     getAnimationKey(index) {
-        const keys = ['story_mode', 'freeplay', 'awards', 'options', 'mods', 'credits'];
-        return `${keys[index]}_animation`;
+        return `${this.config.menuOptions[index].animPrefix}_animation`;
     }
 
     getWhiteAnimationKey(index) {
-        const keys = ['story_mode', 'freeplay', 'awards', 'options', 'mods', 'credits'];
-        return `${keys[index]}_white`;
+        return `${this.config.menuOptions[index].animPrefix}_white`;
     }
 
     changeSelection(direction) {
@@ -202,47 +229,78 @@ class MainMenuState extends Phaser.Scene {
         });
     }
 
+    verifyScene(sceneName) {
+        const sceneExists = this.scene.get(sceneName);
+        if (!sceneExists) {
+            console.warn(`Escena "${sceneName}" no existe.`);
+            this.cancelSound.play();
+            this.cameras.main.shake(200, 0.01);
+            return false;
+        }
+        return true;
+    }
+
     selectOption() {
         if (this.enterCooldown) return;
         this.enterCooldown = true;
 
-        const sceneNames = [
-            'StoryModeState',
-            'FreeplayState',
-            'AwardsState',
-            'OptionsMenu',
-            'ModsState',
-            'CreditsState'
-        ];
+        const { selectedIndex, config } = this;
+        const selectedOption = this.menuOptions[selectedIndex];
+        const selectedScene = config.menuOptions[selectedIndex].targetScene;
 
-        const selectedScene = sceneNames[this.selectedIndex];
-
-        if (!this.scene.get(selectedScene)) {
-            console.warn(`Escena "${selectedScene}" no existe.`);
-            this.enterCooldown = false;
+        if (!this.verifyScene(selectedScene)) {
+            this.tweens.add({
+                targets: selectedOption,
+                x: selectedOption.x + 10,
+                duration: 50,
+                yoyo: true,
+                repeat: 3,
+                onComplete: () => this.enterCooldown = false
+            });
             return;
         }
 
-        console.log("Seleccionaste:", selectedScene);
+        this.handleValidScene(selectedOption, selectedScene);
+    }
 
-        const selectedOption = this.menuOptions[this.selectedIndex];
-        this.confirmSound.play();
-
-        let blinkEvent = this.time.addEvent({
-            delay: 100,
-            repeat: 24,
-            callback: () => {
-                selectedOption.visible = !selectedOption.visible;
-            }
+    handleInvalidScene(option) {
+        console.warn(`Escena "${selectedScene}" no existe.`);
+        this.cancelSound.play();
+        
+        this.tweens.add({
+            targets: option,
+            x: option.x + 10,
+            duration: 50,
+            yoyo: true,
+            repeat: 3,
+            onComplete: () => this.enterCooldown = false
         });
 
-        this.time.delayedCall(1700, () => {
+        this.cameras.main.shake(200, 0.01);
+    }
+
+    handleValidScene(option, scene) {
+        const { blinkDelay, blinkRepeats, transitionDelay } = this.config.transitionConfig;
+        
+        this.confirmSound.play();
+        
+        const blinkEvent = this.time.addEvent({
+            delay: blinkDelay,
+            repeat: blinkRepeats,
+            callback: () => option.visible = !option.visible
+        });
+
+        this.time.delayedCall(transitionDelay, () => {
             blinkEvent.remove();
-            selectedOption.visible = true;
-            console.log("Cambiando a:", selectedScene);
-            this.scene.get("TransitionScene").startTransition(selectedScene);
+            option.visible = true;
+            this.scene.get("TransitionScene").startTransition(scene);
             this.enterCooldown = false;
         });
+    }
+
+    handleEditorState() {
+        if (!this.verifyScene("EditorsState")) return;
+        this.scene.get("TransitionScene").startTransition("EditorsState");
     }
 }
 

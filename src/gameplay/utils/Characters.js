@@ -32,7 +32,6 @@ export class Characters {
 
   async createCharacter(characterId, isPlayer) {
     try {
-      // Crea la textura y carga el JSON del personaje - Create texture and load character JSON
       const textureKey = `character_${characterId}`;
       const characterPath = `public/assets/data/characters/${characterId}.json`;
       const response = await fetch(characterPath);
@@ -42,17 +41,14 @@ export class Characters {
       sprite.setOrigin(0, 0);
       sprite.setDepth(isPlayer ? 2 : 1);
 
-      // Voltea los frames si es el jugador - Flip frames if it's the player
+      // Only flip frames if it's the player, NEVER for enemies
       if (isPlayer) {
         const texture = this.scene.textures.get(textureKey);
         this.flipPlayerFrames(texture);
-      } else {
-        sprite.setFlipX(characterData.flip_x);
       }
 
       sprite.setScale(characterData.scale || 1);
 
-      // Configura la información base del personaje - Set up base character info
       const characterInfo = {
         data: characterData,
         sprite: sprite,
@@ -65,12 +61,13 @@ export class Characters {
         },
       };
 
+      // Set initial position
       gsap.set(sprite, {
         x: characterData.position[0],
         y: characterData.position[1],
       });
 
-      // Inicializa animaciones y eventos - Initialize animations and events
+      // Initialize animations and events
       this.setupAnimations(characterInfo);
       this.loadedCharacters.set(characterId, characterInfo);
       this.playAnimation(characterId, "idle");
