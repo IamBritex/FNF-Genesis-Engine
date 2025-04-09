@@ -4,12 +4,16 @@ class CharacterEditorState extends Phaser.Scene {
     super({ key: "CharacterEditorState" })
     this.isDragging = false
     this.currentZoom = 1
-    this.minZoom = 0.5
-    this.maxZoom = 2
+    this.minZoom = 0.1
+    this.maxZoom = 5
     this.modal = null
     this.animsModal = null
     this.characterPropertiesModal = null
+    this.characterConfigsModal = null
     this.characterSprite = null
+    this.ghostSprite = null
+    this.isGhostActive = false
+    this.ghostInitialAnim = null
     this.currentAnimation = null
     this.characterData = null
     this.activeTweens = {} // Store active tweens
@@ -24,8 +28,9 @@ class CharacterEditorState extends Phaser.Scene {
 
     this.bg = this.add.image(width / 2, height / 2, "tempBG").setOrigin(0.5)
 
-    // Ajustar escala del fondo si es necesario
-    this.bg.setScale(Math.max(width / this.bg.width, height / this.bg.height))
+    // Ajustar escala del fondo para que sea mss grande y evitar que el personaje se salga xd
+    const scaleFactor = 1.5 // Aumentar el factor de escala
+    this.bg.setScale(Math.max(width / this.bg.width, height / this.bg.height) * scaleFactor)
 
     this.add
       .text(width / 2, height - 50, "Press BACKSPACE to return", {
@@ -41,14 +46,19 @@ class CharacterEditorState extends Phaser.Scene {
       }
     })
 
+    // Add space key handler for playing current animation
+    this.input.keyboard.on("keydown-SPACE", () => {
+      if (this.currentAnimation && this.characterSprite) {
+        this.playAnimation(this.currentAnimation)
+        console.log(`Replaying animation: ${this.currentAnimation}`)
+      }
+    })
+
     // Configurar controles de cámara
     this.setupCameraControls()
 
     // Add the modal window
     this.setupModals()
-
-    // Create a container for the character sprite
-    this.characterContainer = this.add.container(width / 2, height / 2)
   }
 
   setupModals() {
@@ -118,6 +128,9 @@ class CharacterEditorState extends Phaser.Scene {
       this.characterSprite = null
     }
 
+    // Clear any existing ghost
+    this.clearGhost()
+
     // Clear any existing animations
     try {
       const keys = this.anims.getAnimationNames ? this.anims.getAnimationNames() : Object.keys(this.anims.anims.entries)
@@ -157,34 +170,81 @@ class CharacterEditorState extends Phaser.Scene {
     this.load.start()
   }
 
-  // Create character sprite
+  // Modify the createCharacterSprite method to match Characters.js
   createCharacterSprite(characterData, imagePath) {
-    const { width, height } = this.scale
-
-    // Create the sprite
+    // Create the sprite directly without a container, using origin (0,0) like in Characters.js
     this.characterSprite = this.add.sprite(0, 0, imagePath)
-    this.characterContainer.add(this.characterSprite)
+    this.characterSprite.setOrigin(0, 0)
+    this.characterSprite.setDepth(1)
 
-    // Apply character properties
-    if (characterData.flip_x) {
-      this.characterSprite.setFlipX(true)
+    // Store base position
+    this.basePosition = {
+      x: characterData.position ? characterData.position[0] : 0,
+      y: characterData.position ? characterData.position[1] : 0,
     }
 
+    // Set scale from character data
     if (characterData.scale) {
       this.characterSprite.setScale(characterData.scale)
     }
 
-    // Store base position
-    this.basePosition = {
-      x: 0,
-      y: 0,
+    // If flip_x is true, flip all frames in the texture
+    if (characterData.flip_x) {
+      const texture = this.textures.get(imagePath)
+      const frames = texture.getFrameNames()
+
+      frames.forEach((frameName) => {
+        const frame = texture.frames[frameName]
+        if (frame && !frame._flipped) {
+          const canvas = document.createElement("canvas")
+          const ctx = canvas.getContext("2d")
+          canvas.width = frame.width
+          canvas.height = frame.height
+
+          ctx.save()
+          ctx.scale(-1, 1)
+          ctx.drawImage(
+            frame.source.image,
+            -frame.cutX - frame.width,
+            frame.cutY,
+            frame.width,
+            frame.height,
+            0,
+            0,
+            frame.width,
+            frame.height,
+          )
+          ctx.restore()
+
+          // Replace the frame with the flipped version
+          texture.add(frameName, 0, frame.cutX, frame.cutY, frame.width, frame.height, canvas)
+          frame._flipped = true
+        }
+      })
+
+      // Store the flipped state
+      this.characterSprite.isFlipped = true
     }
 
-    // Position the character container
-    this.characterContainer.setPosition(width / 2, height / 2)
+    // Position the sprite using gsap, exactly like in Characters.js
+    if (typeof gsap !== "undefined") {
+      gsap.set(this.characterSprite, {
+        x: this.basePosition.x,
+        y: this.basePosition.y,
+      })
+    } else {
+      // Fallback if gsap is not available
+      this.characterSprite.setPosition(this.basePosition.x, this.basePosition.y)
+    }
+
+    // Center camera on character
+    this.cameras.main.centerOn(this.basePosition.x, this.basePosition.y)
 
     // Parse XML and create frames
     this.parseXMLAndCreateFrames(characterData, imagePath)
+
+    // Setup offset controls
+    this.setupOffsetControls()
   }
 
   // Parse XML and create frames
@@ -206,9 +266,6 @@ class CharacterEditorState extends Phaser.Scene {
       // Get all SubTexture elements
       const subTextures = xmlData.getElementsByTagName("SubTexture")
       console.log(`Found ${subTextures.length} SubTexture elements`)
-
-      // Create a map to store animation prefixes and their frames
-      const animationFrames = new Map()
 
       // Process each SubTexture
       for (let i = 0; i < subTextures.length; i++) {
@@ -233,77 +290,54 @@ class CharacterEditorState extends Phaser.Scene {
 
         // Add the frame to the texture
         texture.add(name, 0, x, y, width, height)
-
-        // Extract animation prefix (e.g., "BF idle dance" from "BF idle dance0000")
-        const match = name.match(/^(.*?)(\d+)$/)
-        if (match) {
-          const prefix = match[1]
-          const frameNumber = Number.parseInt(match[2], 10)
-
-          // Add to animation frames map
-          if (!animationFrames.has(prefix)) {
-            animationFrames.set(prefix, [])
-          }
-
-          animationFrames.get(prefix).push({
-            name: name,
-            frameNumber: frameNumber,
-          })
-        }
       }
 
-      console.log(`Processed ${animationFrames.size} animation prefixes`)
+      console.log(`Processed ${subTextures.length} SubTexture elements`)
 
-      // Create animations from the character data
-      this.createAnimationsFromData(characterData, imagePath, animationFrames)
+      // Setup animations using the Characters.js approach
+      this.setupAnimations(characterData, imagePath)
     } catch (error) {
       console.error("Error parsing XML:", error)
     }
   }
 
-  // Create animations from character data
-  createAnimationsFromData(characterData, imagePath, animationFrames) {
+  // Setup animations using the Characters.js approach
+  setupAnimations(characterData, imagePath) {
     if (!characterData.animations || characterData.animations.length === 0) {
       console.warn("No animations found in character data")
       return
     }
 
-    console.log(`Creating animations for ${characterData.animations.length} animation definitions`)
+    console.log(`Setting up animations for ${characterData.animations.length} animation definitions`)
 
     // Process each animation in the character data
     characterData.animations.forEach((animation) => {
       try {
         const animName = animation.anim // e.g., "singLEFT"
-        const frameName = animation.name // e.g., "BF NOTE LEFT0"
+        const animBaseName = animation.name // e.g., "BF NOTE LEFT"
         const fps = animation.fps || 24
         const loop = animation.loop !== undefined ? animation.loop : animName === "idle"
 
-        console.log(`Processing animation: ${animName}, frameName: ${frameName}`)
+        console.log(`Processing animation: ${animName}, baseName: ${animBaseName}`)
 
-        // Encontrar el prefijo correcto basado en el nombre del frame
-        let prefix = ""
-        for (let [key] of animationFrames) {
-          // Remover números del final del nombre del frame para comparar
-          const baseFrameName = frameName.replace(/[0-9]+$/, "")
-          if (key.includes(baseFrameName)) {
-            prefix = key
-            break
-          }
+        const frames = this.textures.get(imagePath).getFrameNames()
+        let animationFrames = []
+
+        // Use the exact same logic as Characters.js
+        if (animation.indices?.length > 0) {
+          // If indices are provided, use them to find frames
+          animationFrames = animation.indices
+            .map((index) => {
+              const paddedIndex = String(index).padStart(4, "0")
+              return frames.find((frame) => frame.startsWith(`${animBaseName}${paddedIndex}`))
+            })
+            .filter(Boolean)
+        } else {
+          // Otherwise, filter frames that start with the animation name
+          animationFrames = frames.filter((frame) => frame.startsWith(animBaseName)).sort()
         }
 
-        if (!prefix) {
-          console.warn(`No matching prefix found for animation: ${animName} (${frameName})`)
-          return
-        }
-
-        // Get frames and sort by frame number
-        let frames =
-          animationFrames
-            .get(prefix)
-            ?.sort((a, b) => a.frameNumber - b.frameNumber)
-            ?.map((frame) => frame.name) || []
-
-        if (frames.length > 0) {
+        if (animationFrames.length > 0) {
           const animKey = `${imagePath}_${animName}`
 
           // Remove existing animation if it exists
@@ -311,21 +345,20 @@ class CharacterEditorState extends Phaser.Scene {
             this.anims.remove(animKey)
           }
 
-          // Create animation config
-          const animConfig = {
+          // Create animation config exactly like in Characters.js
+          this.anims.create({
             key: animKey,
-            frames: this.anims.generateFrameNames(imagePath, {
-              frames: frames,
-            }),
+            frames: animationFrames.map((frameName) => ({
+              key: imagePath,
+              frame: frameName,
+            })),
             frameRate: fps,
             repeat: loop ? -1 : 0,
-          }
+          })
 
-          // Create the animation
-          this.anims.create(animConfig)
-          console.log(`Created animation: ${animKey} with ${frames.length} frames`)
+          console.log(`Created animation: ${animKey} with ${animationFrames.length} frames`)
         } else {
-          console.warn(`No frames found for animation: ${animName} using prefix: ${prefix}`)
+          console.warn(`No frames found for animation: ${animName} using name: ${animBaseName}`)
         }
       } catch (error) {
         console.error(`Error creating animation ${animation.anim}:`, error)
@@ -336,7 +369,7 @@ class CharacterEditorState extends Phaser.Scene {
     this.playAnimation("idle")
   }
 
-  // Play animation with offsets
+  // Play animation with offsets - match the approach in Characters.js
   playAnimation(animName) {
     if (!this.characterSprite || !this.characterData) {
       console.warn("Cannot play animation: character sprite or data is missing")
@@ -350,28 +383,31 @@ class CharacterEditorState extends Phaser.Scene {
       return
     }
 
-    // Get the animation key
-    const animKey = `${this.characterData.image}_${animName}`
+    // Only change animation if it's different from current
+    if (this.currentAnimation !== animName) {
+      // Get the animation key
+      const animKey = `${this.characterData.image}_${animName}`
 
-    // Check if the animation exists
-    if (!this.anims.exists(animKey)) {
-      console.warn(`Animation not found in Phaser: ${animKey}`)
-      return
+      // Check if the animation exists
+      if (!this.anims.exists(animKey)) {
+        console.warn(`Animation not found in Phaser: ${animKey}`)
+        return
+      }
+
+      // Store current animation
+      this.currentAnimation = animName
+
+      // Apply offsets
+      this.applyOffsets(animName)
+
+      // Play the animation
+      this.characterSprite.play(animKey)
+
+      console.log(`Playing animation: ${animName}`)
     }
-
-    // Store current animation
-    this.currentAnimation = animName
-
-    // Apply offsets
-    this.applyOffsets(animName)
-
-    // Play the animation
-    this.characterSprite.play(animKey)
-
-    console.log(`Playing animation: ${animName}`)
   }
 
-  // Apply offsets
+  // Apply offsets - match the approach in Characters.js
   applyOffsets(animName) {
     if (!this.characterSprite || !this.characterData) return
 
@@ -390,20 +426,28 @@ class CharacterEditorState extends Phaser.Scene {
       this.activeTweens.character = null
     }
 
-    // Reset position to center
-    this.characterSprite.setPosition(0, 0)
+    // First reset to base position using gsap.set, exactly like in Characters.js
+    if (typeof gsap !== "undefined") {
+      gsap.set(this.characterSprite, {
+        x: this.basePosition.x,
+        y: this.basePosition.y,
+      })
+    } else {
+      // Fallback if gsap is not available
+      this.characterSprite.setPosition(this.basePosition.x, this.basePosition.y)
+    }
 
     // Get offsets
     const offsets = animation.offsets || [0, 0]
     const [offsetX, offsetY] = offsets
 
-    // Apply offsets
+    // Apply offsets using gsap, exactly like in Characters.js
     if (typeof gsap !== "undefined") {
       try {
         // Use GSAP if available
         const tween = gsap.to(this.characterSprite, {
-          x: offsetX,
-          y: offsetY,
+          x: this.basePosition.x + offsetX,
+          y: this.basePosition.y + offsetY,
           duration: 0, // Instantaneous
           ease: "none",
           overwrite: "auto",
@@ -414,14 +458,173 @@ class CharacterEditorState extends Phaser.Scene {
       } catch (error) {
         // Fallback to direct positioning if GSAP fails
         console.warn("GSAP error, using direct positioning:", error)
-        this.characterSprite.setPosition(offsetX, offsetY)
+        this.characterSprite.setPosition(this.basePosition.x + offsetX, this.basePosition.y + offsetY)
       }
     } else {
       // Fallback to direct positioning
-      this.characterSprite.setPosition(offsetX, offsetY)
+      this.characterSprite.setPosition(this.basePosition.x + offsetX, this.basePosition.y + offsetY)
     }
 
     console.log(`Applied offsets for ${animName}: [${offsetX}, ${offsetY}]`)
+  }
+
+  // Setup offset controls
+  setupOffsetControls() {
+    // Track if control key is pressed
+    this.isCtrlPressed = false
+
+    // Add keyboard listeners
+    this.input.keyboard.on("keydown-CTRL", () => {
+      this.isCtrlPressed = true
+    })
+
+    this.input.keyboard.on("keyup-CTRL", () => {
+      this.isCtrlPressed = false
+    })
+
+    // Arrow key handlers
+    this.input.keyboard.on("keydown-LEFT", () => {
+      this.moveOffset(-1 * (this.isCtrlPressed ? 5 : 1), 0)
+    })
+
+    this.input.keyboard.on("keydown-RIGHT", () => {
+      this.moveOffset(1 * (this.isCtrlPressed ? 5 : 1), 0)
+    })
+
+    this.input.keyboard.on("keydown-UP", () => {
+      this.moveOffset(0, -1 * (this.isCtrlPressed ? 5 : 1))
+    })
+
+    this.input.keyboard.on("keydown-DOWN", () => {
+      this.moveOffset(0, 1 * (this.isCtrlPressed ? 5 : 1))
+    })
+
+    // Make character draggable
+    if (this.characterSprite) {
+      this.characterSprite.setInteractive({ draggable: true })
+
+      this.characterSprite.on("dragstart", () => {
+        this.dragStartPosition = {
+          x: this.characterSprite.x,
+          y: this.characterSprite.y,
+        }
+      })
+
+      this.characterSprite.on("drag", (pointer, dragX, dragY) => {
+        // Calculate the offset from the base position
+        const offsetX = Math.round(dragX - this.basePosition.x)
+        const offsetY = Math.round(dragY - this.basePosition.y)
+
+        // Update the character position
+        this.characterSprite.setPosition(dragX, dragY)
+
+        // Update the offsets in the character data
+        this.updateOffsets(offsetX, offsetY)
+      })
+    }
+  }
+
+  // Add method to move offset by a specific amount
+  moveOffset(deltaX, deltaY) {
+    if (!this.characterSprite || !this.characterData || !this.currentAnimation) return
+
+    // Find the animation in the character data
+    const animation = this.characterData.animations.find((a) => a.anim === this.currentAnimation)
+    if (!animation) return
+
+    // Get current offsets
+    const currentOffsets = animation.offsets || [0, 0]
+
+    // Calculate new offsets
+    const newOffsetX = currentOffsets[0] + deltaX
+    const newOffsetY = currentOffsets[1] + deltaY
+
+    // Update the offsets
+    this.updateOffsets(newOffsetX, newOffsetY)
+
+    // Apply the new offsets
+    this.applyOffsets(this.currentAnimation)
+  }
+
+  // Add method to update offsets in the character data
+  updateOffsets(offsetX, offsetY) {
+    if (!this.characterData || !this.currentAnimation) return
+
+    // Find the animation in the character data
+    const animation = this.characterData.animations.find((a) => a.anim === this.currentAnimation)
+    if (!animation) return
+
+    // Update the offsets
+    animation.offsets = [offsetX, offsetY]
+
+    // Update the animation text in the animations modal if it exists
+    if (this.animsModal) {
+      this.animsModal.updateAnimationText(this.currentAnimation, [offsetX, offsetY])
+    }
+
+    console.log(`Updated offsets for ${this.currentAnimation}: [${offsetX}, ${offsetY}]`)
+  }
+
+  // Create ghost sprite
+  createGhost(animName) {
+    if (!this.characterSprite || !this.characterData) return
+
+    // Clear any existing ghost
+    this.clearGhost()
+
+    // Find the animation in the character data
+    const animation = this.characterData.animations.find((a) => a.anim === animName)
+    if (!animation) return
+
+    // Get the offsets for this animation
+    const offsets = animation.offsets || [0, 0]
+    const [offsetX, offsetY] = offsets
+
+    // Create a copy of the character sprite
+    const imagePath = this.characterData.image
+    this.ghostSprite = this.add.sprite(0, 0, imagePath)
+    this.ghostSprite.setOrigin(0, 0) // Use origin (0,0) like in Characters.js
+    this.ghostSprite.setDepth(0.5) // Below the character
+    this.ghostSprite.setAlpha(0.5) // Semi-transparent
+    this.ghostSprite.setTint(0x0088ff) // Blue tint
+
+    // Match the scale of the character
+    this.ghostSprite.setScale(this.characterSprite.scaleX, this.characterSprite.scaleY)
+
+    // Position the ghost at the FIXED position with the current animation's offset
+    // This position will never change
+    this.ghostSprite.setPosition(this.basePosition.x + offsetX, this.basePosition.y + offsetY)
+
+    // Play the same animation
+    const animKey = `${this.characterData.image}_${animName}`
+    if (this.anims.exists(animKey)) {
+      this.ghostSprite.play(animKey)
+    }
+
+    // Store the initial animation
+    this.ghostInitialAnim = animName
+    this.isGhostActive = true
+
+    console.log(`Created ghost for animation: ${animName} at fixed position`)
+  }
+
+  // Clear ghost sprite
+  clearGhost() {
+    if (this.ghostSprite) {
+      this.ghostSprite.destroy()
+      this.ghostSprite = null
+    }
+    this.isGhostActive = false
+    this.ghostInitialAnim = null
+  }
+
+  // Toggle ghost visibility
+  toggleGhost(active) {
+    if (active && !this.isGhostActive && this.currentAnimation) {
+      this.createGhost(this.currentAnimation)
+    } else if (!active && this.isGhostActive) {
+      this.clearGhost()
+    }
   }
 }
 
@@ -461,7 +664,7 @@ class ModalWindow {
     this.container = this.scene.add.container(this.x, this.y)
     this.container.setDepth(1000) // Ensure it's above other game elements
 
-    // Background panel
+    this.height = 200 // Increase height to accommodate save button
     this.panel = this.scene.add.rectangle(0, 0, this.width, this.height, this.backgroundColor, this.alpha)
     this.panel.setOrigin(0, 0)
     this.container.add(this.panel)
@@ -508,8 +711,21 @@ class ModalWindow {
     this.loadButton.setInteractive({ useHandCursor: true })
     this.loadButton.on("pointerdown", () => this.openFileDialog())
 
-    // Status text (simplified)
-    this.statusText = this.scene.add.text(0, 70, "No character data loaded", { fontSize: "14px", fill: "#ffffff" })
+    // Add save button
+    this.saveButton = this.scene.add.rectangle(0, 70, 150, 30, 0x27ae60, 1)
+    this.saveButton.setOrigin(0, 0)
+    this.contentArea.add(this.saveButton)
+
+    this.saveButtonText = this.scene.add.text(75, 85, "Save Character", { fontSize: "14px", fill: "#ffffff" })
+    this.saveButtonText.setOrigin(0.5, 0.5)
+    this.contentArea.add(this.saveButtonText)
+
+    // Make save button interactive
+    this.saveButton.setInteractive({ useHandCursor: true })
+    this.saveButton.on("pointerdown", () => this.saveCharacter())
+
+    // Move status text down
+    this.statusText = this.scene.add.text(0, 110, "No character data loaded", { fontSize: "14px", fill: "#ffffff" })
     this.contentArea.add(this.statusText)
 
     // Create an invisible file input element
@@ -571,6 +787,9 @@ class ModalWindow {
 
     // Create the character properties modal
     this.createCharacterPropertiesModal(data)
+
+    // Create the character configs modal
+    this.createCharacterConfigsModal(data)
   }
 
   createAnimationsModal(data) {
@@ -604,6 +823,21 @@ class ModalWindow {
       y: this.y,
       width: 250,
       height: 300,
+      characterData: data,
+    })
+  }
+
+  createCharacterConfigsModal(data) {
+    // Create a new modal for character configs
+    if (this.scene.characterConfigsModal) {
+      this.scene.characterConfigsModal.close()
+    }
+
+    this.scene.characterConfigsModal = new CharacterConfigsModal(this.scene, {
+      x: this.x,
+      y: this.y + this.height + 20,
+      width: 300,
+      height: 200,
       characterData: data,
     })
   }
@@ -682,6 +916,47 @@ class ModalWindow {
 
     // Destroy the container and all its children
     this.container.destroy()
+  }
+
+  saveCharacter() {
+    if (!this.characterData) {
+      this.statusText.setText("No character data to save")
+      return
+    }
+
+    try {
+      // Convert the character data to JSON
+      const jsonData = JSON.stringify(this.characterData, null, 2)
+
+      // Create a blob with the JSON data
+      const blob = new Blob([jsonData], { type: "application/json" })
+
+      // Create a URL for the blob
+      const url = URL.createObjectURL(blob)
+
+      // Create a temporary link element
+      const a = document.createElement("a")
+      a.href = url
+
+      // Set the filename to the original name or a default
+      const filename = this.characterData.image ? `${this.characterData.image}.json` : "character.json"
+      a.download = filename
+
+      // Append the link to the body
+      document.body.appendChild(a)
+
+      // Trigger the download
+      a.click()
+
+      // Clean up
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      this.statusText.setText("Character saved!")
+    } catch (error) {
+      console.error("Error saving character:", error)
+      this.statusText.setText(`Error saving: ${error.message}`)
+    }
   }
 }
 
@@ -858,8 +1133,8 @@ class AnimationsModal {
     const bounds = {
       left: camera.scrollX,
       top: camera.scrollY,
-      right: camera.scrollX + camera.width,
-      bottom: camera.scrollY + camera.height,
+      right: camera.scrollX + this.camera.width,
+      bottom: camera.scrollY + this.camera.height,
     }
 
     // Adjust position if needed
@@ -896,6 +1171,15 @@ class AnimationsModal {
 
     // Destroy the container and all its children
     this.container.destroy()
+  }
+
+  updateAnimationText(animName, offsets) {
+    // Find the animation text object
+    const index = this.animations.findIndex((a) => a.anim === animName)
+    if (index === -1 || !this.animTextObjects[index]) return
+
+    // Update the text
+    this.animTextObjects[index].setText(`${animName} [${offsets[0]}, ${offsets[1]}]`)
   }
 }
 
@@ -934,7 +1218,9 @@ class CharacterPropertiesModal {
     this.container.setDepth(1000)
 
     // Background
-    this.panel = this.scene.add.rectangle(0, 0, this.width, this.height, this.backgroundColor, this.alpha).setOrigin(0, 0)
+    this.panel = this.scene.add
+      .rectangle(0, 0, this.width, this.height, this.backgroundColor, this.alpha)
+      .setOrigin(0, 0)
     this.container.add(this.panel)
 
     // Title bar
@@ -961,19 +1247,21 @@ class CharacterPropertiesModal {
 
   setupButtons() {
     // Close button
-    this.closeButton = this.scene.add.text(this.width - 30, 5, "X", {
-      fontSize: "16px",
-      fill: "#ffffff",
-    })
+    this.closeButton = this.scene.add
+      .text(this.width - 30, 5, "X", {
+        fontSize: "16px",
+        fill: "#ffffff",
+      })
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => this.close())
     this.container.add(this.closeButton)
 
     // Minimize button
-    this.minimizeButton = this.scene.add.text(this.width - 50, 5, "_", {
-      fontSize: "16px",
-      fill: "#ffffff",
-    })
+    this.minimizeButton = this.scene.add
+      .text(this.width - 50, 5, "_", {
+        fontSize: "16px",
+        fill: "#ffffff",
+      })
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => this.toggleMinimize())
     this.container.add(this.minimizeButton)
@@ -1016,6 +1304,215 @@ class CharacterPropertiesModal {
 
       this.contentArea.add([propText, valueDisplay])
       yPos += 30
+    })
+  }
+
+  addEventListeners() {
+    this.titleBar.setInteractive({ useHandCursor: true })
+    this.titleBar.on("pointerdown", (pointer) => {
+      this.isDragging = true
+      this.dragOffset.x = pointer.x - this.container.x
+      this.dragOffset.y = pointer.y - this.container.y
+    })
+
+    this.scene.input.on("pointermove", (pointer) => {
+      if (this.isDragging) {
+        this.container.x = pointer.x - this.dragOffset.x
+        this.container.y = pointer.y - this.dragOffset.y
+      }
+    })
+
+    this.scene.input.on("pointerup", () => {
+      this.isDragging = false
+    })
+
+    this.scene.events.on("update", this.updatePosition, this)
+  }
+
+  updatePosition() {
+    const bounds = {
+      left: this.camera.scrollX,
+      top: this.camera.scrollY,
+      right: this.camera.scrollX + this.camera.width,
+      bottom: this.camera.scrollY + this.camera.height,
+    }
+
+    if (this.container.x < bounds.left) {
+      this.container.x = bounds.left
+    } else if (this.container.x + this.width > bounds.right) {
+      this.container.x = bounds.right - this.width
+    }
+
+    if (this.container.y < bounds.top) {
+      this.container.y = bounds.top
+    } else if (this.container.y + this.height > bounds.bottom) {
+      this.container.y = bounds.bottom - this.height
+    }
+  }
+
+  toggleMinimize() {
+    this.isMinimized = !this.isMinimized
+    if (this.isMinimized) {
+      this.contentArea.setVisible(false)
+      this.panel.height = 30
+    } else {
+      this.contentArea.setVisible(true)
+      this.panel.height = this.height
+    }
+  }
+
+  close() {
+    this.scene.events.off("update", this.updatePosition, this)
+    this.container.destroy()
+  }
+}
+
+// Character Configs Modal Window class
+class CharacterConfigsModal {
+  constructor(scene, options = {}) {
+    this.scene = scene
+    this.camera = scene.cameras.main
+
+    // Default options
+    this.x = options.x || 100
+    this.y = options.y || 300
+    this.width = options.width || 300
+    this.height = options.height || 200
+    this.title = "Character Configs"
+    this.backgroundColor = 0x2c3e50
+    this.titleColor = 0x3498db
+    this.alpha = 0.9
+    this.padding = 10
+
+    // Properties data
+    this.characterData = options.characterData || {}
+
+    // State variables
+    this.isMinimized = false
+    this.isDragging = false
+    this.dragOffset = { x: 0, y: 0 }
+    this.ghostActive = false
+
+    this.createModal()
+    this.addEventListeners()
+  }
+
+  createModal() {
+    // Container setup
+    this.container = this.scene.add.container(this.x, this.y)
+    this.container.setDepth(1000)
+
+    // Background
+    this.panel = this.scene.add
+      .rectangle(0, 0, this.width, this.height, this.backgroundColor, this.alpha)
+      .setOrigin(0, 0)
+    this.container.add(this.panel)
+
+    // Title bar
+    this.titleBar = this.scene.add.rectangle(0, 0, this.width, 30, this.titleColor, this.alpha).setOrigin(0, 0)
+    this.container.add(this.titleBar)
+
+    // Title text
+    this.titleText = this.scene.add.text(10, 5, this.title, {
+      fontSize: "16px",
+      fill: "#ffffff",
+    })
+    this.container.add(this.titleText)
+
+    // Minimize/Close buttons
+    this.setupButtons()
+
+    // Content area
+    this.contentArea = this.scene.add.container(this.padding, 40)
+    this.container.add(this.contentArea)
+
+    // Add ghost guide checkbox
+    this.createGhostGuideControls()
+  }
+
+  setupButtons() {
+    // Close button
+    this.closeButton = this.scene.add
+      .text(this.width - 30, 5, "X", {
+        fontSize: "16px",
+        fill: "#ffffff",
+      })
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => this.close())
+    this.container.add(this.closeButton)
+
+    // Minimize button
+    this.minimizeButton = this.scene.add
+      .text(this.width - 50, 5, "_", {
+        fontSize: "16px",
+        fill: "#ffffff",
+      })
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => this.toggleMinimize())
+    this.container.add(this.minimizeButton)
+  }
+
+  createGhostGuideControls() {
+    // Title for ghost guide
+    const ghostTitle = this.scene.add.text(0, 0, "Ghost Guide:", {
+      fontSize: "16px",
+      fill: "#3498db",
+      fontStyle: "bold",
+    })
+    this.contentArea.add(ghostTitle)
+
+    // Description
+    const ghostDesc = this.scene.add.text(0, 30, "Creates a blue ghost of the current\nanimation for reference", {
+      fontSize: "12px",
+      fill: "#ffffff",
+    })
+    this.contentArea.add(ghostDesc)
+
+    // Checkbox background
+    const checkboxBg = this.scene.add.rectangle(0, 70, 20, 20, 0x555555)
+    checkboxBg.setOrigin(0, 0)
+    this.contentArea.add(checkboxBg)
+
+    // Checkbox
+    this.checkbox = this.scene.add.rectangle(2, 72, 16, 16, 0xffffff)
+    this.checkbox.setOrigin(0, 0)
+    this.checkbox.setVisible(false) // Initially unchecked
+    this.contentArea.add(this.checkbox)
+
+    // Make checkbox interactive
+    checkboxBg.setInteractive({ useHandCursor: true })
+    checkboxBg.on("pointerdown", () => {
+      this.ghostActive = !this.ghostActive
+      this.checkbox.setVisible(this.ghostActive)
+
+      // Toggle ghost in the scene
+      this.scene.toggleGhost(this.ghostActive)
+    })
+
+    // Label
+    const checkboxLabel = this.scene.add.text(30, 70, "Enable Ghost Guide", {
+      fontSize: "14px",
+      fill: "#ffffff",
+    })
+    this.contentArea.add(checkboxLabel)
+
+    // Add button to clear ghost
+    const clearButton = this.scene.add.rectangle(0, 100, 120, 30, 0x3498db)
+    clearButton.setOrigin(0, 0)
+    this.contentArea.add(clearButton)
+
+    const clearText = this.scene.add.text(60, 115, "Clear Ghost", {
+      fontSize: "14px",
+      fill: "#ffffff",
+    })
+    clearText.setOrigin(0.5, 0.5)
+    this.contentArea.add(clearText)
+
+    clearButton.setInteractive({ useHandCursor: true })
+    clearButton.on("pointerdown", () => {
+      this.ghostActive = false
+      this.checkbox.setVisible(false)
+      this.scene.clearGhost()
     })
   }
 
