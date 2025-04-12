@@ -42,6 +42,9 @@ class PlayState extends Phaser.Scene {
     }
 
     preload() {
+        this.load.audio('missnote1', 'public/assets/sounds/missnote1.ogg');
+        this.load.audio('missnote2', 'public/assets/sounds/missnote2.ogg');
+        this.load.audio('missnote3', 'public/assets/sounds/missnote3.ogg');
         this.load.atlasXML('notes', 'public/assets/images/states/PlayState/notes.png', 'public/assets/images/states/PlayState/notes.xml');
         this.load.atlasXML('noteStrumline', 'public/assets/images/states/PlayState/noteStrumline.png', 'public/assets/images/states/PlayState/noteStrumline.xml');
         this.load.atlasXML('NOTE_hold_assets', 'public/assets/images/states/PlayState/NOTE_hold_assets.png', 'public/assets/images/states/PlayState/NOTE_hold_assets.xml');

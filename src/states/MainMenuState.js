@@ -47,7 +47,7 @@ class MainMenuState extends Phaser.Scene {
 
     setupMenu() {
         // Move all the menu setup code here
-        const { width, height } = this.scale;
+        const { width } = this.scale;
 
         // ====== BACKGROUND ======
         this.bg = this.add.image(width / 2, 0, 'menuBackground')
@@ -62,17 +62,24 @@ class MainMenuState extends Phaser.Scene {
 
         // ====== OPTIONS CONTAINER ======
         this.menuContainer = this.add.container(0, 0);
-
-        // Ajustar el espaciado vertical entre opciones
-        const spacing = 140; // Aumentamos de 120 a 140 para dar más espacio
-
         this.menuOptions = this.config.menuOptions.map((option, index) => {
-            return this.add.sprite(650, 100 + spacing * index, option.spritesheetKey);
+            const sprite = this.add.sprite(0, 0, option.spritesheetKey);
+            
+            // Mantener el origen en el centro
+            sprite.setOrigin(0.5);
+            
+            // Usar posición directamente desde config sin ajustar
+            sprite.setPosition(
+                option.position.x,
+                option.position.y
+            );
+            
+            return sprite;
         });
 
         // Ajustar la cámara para mostrar todo el contenido
-        const lastOptionY = this.menuOptions[this.menuOptions.length - 1].y;
-        this.cameras.main.setBounds(0, 0, width, lastOptionY + 150); // Padding
+        const lastOption = this.menuOptions[this.menuOptions.length - 1];
+        this.cameras.main.setBounds(0, 0, width, lastOption.y + lastOption.height + 150); // Padding
 
         this.menuOptions.forEach((option, index) => {
             option.play(this.getAnimationKey(index));
@@ -131,11 +138,9 @@ class MainMenuState extends Phaser.Scene {
         this.keyCooldown = true;
         this.time.delayedCall(150, () => { this.keyCooldown = false; });
 
-        // Añadir detección de tecla 7
         if (key === "Digit7") {
             if (!this.scene.get("EditorsState")) {
-                console.warn("Escena EditorsState no existe.");
-                return;
+                console.warn("Escena EditorsState no existe."); return;
             }
             this.scene.get("TransitionScene").startTransition("EditorsState");
             return;
@@ -151,10 +156,8 @@ class MainMenuState extends Phaser.Scene {
             ['basic', 'white'].forEach(type => {
                 const animKey = `${option.animPrefix}_${type === 'basic' ? 'animation' : 'white'}`;
                 
-                // Verificar si la animación ya existe
-                if (this.anims.exists(animKey)) {
-                    return; // Skip if animation already exists
-                }
+                // Skip if animation already exists
+                if (this.anims.exists(animKey)) { return; }
 
                 const config = this.config.animations[type];
                 this.anims.create({
@@ -171,11 +174,9 @@ class MainMenuState extends Phaser.Scene {
             });
         });
     }
-
     getAnimationKey(index) {
         return `${this.config.menuOptions[index].animPrefix}_animation`;
     }
-
     getWhiteAnimationKey(index) {
         return `${this.config.menuOptions[index].animPrefix}_white`;
     }
@@ -191,14 +192,12 @@ class MainMenuState extends Phaser.Scene {
             duration: 200,
             ease: 'Power2'
         });
-
         this.tweens.add({
             targets: this.bg,
             y: -this.selectedIndex * this.bgScrollSpeed,
             duration: 200,
             ease: 'Power2'
         });
-
         this.updateSelection();
         this.selectSound.play();
     }
@@ -236,10 +235,7 @@ class MainMenuState extends Phaser.Scene {
             this.cancelSound.play();
             this.cameras.main.shake(200, 0.01);
             return false;
-        }
-        return true;
-    }
-
+        } return true; }
     selectOption() {
         if (this.enterCooldown) return;
         this.enterCooldown = true;
@@ -256,10 +252,7 @@ class MainMenuState extends Phaser.Scene {
                 yoyo: true,
                 repeat: 3,
                 onComplete: () => this.enterCooldown = false
-            });
-            return;
-        }
-
+            }); return; }
         this.handleValidScene(selectedOption, selectedScene);
     }
 
@@ -275,7 +268,6 @@ class MainMenuState extends Phaser.Scene {
             repeat: 3,
             onComplete: () => this.enterCooldown = false
         });
-
         this.cameras.main.shake(200, 0.01);
     }
 

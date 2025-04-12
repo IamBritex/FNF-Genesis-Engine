@@ -54,6 +54,13 @@ export class NotesController {
         this.currentBPM = 100;
 
         this.events = new Phaser.Events.EventEmitter();
+
+        // Añadir array de sonidos de fallo
+        this.missSounds = [
+            'missnote1',
+            'missnote2',
+            'missnote3'
+        ];
     }
 
     // Input setup
@@ -397,6 +404,13 @@ export class NotesController {
         arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
         arrow.setScale(this.arrowConfigs.scale.confirm);
         
+        // Emitir evento de cambio a confirm
+        this.events.emit('strumlineStateChange', {
+            direction: note.noteDirection,
+            isPlayerNote: note.isPlayerNote,
+            state: 'confirm'
+        });
+        
         if (!note.isHoldNote) {
             this.scene.time.delayedCall(this.arrowConfigs.confirmHoldTime, () => {
                 if (!this.keysHeld[direction]) {
@@ -404,6 +418,13 @@ export class NotesController {
                     arrow.y = arrow.originalY;
                     arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
                     arrow.setScale(this.arrowConfigs.scale.static);
+                    
+                    // Emitir evento de cambio a static
+                    this.events.emit('strumlineStateChange', {
+                        direction: note.noteDirection,
+                        isPlayerNote: note.isPlayerNote,
+                        state: 'static'
+                    });
                 }
             });
         }
@@ -436,6 +457,12 @@ export class NotesController {
         note.tooLate = true;
         this.notesMissed++;
         
+        // Reproducir un sonido de fallo aleatorio
+        const randomSound = this.missSounds[Math.floor(Math.random() * this.missSounds.length)];
+        if (this.scene.cache.audio.exists(randomSound)) {
+            this.scene.sound.play(randomSound, { volume: 0.5 });
+        }
+
         if (note.sprite?.active) {
             note.sprite.destroy();
             note.sprite = null;
@@ -447,6 +474,22 @@ export class NotesController {
             });
             note.holdSprites = [];
         }
+
+        // Añadir animación de miss según la dirección
+        const missAnims = {
+            0: "singLEFTmiss",
+            1: "singDOWNmiss",
+            2: "singUPmiss",
+            3: "singRIGHTmiss"
+        };
+
+        // Emitir evento para la animación de miss
+        this.events.emit('noteHit', {
+            direction: note.noteDirection,
+            isPlayerNote: true,
+            isMiss: true,
+            animation: missAnims[note.noteDirection]
+        });
         
         // Usar nuevo RatingManager
         this.ratingManager.recordMiss();
@@ -742,6 +785,13 @@ export class NotesController {
         arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
         arrow.setScale(this.arrowConfigs.scale.confirm);
         
+        // Emitir evento de cambio a confirm
+        this.events.emit('strumlineStateChange', {
+            direction: note.noteDirection,
+            isPlayerNote: false,
+            state: 'confirm'
+        });
+
         // Emitir evento para que el enemigo anime
         this.events.emit('cpuNoteHit', {
             direction: note.noteDirection,
@@ -761,6 +811,13 @@ export class NotesController {
                     arrow.y = arrow.originalY;
                     arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
                     arrow.setScale(this.arrowConfigs.scale.static);
+                    
+                    // Emitir evento de cambio a static
+                    this.events.emit('strumlineStateChange', {
+                        direction: note.noteDirection,
+                        isPlayerNote: false,
+                        state: 'static'
+                    });
                 }
             });
         } else {

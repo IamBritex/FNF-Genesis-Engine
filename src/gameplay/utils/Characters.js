@@ -7,6 +7,7 @@ export class Characters {
     this.currentEnemy = null;
     this.currentGF = null;
     this.tweens = new Map();
+    this.lastCombo = 0; // Añadir tracking del último combo
   }
 
   async loadCharacterFromSong(songData) {
@@ -123,39 +124,44 @@ export class Characters {
 
   setupGFAnimation(characterInfo) {
     const { data, textureKey } = characterInfo;
-    const idleAnimation = data.animations.find((anim) => anim.anim === "idle");
+    
+    // Procesar todas las animaciones, no solo idle
+    data.animations.forEach(animation => {
+        const frames = this.scene.textures.get(textureKey).getFrameNames();
+        let animationFrames;
 
-    if (idleAnimation) {
-      const frames = this.scene.textures.get(textureKey).getFrameNames();
-      let idleFrames;
-
-      if (idleAnimation.indices?.length > 0) {
-        idleFrames = idleAnimation.indices
-          .map((index) => {
-            const paddedIndex = String(index).padStart(4, "0");
-            return frames.find((frame) => frame.startsWith(`${idleAnimation.name}${paddedIndex}`));
-          })
-          .filter(Boolean);
-      } else {
-        idleFrames = frames.filter((frame) => frame.startsWith(idleAnimation.name)).sort();
-      }
-
-      if (idleFrames.length > 0) {
-        const animKey = `${textureKey}_idle`;
-
-        if (!this.scene.anims.exists(animKey)) {
-          this.scene.anims.create({
-            key: animKey,
-            frames: idleFrames.map((frameName) => ({
-              key: textureKey,
-              frame: frameName,
-            })),
-            frameRate: idleAnimation.fps || 24,
-            repeat: -1,
-          });
+        if (animation.indices?.length > 0) {
+            animationFrames = animation.indices
+                .map((index) => {
+                    const paddedIndex = String(index).padStart(4, "0");
+                    // Usar animation.name para buscar los frames
+                    return frames.find((frame) => frame.startsWith(`${animation.name}${paddedIndex}`));
+                })
+                .filter(Boolean);
+        } else {
+            // Usar animation.name para filtrar los frames
+            animationFrames = frames.filter((frame) => frame.startsWith(animation.name)).sort();
         }
-      }
-    }
+
+        if (animationFrames.length > 0) {
+            // Usar animation.anim para la key de la animación
+            const animKey = `${textureKey}_${animation.anim}`;
+
+            if (!this.scene.anims.exists(animKey)) {
+                this.scene.anims.create({
+                    key: animKey,
+                    frames: animationFrames.map((frameName) => ({
+                        key: textureKey,
+                        frame: frameName,
+                    })),
+                    frameRate: animation.fps || 24,
+                    repeat: animation.anim === "idle" || animation.loop ? -1 : 0,
+                });
+            }
+        } else {
+            console.warn(`No frames found for animation: ${animation.anim} (${animation.name})`);
+        }
+    });
   }
 
   playGFIdleAnimation(characterId) {
@@ -266,131 +272,156 @@ export class Characters {
     this.tweens.set(characterId, tween);
   }
 
-  playAnimation(characterId, animName) {
+  playAnimation(characterId, animName, holdNote = false) {
     const character = this.loadedCharacters.get(characterId);
     if (!character) return;
 
-    const animation = character.data.animations.find((a) => a.anim === animName);
+    const animation = character.data.animations.find(a => a.anim === animName);
     if (!animation) return;
 
-    if (character.currentAnimation !== animName) {
-      if (character.idleTimeout) {
+    // Limpiar timeout previo si existe
+    if (character.idleTimeout) {
         character.idleTimeout.remove();
         character.idleTimeout = null;
-      }
-
-      this.applyOffsets(characterId, animName);
-
-      const animKey = `${character.textureKey}_${animation.anim}`;
-      character.sprite.play(animKey);
-      character.currentAnimation = animName;
-
-      if (animName !== "idle" && !animation.loop) {
-        const stepCrochet = ((60 / (this.scene.songData?.song?.bpm || 100)) * 1000) / 4;
-        character.idleTimeout = this.scene.time.delayedCall(stepCrochet * 2, () =>
-          this.playAnimation(characterId, "idle")
-        );
-      }
     }
+
+    this.applyOffsets(characterId, animName);
+    const animKey = `${character.textureKey}_${animation.anim}`;
+    character.sprite.play(animKey);
+    character.currentAnimation = animName;
+
+    // No programar retorno a idle si es una animación sing o si es una nota sostenida
+    if (!holdNote && animName !== "idle" && !animName.startsWith('sing')) {
+        character.idleTimeout = this.scene.time.delayedCall(600, () => {
+            this.playAnimation(characterId, "idle");
+        });
+    }
+  }
+
+  handleGFComboReactions(newCombo) {
+    const gf = this.loadedCharacters.get(this.currentGF);
+    if (!gf) return;
+
+    // Si alcanzamos 50 de combo, hacer cheer
+    if (newCombo >= 50 && this.lastCombo < 50) {
+        this.playAnimation(this.currentGF, "cheer");
+    }
+    // Si perdimos un combo que era mayor a 50, hacer sad
+    else if (newCombo === 0 && this.lastCombo > 50) {
+        this.playAnimation(this.currentGF, "sad");
+    }
+
+    this.lastCombo = newCombo;
   }
 
   subscribeToNoteEvents(characterId) {
     if (!this.notesController) return;
 
-    // Mapa para direcciones presionadas - Map for held note directions
     const heldDirections = new Map();
-    // Retraso para volver al idle - Delay before returning to idle
-    const IDLE_DELAY = 400;
+    const enemyHeldDirections = new Map();
+    
+    // Agregar suscripción a eventos de combo
+    if (this.notesController.ratingManager) {
+        this.notesController.ratingManager.on('comboChanged', (combo) => {
+            this.handleGFComboReactions(combo);
+        });
+    }
 
-    // Eventos para notas de CPU - CPU note hit events
-    this.notesController.events.on("cpuNoteHit", (noteData) => {
-      const character = this.loadedCharacters.get(characterId);
-      if (!character || characterId !== this.currentEnemy) return;
+    // Suscribirse al evento de confirmación de strumline
+    this.notesController.on('strumlineStateChange', (data) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character) return;
 
-      // Mapeo de direcciones a animaciones - Direction to animation mapping
-      const directionAnims = {
-        0: "singLEFT",
-        1: "singDOWN",
-        2: "singUP",
-        3: "singRIGHT",
-      };
-
-      const animName = directionAnims[noteData.direction];
-      heldDirections.set(noteData.direction, animName);
-      this.playAnimation(characterId, animName);
-
-      if (character.idleTimeout) {
-        character.idleTimeout.remove();
-      }
-
-      character.idleTimeout = this.scene.time.delayedCall(IDLE_DELAY, () => {
-        heldDirections.delete(noteData.direction);
-        this.playAnimation(characterId, "idle");
-      });
+        // Si es el personaje correcto (jugador o enemigo)
+        if ((data.isPlayerNote && character.isPlayer) || (!data.isPlayerNote && !character.isPlayer)) {
+            const directions = data.isPlayerNote ? heldDirections : enemyHeldDirections;
+            
+            if (data.state === 'confirm') {
+                // Mantener la animación sing mientras esté en confirm
+                const directionAnims = {
+                    0: "singLEFT",
+                    1: "singDOWN",
+                    2: "singUP",
+                    3: "singRIGHT"
+                };
+                directions.set(data.direction, directionAnims[data.direction]);
+                this.playAnimation(characterId, directionAnims[data.direction], true);
+            } else if (data.state === 'static') {
+                // Eliminar la dirección del mapa cuando vuelve a static
+                directions.delete(data.direction);
+                
+                // Programar retorno a idle con delay
+                if (directions.size === 0) {
+                    if (character.idleTimeout) {
+                        character.idleTimeout.remove();
+                    }
+                    character.idleTimeout = this.scene.time.delayedCall(600, () => {
+                        this.playAnimation(characterId, "idle");
+                    });
+                }
+            }
+        }
     });
 
-    // Eventos para notas del jugador - Player note hit events
-    this.notesController.events.on("noteHit", (noteData) => {
-      const character = this.loadedCharacters.get(characterId);
-      if (!character || characterId !== this.currentPlayer) return;
+    // Evento CPU hit para el enemigo
+    this.notesController.on('cpuNoteHit', (data) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character || character.isPlayer || characterId !== this.currentEnemy) return;
 
-      const isCorrectPlayer =
-        (noteData.isPlayerNote && characterId === this.currentPlayer) ||
-        (!noteData.isPlayerNote && characterId === this.currentEnemy);
-
-      if (isCorrectPlayer) {
         const directionAnims = {
-          0: "singLEFT",
-          1: "singDOWN",
-          2: "singUP",
-          3: "singRIGHT",
+            0: "singLEFT",
+            1: "singDOWN",
+            2: "singUP",
+            3: "singRIGHT"
         };
 
-        const animName = directionAnims[noteData.direction];
-        heldDirections.set(noteData.direction, animName);
-        this.playAnimation(characterId, animName);
-      }
+        const animName = directionAnims[data.direction];
+        enemyHeldDirections.set(data.direction, animName);
+        this.playAnimation(characterId, animName, true);
     });
 
-    // Eventos para soltar notas - Note release events
-    this.notesController.events.on("noteReleased", (noteData) => {
-      const character = this.loadedCharacters.get(characterId);
-      if (!character || characterId !== this.currentPlayer) return;
+    // Evento noteReleased
+    this.notesController.on('noteReleased', (data) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character) return;
 
-      const isCorrectPlayer =
-        (noteData.isPlayerNote && characterId === this.currentPlayer) ||
-        (!noteData.isPlayerNote && characterId === this.currentEnemy);
+        const isRelevantCharacter = (data.isPlayerNote && character.isPlayer) || 
+                                  (!data.isPlayerNote && !character.isPlayer);
 
-      if (isCorrectPlayer) {
-        heldDirections.delete(noteData.direction);
+        if (isRelevantCharacter) {
+            const directions = data.isPlayerNote ? heldDirections : enemyHeldDirections;
+            directions.delete(data.direction);
 
-        if (character.idleTimeout) {
-          character.idleTimeout.remove();
+            // Si no hay notas siendo sostenidas, programar retorno a idle con delay
+            if (directions.size === 0) {
+                if (character.idleTimeout) {
+                    character.idleTimeout.remove();
+                }
+                character.idleTimeout = this.scene.time.delayedCall(600, () => {
+                    this.playAnimation(characterId, "idle");
+                });
+            }
         }
-
-        character.idleTimeout = this.scene.time.delayedCall(IDLE_DELAY, () =>
-          this.playAnimation(characterId, "idle")
-        );
-      }
     });
 
-    this.playAnimation(characterId, "idle");
-  }
+    // Evento noteHit para el jugador
+    this.notesController.events.on('noteHit', (noteData) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character || characterId !== this.currentPlayer) return;
 
-  playLoopingAnimation(characterId, animName, isHolding = true) {
-    const character = this.loadedCharacters.get(characterId);
-    if (!character) return;
+        const directionAnims = {
+            0: noteData.isMiss ? "singLEFTmiss" : "singLEFT",
+            1: noteData.isMiss ? "singDOWNmiss" : "singDOWN",
+            2: noteData.isMiss ? "singUPmiss" : "singUP", 
+            3: noteData.isMiss ? "singRIGHTmiss" : "singRIGHT"
+        };
 
-    const animation = character.data.animations.find((a) => a.anim === animName);
-    if (!animation) return;
-
-    if (!isHolding) {
-      this.playAnimation(characterId, "idle");
-      return;
-    }
-
-    if (character.currentAnimation !== animName) {
-      this.playAnimation(characterId, animName);
-    }
+        const animName = noteData.animation || directionAnims[noteData.direction];
+        
+        if (!noteData.isMiss) {
+            heldDirections.set(noteData.direction, animName);
+        }
+        this.playAnimation(characterId, animName, !noteData.isMiss);
+    });
   }
 }
