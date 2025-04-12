@@ -129,7 +129,7 @@
 		240
 	],
 	"healthicon": "tankman",
-	"flip_x": true,
+	"flip_x": false,
 	"healthbar_colors": [
 		225,
 		225,

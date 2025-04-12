@@ -85,29 +85,33 @@ class PlayState extends Phaser.Scene {
             return;
         }
 
-        await this.audioManager.loadSongAudio(currentSong);
+        try {
+            // Cargar el audio primero
+            await this.audioManager.loadSongAudio(currentSong);
 
-        const difficulty = this.dataManager.selectedDifficulty;
-        const jsonPath = difficulty === 'normal' ? 
-            `public/assets/data/data/${currentSong}/${currentSong}.json` :
-            `public/assets/data/data/${currentSong}/${currentSong}-${difficulty}.json`;
+            // Cargar los datos de la canción
+            const difficulty = this.dataManager.selectedDifficulty;
+            const jsonPath = difficulty === 'normal' ? 
+                `public/assets/data/data/${currentSong}/${currentSong}.json` :
+                `public/assets/data/data/${currentSong}/${currentSong}-${difficulty}.json`;
 
-        this.load.json('songData', jsonPath);
-        this.load.start();
-
-        this.load.once('complete', async () => {
-            const songData = this.cache.json.get('songData');
+            this.load.json('songData', jsonPath);
             
+            // Esperar a que se complete la carga del JSON
+            await new Promise(resolve => this.load.once('complete', resolve));
+            
+            const songData = this.cache.json.get('songData');
             if (!songData || !songData.song) {
-                console.error("Error: Invalid song data");
-                this.redirectToNextState();
-                return;
+                throw new Error("Invalid song data");
             }
 
             // Store song data
             this.songData = songData;
-            
-            // Update camera section length based on actual BPM
+
+            // Precargar assets de personajes
+            await this.preloadCharacterAssets(songData);
+
+            // Inicializar componentes
             const stepCrochet = (60000 / songData.song.bpm) / 4;
             const sectionLength = stepCrochet * 16;
             this.cameraController.initialize(sectionLength);
@@ -115,89 +119,99 @@ class PlayState extends Phaser.Scene {
             this.processBPMChanges(songData);
             this.arrowsManager.loadNotes(songData);
 
-            // Precargar assets de personajes antes de continuar
-            if (songData.song) {
-                const { player1, player2, gfVersion } = songData.song;
-                
-                // Cargar JSONs de personajes
-                const characterPromises = [
-                    fetch(`public/assets/data/characters/${player1}.json`).then(r => r.json()),
-                    fetch(`public/assets/data/characters/${player2}.json`).then(r => r.json())
-                ];
-
-                // Añadir GF si está especificada
-                if (gfVersion) {
-                    characterPromises.push(
-                        fetch(`public/assets/data/characters/${gfVersion}.json`).then(r => r.json())
-                    );
-                }
-
-                try {
-                    const characterData = await Promise.all(characterPromises);
-                    
-                    // Cargar texturas de personajes
-                    const loadTexture = (characterId, data) => {
-                        const baseImagePath = `public/assets/images/${data.image}`;
-                        const textureKey = `character_${characterId}`;
-                        this.load.atlasXML(
-                            textureKey,
-                            `${baseImagePath}.png`,
-                            `${baseImagePath}.xml`
-                        );
-                    };
-
-                    loadTexture(player1, characterData[0]);
-                    loadTexture(player2, characterData[1]);
-                    if (gfVersion) {
-                        loadTexture(gfVersion, characterData[2]);
-                    }
-
-                    // Iniciar la carga de texturas
-                    await new Promise(resolve => {
-                        this.load.once('complete', resolve);
-                        this.load.start();
-                    });
-                } catch (error) {
-                    console.error("Error loading character assets:", error);
-                }
-            }
-
-            // Guardar una referencia global para debugging
-            window.currentSongData = songData;
+            // Limpiar elementos de carga
+            if (this.loadingImage) this.loadingImage.destroy();
+            if (this.loadBar) this.loadBar.destroy();
             
-            this.loadingImage.destroy();
-            this.loadBar.destroy();
             this.cameras.main.setBackgroundColor("#000000");
             this.dataManager.showData();
             
-            // Ahora llamamos a loadCharacterFromSong que ya no necesita cargar assets
-            this.characters.loadCharacterFromSong(songData).then(() => {
-                this.countdownManager.start(() => this.startMusic());
-            });
-        });
+            // Cargar personajes
+            await this.characters.loadCharacterFromSong(songData);
+            
+            // Iniciar countdown
+            this.countdownManager.start(() => this.startMusic());
+
+        } catch (error) {
+            console.error("Error during song loading:", error);
+            this.redirectToNextState();
+        }
     }
 
-    create() {
+    // Nuevo método para precargar assets de personajes
+    async preloadCharacterAssets(songData) {
+        if (!songData.song) return;
+
+        const { player1, player2, gfVersion } = songData.song;
+        const characterIds = [player1, player2];
+        if (gfVersion) characterIds.push(gfVersion);
+
+        const loadPromises = characterIds.map(async (characterId) => {
+            try {
+                // Cargar JSON del personaje
+                const response = await fetch(`public/assets/data/characters/${characterId}.json`);
+                const characterData = await response.json();
+
+                // Cargar textura
+                const textureKey = `character_${characterId}`;
+                if (this.textures.exists(textureKey)) {
+                    return Promise.resolve();
+                }
+
+                const baseImagePath = `public/assets/images/${characterData.image}`;
+                
+                return new Promise((resolve) => {
+                    this.load.atlasXML(
+                        textureKey,
+                        `${baseImagePath}.png`,
+                        `${baseImagePath}.xml`
+                    );
+
+                    // Usar el evento complete en lugar de filecomplete
+                    this.load.once('complete', () => {
+                        resolve();
+                    });
+
+                    // Iniciar la carga solo si hay algo que cargar
+                    if (this.load.list.size > 0) {
+                        this.load.start();
+                    } else {
+                        resolve();
+                    }
+                });
+            } catch (error) {
+                console.error(`Error loading character ${characterId}:`, error);
+                return Promise.reject(error);
+            }
+        });
+
+        try {
+            await Promise.all(loadPromises);
+        } catch (error) {
+            console.error('Error loading characters:', error);
+        }
+    }
+
+    async create() {
         console.log("PlayState iniciado.");
         this.sound.stopAll();
         this.dataManager.setupF3Toggle();
         this.cameras.main.setBackgroundColor("#000000");
         this.dataManager.setStartTime(this.time.now);
         
-        // Initialize camera with default values first
-        this.cameraController.initialize(1600); // Default section length for 100 BPM
+        // Inicializar NotesController
+        await this.arrowsManager.init();
+        
+        // Configurar los inputs después de crear las flechas
+        this.arrowsManager.setupInputHandlers();
         
         // Set depth for different elements
-        this.arrowsManager.createPlayerArrows();
-        this.arrowsManager.createEnemyArrows();
-        
-        // Set depth for notes to be above strums
         this.children.list.forEach(child => {
             if (child.texture && child.texture.key === 'notes') {
-                child.setDepth(15); // Notes above strums
+                child.setDepth(15);
             }
             if (child.texture && child.texture.key === 'noteStrumline') {
-                child.setDepth(10); // Strums above characters
+                child.setDepth(10);
             }
         });
 
@@ -208,10 +222,6 @@ class PlayState extends Phaser.Scene {
         }
         
         this.ratingManager.create();
-
-        // Initialize controllers
-        this.notesController = new NotesController(this);
-        this.countdownManager = new CountdownManager(this, this.notesController);
     }
 
     update() {
@@ -243,7 +253,7 @@ class PlayState extends Phaser.Scene {
         }
     }
 
-    startMusic() {
+    async startMusic() {
         const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
         const audioInstances = this.audioManager.playSongAudio(currentSong);
     
@@ -255,16 +265,25 @@ class PlayState extends Phaser.Scene {
         this.currentVoices = audioInstances.voices;
     
         // Configurar evento de finalización
-        this.currentInst.once('complete', () => {
+        this.currentInst.once('complete', async () => {
             this.isMusicPlaying = false;
+            
+            // Detener todo el audio y limpiar
             if (this.currentVoices) {
                 this.currentVoices.stop();
             }
+            this.currentInst.stop();
+            
             this.dataManager.currentSongIndex++;
+            
             if (this.dataManager.currentSongIndex < this.dataManager.songList.length) {
-                // Clean up before restarting
-                this.cleanupBeforeRestart();
-                this.scene.restart(this.dataManager.getSceneData());
+                // Limpiar completamente la escena actual
+                await this.cleanupBeforeRestart();
+                
+                // Reiniciar la escena con un pequeño delay
+                this.time.delayedCall(100, () => {
+                    this.scene.restart(this.dataManager.getSceneData());
+                });
             } else {
                 this.playFreakyMenuAndRedirect();
             }
@@ -273,46 +292,49 @@ class PlayState extends Phaser.Scene {
         console.log("Reproduciendo canción:", currentSong);
     }
 
-    // New method to clean up resources before restarting
-    cleanupBeforeRestart() {
-        this.sound.stopAll();
-        
-        // Clean up ArrowsManager resources
-        if (this.arrowsManager) {
-            this.arrowsManager.cleanup();
-        }
-        
-        if (this.cache.json.exists('songData')) {
-            this.cache.json.remove('songData');
-        }
-        
-        // Reset song position and music playing flag
-        this.songPosition = 0;
-        this.isMusicPlaying = false;
-        
-        if (this.currentInst) {
-            this.currentInst.stop();
-        }
-        if (this.currentVoices) {
-            this.currentVoices.stop();
-        }
-        this.currentInst = null;
-        this.currentVoices = null;
-        
-        // Do NOT destroy hitboxAndroid
-        // Remove everything except hitboxAndroid
-        this.children.list.forEach(child => {
-            if (!(child.texture && child.texture.key === 'hitbox')) {
-                child.destroy();
+    async cleanupBeforeRestart() {
+        return new Promise(async (resolve) => {
+            // Detener toda la música
+            this.sound.stopAll();
+            
+            // Limpiar NotesController
+            if (this.arrowsManager) {
+                this.arrowsManager.cleanup();
             }
+            
+            // Limpiar caché
+            if (this.cache.json.exists('songData')) {
+                this.cache.json.remove('songData');
+            }
+            
+            // Resetear variables
+            this.songPosition = 0;
+            this.isMusicPlaying = false;
+            
+            // Limpiar referencias de audio
+            this.currentInst = null;
+            this.currentVoices = null;
+            
+            // Destruir todos los objetos excepto hitbox
+            this.children.list.slice().forEach(child => {
+                if (!(child.texture && child.texture.key === 'hitbox')) {
+                    child.destroy();
+                }
+            });
+
+            // Resetear controladores
+            if (this.cameraController) {
+                this.cameraController.reset();
+            }
+
+            // Limpiar referencias
+            this.songData = null;
+            
+            // Esperar un frame para asegurar que todo se limpie
+            await new Promise(resolve => this.time.delayedCall(16, resolve));
+            
+            resolve();
         });
-
-        if (this.cameraController) {
-            this.cameraController.reset();
-            this.cameraController.initialize(1600); // Reset to default section length
-        }
-
-        this.songData = null;
     }
 
     playFreakyMenuAndRedirect() {
@@ -331,14 +353,16 @@ class PlayState extends Phaser.Scene {
     
     // Add a shutdown method to ensure proper cleanup when the scene is stopped
     shutdown() {
-        this.cleanupBeforeRestart();
-        
-        this.audioManager = null;
-        this.dataManager = null;
-        this.arrowsManager = null;
-        this.countdownManager = null;
-        
-        super.shutdown();
+        this.cleanupBeforeRestart().then(() => {
+            this.audioManager = null;
+            this.dataManager = null;
+            this.arrowsManager = null;
+            this.countdownManager = null;
+            this.characters = null;
+            this.cameraController = null;
+            
+            super.shutdown();
+        });
     }
 
     // Add this method to process BPM changes

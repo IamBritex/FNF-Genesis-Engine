@@ -129,7 +129,7 @@ export class RatingManager {
     }
 
     updateComboNumbers(shouldAnimate = true) {
-        this.clearComboNumbers();
+        // Ya no llamamos a clearComboNumbers() al inicio
         
         // Si el combo es 0, no mostramos nada
         if (this.combo === 0) return;
@@ -162,63 +162,59 @@ export class RatingManager {
                 .setAlpha(1);
 
             this.comboNumbers.push(numberImage);
-        }
-        
-        if (shouldAnimate) {
-            this.animateComboNumbers();
+            
+            if (shouldAnimate) {
+                this.animateComboNumber(numberImage);
+            }
         }
     }
 
     clearComboNumbers() {
+        // Solo matamos las tweens activas sin destruir los números
         this.activeNumberAnimations.forEach(anim => anim?.target?.scene && this.scene.tweens.killTweensOf(anim.target));
-        this.comboNumbers.forEach(number => number?.scene && number.destroy());
         this.activeNumberAnimations = [];
-        this.comboNumbers = [];
     }
 
-    animateComboNumbers() {
+    animateComboNumber(number) {
         const { animation } = this.defaultConfig;
+        const startY = number.y;
+        const peakY = startY - animation.riseHeight;
         
-        this.comboNumbers.forEach(number => {
-            const startY = number.y;
-            const peakY = startY - animation.riseHeight;
-            
-            number.setVisible(true).setAlpha(1);
-            
-            const riseAnim = this.scene.tweens.add({
-                targets: number,
-                y: peakY,
-                duration: animation.riseDuration,
-                ease: "Sine.easeOut",
-                onComplete: () => {
-                    const randomFactor = 1 - animation.randomFallVariation/2 + Math.random() * animation.randomFallVariation;
-                    const fallDuration = animation.fallDuration * randomFactor;
-                    const fadeStart = animation.fadeStartRatio * randomFactor;
-                    
-                    const fallAnim = this.scene.tweens.add({
-                        targets: number,
-                        y: startY,
-                        duration: fallDuration,
-                        ease: "Sine.easeIn",
-                        onUpdate: (tween) => {
-                            if (tween.progress >= fadeStart) {
-                                number.setAlpha(1 - (tween.progress - fadeStart) / (1 - fadeStart));
-                            }
-                        },
-                        onComplete: () => {
-                            number.setVisible(false);
-                            const index = this.activeNumberAnimations.findIndex(a => a.target === number);
-                            if (index !== -1) this.activeNumberAnimations.splice(index, 1);
-                            if (this.activeNumberAnimations.length === 0) this.clearComboNumbers();
+        const riseAnim = this.scene.tweens.add({
+            targets: number,
+            y: peakY,
+            duration: animation.riseDuration,
+            ease: "Sine.easeOut",
+            onComplete: () => {
+                const randomFactor = 1 - animation.randomFallVariation/2 + Math.random() * animation.randomFallVariation;
+                const fallDuration = animation.fallDuration * randomFactor;
+                const fadeStart = animation.fadeStartRatio * randomFactor;
+                
+                const fallAnim = this.scene.tweens.add({
+                    targets: number,
+                    y: startY,
+                    duration: fallDuration,
+                    ease: "Sine.easeIn",
+                    onUpdate: (tween) => {
+                        if (tween.progress >= fadeStart) {
+                            number.setAlpha(1 - (tween.progress - fadeStart) / (1 - fadeStart));
                         }
-                    });
-                    
-                    this.activeNumberAnimations.push(fallAnim);
-                }
-            });
-            
-            this.activeNumberAnimations.push(riseAnim);
+                    },
+                    onComplete: () => {
+                        // Eliminamos el número solo cuando termina su animación
+                        const index = this.comboNumbers.indexOf(number);
+                        if (index !== -1) {
+                            this.comboNumbers.splice(index, 1);
+                        }
+                        number.destroy();
+                    }
+                });
+                
+                this.activeNumberAnimations.push(fallAnim);
+            }
         });
+        
+        this.activeNumberAnimations.push(riseAnim);
     }
 
     getRatingForTimeDiff(timeDiff) {
