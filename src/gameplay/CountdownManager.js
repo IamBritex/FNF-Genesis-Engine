@@ -30,38 +30,42 @@ export class CountdownManager {
     start(callback) {
         let step = 0;
         const songData = this.scene.songData;
-        const bpm = songData?.bpm || 100; // Default to 100 if no BPM specified
-        const crochet = (60 / bpm) * 1000; // Convert BPM to milliseconds
+        const bpm = songData?.song?.bpm || 100;
+        const crochet = (60 / bpm) * 1000; // Tiempo entre beats en milisegundos
+        let lastBeat = 0;
 
-        const showStep = () => {
-            if (step < this.countdownData.length) {
-                const { sound, image } = this.countdownData[step];
-                const countdownSound = this.scene.sound.add(sound);
-                countdownSound.play();
-
-                if (image) {
-                    const countdownImage = this.scene.add.image(
-                        this.scene.scale.width / 2, 
-                        this.scene.scale.height / 2, 
-                        image
-                    ).setDepth(this.depth); // Set depth when creating image
+        // Crear un evento que se ejecute en cada beat
+        const beatEvent = this.scene.time.addEvent({
+            delay: crochet,
+            callback: () => {
+                if (step < this.countdownData.length) {
+                    const { sound, image } = this.countdownData[step];
                     
-                    // Destroy image after one beat
-                    this.scene.time.delayedCall(crochet, () => {
-                        countdownImage.destroy();
-                    });
-                }
+                    // Reproducir el sonido del countdown
+                    const countdownSound = this.scene.sound.add(sound);
+                    countdownSound.play();
 
-                // Wait one beat before next step
-                this.scene.time.delayedCall(crochet, () => {
+                    // Mostrar la imagen si existe
+                    if (image) {
+                        const countdownImage = this.scene.add.image(
+                            this.scene.scale.width / 2,
+                            this.scene.scale.height / 2,
+                            image
+                        ).setDepth(this.depth);
+
+                        // Destruir la imagen justo antes del siguiente beat
+                        this.scene.time.delayedCall(crochet * 0.9, () => {
+                            countdownImage.destroy();
+                        });
+                    }
+
                     step++;
-                    showStep();
-                });
-            } else {
-                callback();
-            }
-        };
-
-        showStep();
+                } else {
+                    beatEvent.destroy(); // Detener el evento cuando termine el countdown
+                    callback(); // Llamar al callback cuando termine
+                }
+            },
+            loop: true
+        });
     }
 }

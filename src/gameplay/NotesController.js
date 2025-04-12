@@ -3,44 +3,48 @@ import { RatingManager } from './RatingManager.js'
 export class NotesController {
     constructor(scene) {
         this.scene = scene;
+        this.initialized = false;
         
-        // Core game properties - Propiedades básicas del juego
+        // Core game properties
         this.bpm = 100;
         this.speed = 1;
         this.safeFrames = 10;
-        this.safeZoneOffset = 0;
+        this.safeZoneOffset = Math.floor(this.safeFrames / 60 * 1000);
         
-        // Arrow sprite groups - Grupos de sprites de flechas
+        // Arrow sprite groups
         this.playerArrows = [];
         this.enemyArrows = [];
         
-        // Note tracking arrays - Arrays para seguimiento de notas
+        // Note tracking arrays
+        this.songNotes = [];
         this.playerNotes = [];
         this.enemyNotes = [];
-        this.songNotes = [];
         
-        // Game statistics - Estadísticas del juego
+        // Game statistics
         this.notesHit = 0;
         this.notesMissed = 0;
         this.combo = 0;
         this.maxCombo = 0;
         this.score = 0;
         
-        // Rating system initialization - Inicialización del sistema de calificación
+        // Rating system initialization
         this.ratingManager = new RatingManager(scene);
         this.configureRatingManager();
 
-        // Input configuration - Configuración de entrada
+        // Input configuration
         this.setupKeyBindings();
+        this.keysHeld = { left: false, down: false, up: false, right: false };
         
-        // Hold note configuration - Configuración de notas sostenidas
+        // Events
+        this.events = new Phaser.Events.EventEmitter();
+        
+        // Hold note configuration
         this.holdScoreRate = 100;
         this.holdScoreInterval = 100;
         this.holdPenalty = 50;
         this.holdSegmentHeight = 50 * this.arrowConfigs.scale.holds;
         
-        // State tracking - Seguimiento de estado
-        this.keysHeld = { left: false, down: false, up: false, right: false };
+        // State tracking
         this.activeHoldNotes = [null, null, null, null];
         
         // Agregar configuración de visibilidad
@@ -50,10 +54,7 @@ export class NotesController {
             holdNoteDespawnDelay: 500
         };
 
-        this.setupInputHandlers();
         this.currentBPM = 100;
-
-        this.events = new Phaser.Events.EventEmitter();
 
         // Añadir array de sonidos de fallo
         this.missSounds = [
@@ -255,20 +256,26 @@ export class NotesController {
         console.log("Enemy notes:", enemyNotes);
     }
     
-    createPlayerArrows() {
+    async createPlayerArrows() {
         this.playerArrows = [];
-        for (let i = 0; i < 4; i++) {
-            const pos = this.arrowConfigs.playerStatic[i];
-            const direction = this.directions[i];
-            const arrow = this.scene.add.sprite(pos.x, pos.y, 'noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-            arrow.setScale(this.arrowConfigs.scale.static);
-            arrow.setDepth(10); // Mayor profundidad que los personajes
-            arrow.direction = direction;
-            arrow.directionIndex = i;
-            arrow.originalX = pos.x;
-            arrow.originalY = pos.y;
-            this.playerArrows.push(arrow);
-        }
+        return new Promise(resolve => {
+            for (let i = 0; i < 4; i++) {
+                const pos = this.arrowConfigs.playerStatic[i];
+                const direction = this.directions[i];
+                const arrow = this.scene.add.sprite(pos.x, pos.y, 'noteStrumline', 
+                    `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                
+                arrow.setScale(this.arrowConfigs.scale.static);
+                arrow.setDepth(10);
+                arrow.direction = direction;
+                arrow.directionIndex = i;
+                arrow.originalX = pos.x;
+                arrow.originalY = pos.y;
+                
+                this.playerArrows[i] = arrow;
+            }
+            resolve();
+        });
     }
     
     createEnemyArrows() {
@@ -288,6 +295,23 @@ export class NotesController {
     }
     
     setupInputHandlers() {
+        if (!this.initialized) {
+            console.warn('NotesController not initialized yet');
+            return;
+        }
+
+        // Limpiar handlers previos
+        if (this.keyPressCallbacks) {
+            this.keyPressCallbacks.forEach(({ key, callback }) => {
+                key.off('down', callback);
+            });
+        }
+        if (this.keyReleaseCallbacks) {
+            this.keyReleaseCallbacks.forEach(({ key, callback }) => {
+                key.off('up', callback);
+            });
+        }
+
         this.keyPressCallbacks = [];
         this.keyReleaseCallbacks = [];
         
@@ -295,10 +319,18 @@ export class NotesController {
             const keys = this.keyBindings[direction];
             
             const pressHandler = () => {
+                if (!this.initialized || !this.playerArrows[index]) return;
                 if (!this.keysHeld[direction]) {
                     this.keysHeld[direction] = true;
-                    const pressPos = this.arrowConfigs.playerPress[index];
                     const arrow = this.playerArrows[index];
+                    
+                    // Verificar si arrow existe
+                    if (!arrow || !arrow.active) {
+                        console.warn(`Arrow ${direction} no está disponible`);
+                        return;
+                    }
+
+                    const pressPos = this.arrowConfigs.playerPress[index];
                     
                     // Verificar si hay una nota para golpear
                     const hasHittableNote = this.songNotes.some(note => 
@@ -310,27 +342,35 @@ export class NotesController {
                         Math.abs(note.strumTime - this.scene.songPosition) <= this.safeZoneOffset
                     );
 
-                    arrow.x = pressPos.x;
-                    arrow.y = pressPos.y;
-                    
-                    // Usar textura diferente según si hay nota o no
-                    if (hasHittableNote) {
-                        // Usar la animación de confirm si hay nota para golpear
-                        arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                        arrow.setScale(this.arrowConfigs.scale.confirm);
-                        this.checkNoteHit(index);
-                    } else {
-                        // Usar la animación de press si no hay nota
-                        arrow.setTexture('noteStrumline', `press${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                        arrow.setScale(this.arrowConfigs.scale.press);
+                    // Asegurarse de que las posiciones existen
+                    if (pressPos && typeof pressPos.x === 'number' && typeof pressPos.y === 'number') {
+                        arrow.x = pressPos.x;
+                        arrow.y = pressPos.y;
+                        
+                        // Usar textura diferente según si hay nota o no
+                        if (hasHittableNote) {
+                            arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                            arrow.setScale(this.arrowConfigs.scale.confirm);
+                            this.checkNoteHit(index);
+                        } else {
+                            arrow.setTexture('noteStrumline', `press${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                            arrow.setScale(this.arrowConfigs.scale.press);
+                        }
                     }
                 }
             };
             
             const releaseHandler = () => {
+                if (!this.initialized || !this.playerArrows[index]) return;
                 this.keysHeld[direction] = false;
                 const arrow = this.playerArrows[index];
                 
+                // Verificar si arrow existe y tiene las propiedades necesarias
+                if (!arrow || !arrow.active || typeof arrow.originalX === 'undefined') {
+                    console.warn(`Arrow ${direction} no está disponible o no tiene posición original`);
+                    return;
+                }
+
                 // Volver al estado static
                 arrow.x = arrow.originalX;
                 arrow.y = arrow.originalY;
@@ -361,13 +401,17 @@ export class NotesController {
             };
             
             keys.forEach(key => {
-                key.on('down', pressHandler);
-                key.on('up', releaseHandler);
-                
-                this.keyPressCallbacks.push({ key, callback: pressHandler });
-                this.keyReleaseCallbacks.push({ key, callback: releaseHandler });
+                if (key) {
+                    key.on('down', pressHandler);
+                    key.on('up', releaseHandler);
+                    
+                    this.keyPressCallbacks.push({ key, callback: pressHandler });
+                    this.keyReleaseCallbacks.push({ key, callback: releaseHandler });
+                }
             });
         });
+
+        console.log('Input handlers setup complete');
     }
 
     checkNoteHit(directionIndex) {
@@ -1074,5 +1118,38 @@ export class NotesController {
             isPlayerNote: false,
             strumTime: note.strumTime
         });
+    }
+
+    async init() {
+        try {
+            // Limpiar handlers previos si existen
+            if (this.keyPressCallbacks) {
+                this.keyPressCallbacks.forEach(({ key, callback }) => {
+                    key.off('down', callback);
+                });
+            }
+            if (this.keyReleaseCallbacks) {
+                this.keyReleaseCallbacks.forEach(({ key, callback }) => {
+                    key.off('up', callback);
+                });
+            }
+
+            // Reset arrays
+            this.keyPressCallbacks = [];
+            this.keyReleaseCallbacks = [];
+            
+            // Crear las flechas
+            await this.createPlayerArrows();
+            await this.createEnemyArrows();
+            
+            // Marcar como inicializado
+            this.initialized = true;
+            
+            console.log('NotesController initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Error initializing NotesController:', error);
+            return false;
+        }
     }
 }
