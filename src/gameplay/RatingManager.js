@@ -26,6 +26,7 @@ export class RatingManager {
             }
         };
         this.initProperties();
+        this.events = new Phaser.Events.EventEmitter();
     }
 
     initProperties() {
@@ -235,11 +236,14 @@ export class RatingManager {
         
         if (rating === "shit") {
             this.combo = 0;
-            this.clearComboNumbers(); // Solo limpiamos los números sin mostrar 000
+            this.clearComboNumbers();
         } else {
             this.combo++;
-            this.updateComboNumbers(true); // Actualizamos con animación
+            this.updateComboNumbers(true);
         }
+        
+        // Emitir evento de cambio de combo
+        this.events.emit('comboChanged', this.combo);
         
         this.maxCombo = Math.max(this.maxCombo, this.combo);
         this.ratings[rating].count++;
@@ -262,8 +266,11 @@ export class RatingManager {
         this.ratings.miss.count++;
         this.totalNotes++;
         
+        // Emitir evento de cambio de combo
+        this.events.emit('comboChanged', this.combo);
+        
         this.showRatingImage("miss");
-        this.clearComboNumbers(); // Solo limpiamos los números sin mostrar 000
+        this.clearComboNumbers();
     }
 
     showRatingImage(rating) {
@@ -338,5 +345,9 @@ export class RatingManager {
 
         Object.values(this.ratings).forEach(rating => rating.count = 0);
         this.clearComboNumbers();
+    }
+
+    on(event, fn) {
+        this.events.on(event, fn);
     }
 }
