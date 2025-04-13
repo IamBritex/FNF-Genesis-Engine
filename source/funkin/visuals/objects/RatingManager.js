@@ -27,18 +27,23 @@ export class RatingManager {
         };
         this.initProperties();
         this.events = new Phaser.Events.EventEmitter();
+        this.score = 0; // Add score property
     }
 
     initProperties() {
-        this.combo = this.maxCombo = this.misses = 0;
-        this.totalNotesHit = this.totalNotes = 0;
+        this.combo = 0;
+        this.maxCombo = 0;
+        this.misses = 0;
+        this.score = 0;
+        this.totalNotesHit = 0;
+        this.totalNotes = 0;
         
         this.ratings = {
-            sick: { timing: 45, count: 0, weight: 1 },      // Changed from 58 to 45
-            good: { timing: 95, count: 0, weight: 0.75 },
-            bad: { timing: 140, count: 0, weight: 0.5 },
-            shit: { timing: 180, count: 0, weight: 0.25 },
-            miss: { timing: Infinity, count: 0, weight: 0 }
+            sick: { timing: 45, count: 0, weight: 1.0, score: 350 },
+            good: { timing: 95, count: 0, weight: 0.75, score: 200 },
+            bad: { timing: 140, count: 0, weight: 0.5, score: 100 },
+            shit: { timing: 180, count: 0, weight: 0.25, score: 50 },
+            miss: { timing: Infinity, count: 0, weight: 0, score: -10 }
         };
 
         this.ratingImages = {};
@@ -228,23 +233,30 @@ export class RatingManager {
 
     recordHit(timeDiff) {
         const rating = this.getRatingForTimeDiff(timeDiff);
-        const previousCombo = this.combo;
         
+        // Actualizar combo
         if (rating === "shit") {
             this.combo = 0;
             this.clearComboNumbers();
         } else {
             this.combo++;
+            this.maxCombo = Math.max(this.maxCombo, this.combo);
             this.updateComboNumbers(true);
         }
         
-        // Emitir evento de cambio de combo
-        this.events.emit('comboChanged', this.combo);
+        // Actualizar score y contadores
+        const baseScore = this.ratings[rating].score;
+        const comboMultiplier = Math.floor(this.combo / 10);
+        this.score += baseScore + (comboMultiplier * 10);
         
-        this.maxCombo = Math.max(this.maxCombo, this.combo);
         this.ratings[rating].count++;
         this.totalNotesHit++;
         this.totalNotes++;
+        
+        // Emitir eventos
+        this.events.emit('noteHit', { rating, timeDiff });
+        this.events.emit('comboChanged', this.combo);
+        this.events.emit('scoreChanged', this.score);
         
         this.showRatingImage(rating);
         
@@ -252,21 +264,34 @@ export class RatingManager {
     }
 
     recordSustainHit() {
-        // Only update score, no UI update needed
-        this.score = (this.score || 0) + 100;
+        // Actualizar score para notas sustain
+        const sustainScore = 50;
+        this.score += sustainScore;
+        this.events.emit('scoreChanged', this.score);
     }
 
     recordMiss() {
-        this.misses++;
         this.combo = 0;
+        this.misses++;
         this.ratings.miss.count++;
         this.totalNotes++;
+        this.score += this.ratings.miss.score;
         
-        // Emitir evento de cambio de combo
+        console.log('Miss Stats:', {
+            misses: this.misses,
+            score: this.score,
+            totalNotes: this.totalNotes,
+            accuracy: this.calculateAccuracy()
+        });
+        
+        this.clearComboNumbers();
+        
+        // Emitir eventos
+        this.events.emit('noteMiss');
         this.events.emit('comboChanged', this.combo);
+        this.events.emit('scoreChanged', this.score);
         
         this.showRatingImage("miss");
-        this.clearComboNumbers();
     }
 
     showRatingImage(rating) {
@@ -327,6 +352,32 @@ export class RatingManager {
         });
     }
 
+    getResults() {
+        const accuracy = this.calculateAccuracy();
+        
+        return {
+            score: this.score,
+            misses: this.misses,
+            combo: this.combo,
+            maxCombo: this.maxCombo,
+            accuracy: accuracy,
+            totalNotes: this.totalNotes,
+            ratings: this.ratings
+        };
+    }
+
+    calculateAccuracy() {
+        if (this.totalNotes === 0) return 0;
+        
+        const weightedSum = 
+            (this.ratings.sick.count * this.ratings.sick.weight) +
+            (this.ratings.good.count * this.ratings.good.weight) +
+            (this.ratings.bad.count * this.ratings.bad.weight) +
+            (this.ratings.shit.count * this.ratings.shit.weight);
+        
+        return weightedSum / this.totalNotes;
+    }
+
     reset() {
         this.activeNumberAnimations.forEach(anim => anim?.target?.scene && this.scene.tweens.killTweensOf(anim.target));
         this.activeRatingInstances.forEach(instance => {
@@ -338,6 +389,7 @@ export class RatingManager {
         
         this.combo = this.maxCombo = this.misses = 0;
         this.totalNotes = this.totalNotesHit = 0;
+        this.score = 0;
 
         Object.values(this.ratings).forEach(rating => rating.count = 0);
         this.clearComboNumbers();
