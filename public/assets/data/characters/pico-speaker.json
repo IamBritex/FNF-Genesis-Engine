@@ -7,7 +7,7 @@
 			],
 			"loop": false,
 			"fps": 24,
-			"anim": "shoot1",
+			"anim": "idle",
 			"indices": [],
 			"name": "Pico shoot 1"
 		},
