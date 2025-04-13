@@ -347,7 +347,7 @@ class PlayState extends Phaser.Scene {
     }
 
     redirectToNextState() {
-        const target = this.dataManager.isStoryMode ? "StoryModeState" : "FreePlayState";
+        const target = this.dataManager.isStoryMode ? "StoryModeState" : "FreeplayState";
         this.scene.start(target);
     }
     

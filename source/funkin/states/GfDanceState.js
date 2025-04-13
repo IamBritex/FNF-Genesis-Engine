@@ -1,6 +1,7 @@
 class GfDanceState extends Phaser.Scene {
     constructor() {
         super({ key: "GfDanceState" });
+        this.isTransitioning = false; // Add this flag
     }
 
     preload() {
@@ -76,21 +77,27 @@ class GfDanceState extends Phaser.Scene {
 
         // ====== DETECTAR TECLA ENTER Y TOUCH EN ANDROID ======
         this.input.keyboard.on('keydown-ENTER', () => {
-            enterLogo.play('enter_pressed');
-            this.sound.play('confirm');
-            this.time.delayedCall(800, () => { 
-                this.scene.get("TransitionScene").startTransition("MainMenuState");
-            });
-        });
-
-        // Añadir soporte táctil para Android
-        if (this.game.device.os.android) {
-            this.input.on('pointerdown', () => {
+            if (!this.isTransitioning) {
+                this.isTransitioning = true;
                 enterLogo.play('enter_pressed');
                 this.sound.play('confirm');
                 this.time.delayedCall(800, () => { 
                     this.scene.get("TransitionScene").startTransition("MainMenuState");
                 });
+            }
+        });
+
+        // Añadir soporte táctil para Android
+        if (this.game.device.os.android) {
+            this.input.on('pointerdown', () => {
+                if (!this.isTransitioning) {
+                    this.isTransitioning = true;
+                    enterLogo.play('enter_pressed');
+                    this.sound.play('confirm');
+                    this.time.delayedCall(800, () => { 
+                        this.scene.get("TransitionScene").startTransition("MainMenuState");
+                    });
+                }
             });
 
             // Inicializar AndroidSupport si está disponible

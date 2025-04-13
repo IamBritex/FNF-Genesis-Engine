@@ -2801,7 +2801,7 @@
 				"mustHitSection": true
 			}
 		],
-		"player2": "bf",
+		"player2": "bf-pixel-opponent",
 		"player3": null,
 		"song": "Test",
 		"needsVoices": true,
