@@ -5,6 +5,7 @@ import { CountdownManager } from '../visuals/objects/CountdownManager.js'
 import { RatingManager } from '../visuals/objects/RatingManager.js';
 import { Characters } from '../visuals/objects/Characters.js';
 import { CameraController } from '../visuals/objects/Camera.js';
+import { RatingText } from '../visuals/objects/RatingText.js';
 
 class PlayState extends Phaser.Scene {
     constructor() {
@@ -15,6 +16,7 @@ class PlayState extends Phaser.Scene {
         this.bpmChangePoints = [];
         this.characters = null;
         this.cameraController = null;
+        this.ratingText = null;
     }
 
     init(data) {
@@ -199,29 +201,32 @@ class PlayState extends Phaser.Scene {
         this.cameras.main.setBackgroundColor("#000000");
         this.dataManager.setStartTime(this.time.now);
         
-        // Inicializar NotesController
+        // Inicializar NotesController y RatingManager primero
         await this.arrowsManager.init();
+        await this.ratingManager.create();
         
-        // Configurar los inputs después de crear las flechas
+        // Crear RatingText después
+        this.ratingText = new RatingText(this);
+        
+        // Configurar los inputs después de que todo esté listo
         this.arrowsManager.setupInputHandlers();
-        
-        // Set depth for different elements
-        this.children.list.forEach(child => {
-            if (child.texture && child.texture.key === 'notes') {
-                child.setDepth(15);
-            }
-            if (child.texture && child.texture.key === 'noteStrumline') {
-                child.setDepth(10);
+
+        // Establecer conexión entre RatingManager y NotesController
+        this.arrowsManager.ratingManager = this.ratingManager;
+
+        console.log('Components initialized:', {
+            arrowsManager: !!this.arrowsManager,
+            ratingManager: {
+                initialized: !!this.ratingManager,
+                hasEvents: !!this.ratingManager?.events,
+                score: this.ratingManager?.score,
+                combo: this.ratingManager?.combo
+            },
+            ratingText: {
+                initialized: !!this.ratingText,
+                hasRatingManager: !!this.ratingText?.ratingManager
             }
         });
-
-        // Initialize Android hitbox if needed
-        if (this.game.device.os.android && !this.hitboxInitialized) {
-            hitboxAndroid.initialize(this);
-            this.hitboxInitialized = true;
-        }
-        
-        this.ratingManager.create();
     }
 
     update() {
@@ -250,6 +255,10 @@ class PlayState extends Phaser.Scene {
 
         if (this.dataManager.isDataVisible) {
             this.dataManager.updateData();
+        }
+        
+        if (this.ratingText) {
+            this.ratingText.updateTexts();
         }
     }
 
@@ -329,6 +338,11 @@ class PlayState extends Phaser.Scene {
 
             // Limpiar referencias
             this.songData = null;
+            
+            if (this.ratingText) {
+                this.ratingText.destroy();
+                this.ratingText = null;
+            }
             
             // Esperar un frame para asegurar que todo se limpie
             await new Promise(resolve => this.time.delayedCall(16, resolve));

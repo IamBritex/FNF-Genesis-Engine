@@ -493,7 +493,8 @@ export class NotesController {
         this.events.emit('noteHit', {
             direction: note.noteDirection,
             isPlayerNote: true,
-            timeDiff: timeDiff
+            timeDiff: timeDiff,
+            rating: rating
         });
     }
     

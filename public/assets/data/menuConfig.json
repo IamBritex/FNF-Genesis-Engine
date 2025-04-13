@@ -23,17 +23,6 @@
         }
       },
       {
-        "key": "multiplayer",
-        "spritesheetKey": "menuMultiplayer",
-        "spritePath": "public/assets/images/states/MainMenuState/options/menu_multiplayer",
-        "animPrefix": "multiplayer",
-        "targetScene": "MultiplayerState",
-        "position": {
-          "x": 650,
-          "y": 380
-        }
-      },
-      {
         "key": "awards",
         "spritesheetKey": "menuAwards",
         "spritePath": "public/assets/images/states/MainMenuState/options/menu_awards",
@@ -41,7 +30,7 @@
         "targetScene": "AwardsState",
         "position": {
           "x": 650,
-          "y": 520
+          "y": 380
         }
       },
       {
@@ -52,7 +41,7 @@
         "targetScene": "OptionsMenu",
         "position": {
           "x": 650,
-          "y": 660
+          "y": 520
         }
       },
       {
@@ -63,7 +52,7 @@
         "targetScene": "ModsState",
         "position": {
           "x": 650,
-          "y": 800
+          "y": 660
         }
       },
       {
@@ -74,7 +63,7 @@
         "targetScene": "CreditsState",
         "position": {
           "x": 650,
-          "y": 940
+          "y": 800
         }
       }
     ],
