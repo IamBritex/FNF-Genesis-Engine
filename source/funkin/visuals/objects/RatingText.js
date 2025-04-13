@@ -16,7 +16,7 @@ export class RatingText {
                 y: this.scene.cameras.main.height - 30 // 30px desde el fondo
             },
             style: {
-                fontFamily: 'VCR OSD Mono',
+                fontFamily: 'Arial',
                 fontSize: '20px',
                 color: '#FFFFFF',
                 align: 'center', // Alinear el texto al centro
