@@ -277,13 +277,6 @@ export class RatingManager {
         this.totalNotes++;
         this.score += this.ratings.miss.score;
         
-        console.log('Miss Stats:', {
-            misses: this.misses,
-            score: this.score,
-            totalNotes: this.totalNotes,
-            accuracy: this.calculateAccuracy()
-        });
-        
         this.clearComboNumbers();
         
         // Emitir eventos
