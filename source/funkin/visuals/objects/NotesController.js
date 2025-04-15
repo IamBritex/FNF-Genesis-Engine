@@ -62,6 +62,14 @@ export class NotesController {
             'missnote2',
             'missnote3'
         ];
+
+        // Configuración de salud
+        this.healthConfig = {
+            hitGain: 0.023,      // Ganancia de salud al acertar
+            missLoss: 0.05,      // Pérdida de salud al fallar
+            holdGain: 0.023/10,  // Ganancia de salud por mantener (más pequeña que el hit)
+            holdRate: 60         // Frecuencia de actualización para hold notes (ms)
+        };
     }
 
     // Input setup
@@ -482,12 +490,18 @@ export class NotesController {
             note.isBeingHeld = true;
             this.activeHoldNotes[note.noteDirection] = note;
             note.holdScoreTime = this.scene.songPosition;
+            note.lastHoldHealthTime = this.scene.songPosition; // Nuevo: para control de salud en hold
         }
         
         this.notesHit++;
         const rating = this.ratingManager.recordHit(timeDiff);
         this.combo = this.ratingManager.combo;
         this.maxCombo = this.ratingManager.maxCombo;
+
+        // Añadir ganancia de salud
+        if (this.scene.healthBar) {
+            this.scene.healthBar.heal(this.healthConfig.hitGain);
+        }
 
         // Emitir evento de nota golpeada
         this.events.emit('noteHit', {
@@ -539,6 +553,11 @@ export class NotesController {
         // Usar nuevo RatingManager
         this.ratingManager.recordMiss();
         this.combo = this.ratingManager.combo;
+
+        // Añadir pérdida de salud
+        if (this.scene.healthBar) {
+            this.scene.healthBar.damage(this.healthConfig.missLoss);
+        }
     }
     
     spawnNote(note) {        
@@ -771,6 +790,14 @@ export class NotesController {
                 this.score += this.holdScoreRate;
                 note.holdScoreTime = currentTime;
             }
+
+            // Añadir ganancia de salud por hold
+            if (currentTime - note.lastHoldHealthTime >= this.healthConfig.holdRate) {
+                if (this.scene.healthBar) {
+                    this.scene.healthBar.heal(this.healthConfig.holdGain);
+                }
+                note.lastHoldHealthTime = currentTime;
+            }
         } else {
             if (!this.keysHeld[direction]) {
                 arrow.setPosition(arrow.originalX, arrow.originalY)
@@ -780,6 +807,9 @@ export class NotesController {
 
             if (!note.holdReleased && currentTime < holdEndTime - this.safeZoneOffset) {
                 note.holdReleased = true;
+                if (this.scene.healthBar) {
+                    this.scene.healthBar.damage(this.healthConfig.missLoss);
+                }
                 this.ratingManager.recordMiss();
             }
         }

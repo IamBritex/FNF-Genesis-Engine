@@ -1,3 +1,5 @@
+import { PlayState } from './PlayState.js';  // Añade esta línea al principio
+
 // ====== CHARACTER CLASS ======
 class Character extends Phaser.GameObjects.Sprite {
     constructor(scene, x, y, characterData) {
