@@ -8,6 +8,10 @@ export class Characters {
     this.currentGF = null;
     this.tweens = new Map();
     this.lastCombo = 0; // Añadir tracking del último combo
+    this.idleTimers = new Map(); // Para guardar los timers de cada personaje
+    this.lastBeat = 0;
+    this.heldDirections = new Map(); // Añadir heldDirections para el jugador
+    this.enemyHeldDirections = new Map(); // Añadir heldDirections para el enemigo
   }
 
   async loadCharacterFromSong(songData) {
@@ -31,7 +35,6 @@ export class Characters {
     await Promise.all(loadPromises);
   }
 
-  // Modificar el método createCharacter
   async createCharacter(characterId, isPlayer) {
     try {
       const textureKey = `character_${characterId}`;
@@ -72,6 +75,7 @@ export class Characters {
           y: characterData.position[1],
         },
         idleTimeout: null,  // Añadir esta línea
+        idleTimer: 0, // Añadir idleTimer
         animationsInitialized: false  // Añadir esta línea
       };
 
@@ -333,41 +337,32 @@ export class Characters {
     this.tweens.set(characterId, tween);
   }
 
-  // Modificar el método playAnimation
-  playAnimation(characterId, animName, holdNote = false) {
+  playAnimation(characterId, animName, force = false) {
     const character = this.loadedCharacters.get(characterId);
     if (!character || !character.isReady || !character.animationsInitialized) return;
+
+    // Resetear el idleTimer cuando se reproduce cualquier animación que no sea idle
+    if (animName !== "idle") {
+        character.idleTimer = 0;
+    }
 
     const animation = character.data.animations.find(a => a.anim === animName);
     if (!animation) return;
 
-    // Limpiar timeout previo si existe
-    if (character.idleTimeout) {
-        character.idleTimeout.remove();
-        character.idleTimeout = null;
-    }
-
     this.applyOffsets(characterId, animName);
     const animKey = `${character.textureKey}_${animation.anim}`;
     
-    // Verificar si la animación existe antes de reproducirla
     if (this.scene.anims.exists(animKey)) {
-        // Siempre reiniciar la animación, incluso si es la misma
-        character.sprite.play(animKey, true); // El true fuerza el reinicio
-        character.currentAnimation = animName;
-
-        // Programar retorno a idle solo si no es una nota sostenida y no es idle
-        if (!holdNote && animName !== "idle") {
-            character.idleTimeout = this.scene.time.delayedCall(600, () => {
-                if (character.isReady && character.animationsInitialized) {
-                    this.playAnimation(characterId, "idle", false);
-                }
-            });
+        // Si es la misma animación, la reiniciamos
+        if (character.currentAnimation === animName) {
+            character.sprite.stop();
         }
+        character.sprite.play(animKey, true);
+        character.currentAnimation = animName;
     } else {
         console.warn(`Animation ${animKey} not found for character ${characterId}`);
         if (animName !== "idle") {
-            this.playAnimation(characterId, "idle", false);
+            this.playAnimation(characterId, "idle", true);
         }
     }
   }
@@ -391,25 +386,14 @@ export class Characters {
 
   subscribeToNoteEvents(characterId) {
     if (!this.notesController) return;
-
-    const heldDirections = new Map();
-    const enemyHeldDirections = new Map();
     
-    // Agregar suscripción a eventos de combo
-    if (this.notesController.ratingManager) {
-        this.notesController.ratingManager.on('comboChanged', (combo) => {
-            this.handleGFComboReactions(combo);
-        });
-    }
-
-    // Suscribirse al evento de confirmación de strumline
     this.notesController.on('strumlineStateChange', (data) => {
         const character = this.loadedCharacters.get(characterId);
         if (!character) return;
 
         if ((data.isPlayerNote && characterId === this.currentPlayer) || 
             (!data.isPlayerNote && characterId === this.currentEnemy)) {
-            const directions = data.isPlayerNote ? heldDirections : enemyHeldDirections;
+            const directions = data.isPlayerNote ? this.heldDirections : this.enemyHeldDirections;
             
             if (data.state === 'confirm') {
                 const directionAnims = {
@@ -418,28 +402,26 @@ export class Characters {
                     2: "singUP",
                     3: "singRIGHT"
                 };
-                // Siempre reproducir la animación en confirm
-                this.playAnimation(characterId, directionAnims[data.direction], true);
-                directions.set(data.direction, directionAnims[data.direction]);
-            } else if (data.state === 'static') {
-                // Eliminar la dirección del mapa cuando vuelve a static
-                directions.delete(data.direction);
                 
-                // Programar retorno a idle con delay
-                if (directions.size === 0) {
-                    if (character.idleTimeout) {
-                      character.idleTimeout.remove();
-                    }
-                    character.idleTimeout = this.scene.time.delayedCall(600, () => {
-                      this.playAnimation(characterId, "idle");
+                this.playAnimation(characterId, directionAnims[data.direction], true);
+                
+                // Solo actualizar el estado de sustain si realmente es una nota sostenida
+                if (data.sustainNote) {
+                    directions.set(data.direction, {
+                        anim: directionAnims[data.direction],
+                        isSustain: true
                     });
+                }
+            } else if (data.state === 'static') {
+                // Solo eliminar la dirección si existía previamente
+                if (directions.has(data.direction)) {
+                    directions.delete(data.direction);
                 }
             }
         }
     });
 
-    // Modificar el evento CPU hit en subscribeToNoteEvents
-    this.notesController.on('cpuNoteHit', (data) => {
+    this.notesController.events.on('enemyNoteHit', (noteData) => {
         const character = this.loadedCharacters.get(characterId);
         if (!character || characterId !== this.currentEnemy) return;
 
@@ -450,93 +432,47 @@ export class Characters {
             3: "singRIGHT"
         };
 
-        const animName = directionAnims[data.direction];
-        this.playAnimation(characterId, animName, data.sustainNote);
-        enemyHeldDirections.set(data.direction, animName);
-
-        // Solo programar el retorno a idle si no es una nota sostenida
-        if (!data.sustainNote) {
-            if (character.idleTimeout) {
-                character.idleTimeout.remove();
-            }
-            character.idleTimeout = this.scene.time.delayedCall(600, () => {
-                if (enemyHeldDirections.size === 0) {
-                    this.playAnimation(characterId, "idle", false);
-                }
-            });
-        }
-    });
-
-    // Añadir evento específico para notas sostenidas del CPU
-    this.notesController.on('cpuSustainEnd', (data) => {
-        const character = this.loadedCharacters.get(characterId);
-        if (!character || characterId !== this.currentEnemy) return;
-
-        enemyHeldDirections.delete(data.direction);
-
-        // Programar retorno a idle solo cuando no hay más notas sostenidas
-        if (enemyHeldDirections.size === 0) {
-            if (character.idleTimeout) {
-                character.idleTimeout.remove();
-            }
-            character.idleTimeout = this.scene.time.delayedCall(600, () => {
-                this.playAnimation(characterId, "idle", false);
-            });
-        }
-    });
-
-    // Modificar el evento noteReleased
-    this.notesController.on('noteReleased', (data) => {
-        const character = this.loadedCharacters.get(characterId);
-        if (!character) return;
-
-        const isRelevantCharacter = (data.isPlayerNote && characterId === this.currentPlayer) || 
-          (!data.isPlayerNote && characterId === this.currentEnemy);
-
-        if (isRelevantCharacter) {
-            const directions = data.isPlayerNote ? heldDirections : enemyHeldDirections;
-            directions.delete(data.direction);
-
-            // Si no hay notas siendo sostenidas, programar retorno a idle
-            if (directions.size === 0) {
-                if (character.idleTimeout) {
-                    character.idleTimeout.remove();
-                }
-                character.idleTimeout = this.scene.time.delayedCall(600, () => {
-                    this.playAnimation(characterId, "idle", false);
-                });
-            }
-        }
-    });
-
-    // Evento noteHit para el jugador
-    this.notesController.events.on('noteHit', (noteData) => {
-        const character = this.loadedCharacters.get(characterId);
-        if (!character || characterId !== this.currentPlayer) return;
-
-        const directionAnims = {
-            0: noteData.isMiss ? "singLEFTmiss" : "singLEFT",
-            1: noteData.isMiss ? "singDOWNmiss" : "singDOWN",
-            2: noteData.isMiss ? "singUPmiss" : "singUP", 
-            3: noteData.isMiss ? "singRIGHTmiss" : "singRIGHT"
-        };
-
         const animName = noteData.animation || directionAnims[noteData.direction];
+        this.playAnimation(characterId, animName, true);
         
-        if (!noteData.isMiss) {
-            heldDirections.set(noteData.direction, animName);
-        }
-        this.playAnimation(characterId, animName, !noteData.isMiss);
-
-        // Agregar retorno a idle para animaciones de fallo
-        if (noteData.isMiss) {
-            if (character.idleTimeout) {
-                character.idleTimeout.remove();
-            }
-            character.idleTimeout = this.scene.time.delayedCall(600, () => {
-                this.playAnimation(characterId, "idle");
+        // Solo actualizar el estado de sustain si realmente es una nota sostenida
+        if (noteData.sustainNote) {
+            this.enemyHeldDirections.set(noteData.direction, {
+                anim: animName,
+                isSustain: true
             });
         }
     });
+  }
+
+  update(elapsed) {
+    if (!this.scene.songData?.song?.bpm) return;
+
+    // Multiplicamos por 4 para hacer el tiempo de retorno más largo
+    const stepCrochet = ((60 / this.scene.songData.song.bpm) * 1000) * 4;
+    
+    for (const [characterId, character] of this.loadedCharacters) {
+        const isPlayer = characterId === this.currentPlayer;
+        const directions = isPlayer ? this.heldDirections : this.enemyHeldDirections;
+        const hasSustainNote = Array.from(directions.values()).some(note => note?.isSustain);
+
+        if (hasSustainNote) {
+            character.idleTimer = 0;
+            continue;
+        }
+
+        if (character.idleTimer < stepCrochet / 1000) {
+            character.idleTimer += elapsed;
+            
+            if (character.idleTimer >= stepCrochet / 1000 && 
+                character.currentAnimation !== "idle") {
+                this.playAnimation(characterId, "idle", true);
+            }
+        }
+    }
+  }
+
+  onBeat(beat) {
+    this.lastBeat = beat;
   }
 }
