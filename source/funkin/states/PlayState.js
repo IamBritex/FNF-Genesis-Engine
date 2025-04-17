@@ -23,6 +23,7 @@ export class PlayState extends Phaser.Scene {
         // Add initialization for health bar related properties
         this.healthBarIcons = {};
         this.healthBarColors = {};
+        this.lastBeat = -1; // Add lastBeat property
     }
 
     init(data) {
@@ -148,11 +149,35 @@ export class PlayState extends Phaser.Scene {
 
         const loadPromises = characterIds.map(async (characterId) => {
             try {
+                // Verificar si ya tenemos los datos del personaje en caché
+                if (this.healthBarColors[characterId] && this.healthBarIcons[characterId]) {
+                    console.log(`Usando datos en caché para ${characterId}`);
+                    return Promise.resolve();
+                }
+
                 const response = await fetch(`public/assets/data/characters/${characterId}.json`);
                 const characterData = await response.json();
 
-                // Cargar solo el sprite del personaje
+                // Cargar sprite del personaje solo si no existe
                 const textureKey = `character_${characterId}`;
+                
+                // Procesar los colores de la barra de vida si no existen
+                if (!this.healthBarColors[characterId] && characterData.healthbar_colors) {
+                    const [r, g, b] = characterData.healthbar_colors;
+                    const color = (
+                        (Math.min(255, Math.max(0, Math.floor(r))) << 16) |
+                        (Math.min(255, Math.max(0, Math.floor(g))) << 8) |
+                        Math.min(255, Math.max(0, Math.floor(b)))
+                    );
+                    this.healthBarColors[characterId] = color;
+                }
+
+                // Guardar referencia del icono si no existe
+                if (!this.healthBarIcons[characterId] && characterData.healthicon) {
+                    this.healthBarIcons[characterId] = characterData.healthicon;
+                }
+
+                // Solo cargar la textura si no existe
                 if (!this.textures.exists(textureKey)) {
                     return new Promise((resolve) => {
                         this.load.atlasXML(
@@ -160,27 +185,12 @@ export class PlayState extends Phaser.Scene {
                             `public/assets/images/${characterData.image}.png`,
                             `public/assets/images/${characterData.image}.xml`
                         );
-
-                        // Procesar los colores de la barra de vida
-                        if (characterData.healthbar_colors) {
-                            const [r, g, b] = characterData.healthbar_colors;
-                            const color = (
-                                (Math.min(255, Math.max(0, Math.floor(r))) << 16) |
-                                (Math.min(255, Math.max(0, Math.floor(g))) << 8) |
-                                Math.min(255, Math.max(0, Math.floor(b)))
-                            );
-                            this.healthBarColors[characterId] = color;
-                        }
-
-                        // Guardar referencia del icono
-                        if (characterData.healthicon) {
-                            this.healthBarIcons[characterId] = characterData.healthicon;
-                        }
-
                         this.load.once('complete', resolve);
                         this.load.start();
                     });
                 }
+
+                return Promise.resolve();
 
             } catch (error) {
                 console.error(`Error loading character ${characterId}:`, error);
@@ -353,7 +363,25 @@ export class PlayState extends Phaser.Scene {
 
     update() {
         if (this.isMusicPlaying && this.currentInst) {
+            const elapsed = this.game.loop.delta / 1000; // Convertir a segundos
             this.songPosition = this.currentInst.seek * 1000;
+            
+            // Actualizar personajes
+            if (this.characters) {
+                this.characters.update(elapsed);
+            }
+            
+            // Calcular beat actual
+            const beatTime = 60 / (this.songData.song.bpm || 100) * 1000;
+            const currentBeat = Math.floor(this.songPosition / beatTime);
+            
+            // Verificar si es un nuevo beat
+            if (currentBeat > this.lastBeat) {
+                if (this.characters) {
+                    this.characters.onBeat(currentBeat);
+                }
+                this.lastBeat = currentBeat;
+            }
             
             // Actualizar bounce de iconos según BPM
             if (this.healthBar) {
@@ -443,13 +471,28 @@ export class PlayState extends Phaser.Scene {
                 this.cache.json.remove('songData');
             }
 
+            // Limpiar texturas de personajes
+            if (this.songData && this.songData.song) {
+                const { player1, player2, gfVersion } = this.songData.song;
+                const characterIds = [player1, player2];
+                if (gfVersion) characterIds.push(gfVersion);
+
+                characterIds.forEach(characterId => {
+                    const textureKey = `character_${characterId}`;
+                    if (this.textures.exists(textureKey)) {
+                        this.textures.remove(textureKey);
+                        console.log(`Textura de personaje eliminada: ${textureKey}`);
+                    }
+                });
+            }
+
             // Limpiar texturas de iconos de salud
             if (this.healthBarIcons) {
                 Object.values(this.healthBarIcons).forEach(iconName => {
                     const iconKey = `icon-${iconName}`;
                     if (this.textures.exists(iconKey)) {
                         this.textures.remove(iconKey);
-                        console.log(`Textura eliminada: ${iconKey}`);
+                        console.log(`Textura de icono eliminada: ${iconKey}`);
                     }
                 });
             }
