@@ -9,9 +9,11 @@ export class DataManager {
   }
 
   init(data) {
+      this.isStoryMode = data.isStoryMode || false;
+      this.songList = data.storyPlaylist || [];
+      this.currentSongIndex = 0;
+      this.storyDifficulty = data.selectedDifficulty || 'normal'; // Asegurarse de usar selectedDifficulty
       this.storyPlaylist = data.storyPlaylist ? data.storyPlaylist.flat() : [];
-      this.storyDifficulty = data.storyDifficulty;
-      this.isStoryMode = data.isStoryMode;
       this.campaignScore = data.campaignScore;
       this.campaignMisses = data.campaignMisses;
       this.weekName = data.weekName;
@@ -19,8 +21,6 @@ export class DataManager {
       this.weekCharacters = data.weekCharacters;
       this.weekTracks = data.weekTracks;
       this.selectedDifficulty = data.selectedDifficulty;
-      this.currentSongIndex = data.currentSongIndex || 0;
-      this.songList = Array.isArray(this.storyPlaylist) && this.storyPlaylist.length > 0 ? this.storyPlaylist : [];
   }
 
   getSceneData() {

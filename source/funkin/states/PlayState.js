@@ -11,6 +11,7 @@ import { HealthBar } from '../visuals/objects/HealthBar.js'; // Añadir esta lí
 export class PlayState extends Phaser.Scene {
     constructor() {
         super({ key: "PlayState" });
+        // Initialize existing properties
         this.songPosition = 0;
         this.isMusicPlaying = false;
         this.currentBPM = 0;
@@ -18,6 +19,10 @@ export class PlayState extends Phaser.Scene {
         this.characters = null;
         this.cameraController = null;
         this.ratingText = null;
+        
+        // Add initialization for health bar related properties
+        this.healthBarIcons = {};
+        this.healthBarColors = {};
     }
 
     init(data) {
@@ -85,46 +90,38 @@ export class PlayState extends Phaser.Scene {
     }
 
     async loadCurrentAndNextSong() {
-        const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
-        if (typeof currentSong !== 'string') {
-            console.error("La canción actual no es válida.");
-            this.redirectToNextState();
-            return;
-        }
-
         try {
+            const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
+            if (!currentSong) {
+                throw new Error('No hay canción actual');
+            }
+
+            // Obtener la dificultad del dataManager
+            const difficulty = this.dataManager.storyDifficulty || 'normal';
+
+            // Modificar la ruta para incluir la dificultad
+            const response = await fetch(`public/assets/audio/songs/${currentSong}/charts/${currentSong}-${difficulty}.json`);
+            this.songData = await response.json();
+            
+            if (!this.songData || !this.songData.song) {
+                throw new Error('Datos de canción inválidos');
+            }
+
+            console.log('Datos de canción cargados:', this.songData);
+            
             // Cargar el audio primero
             await this.audioManager.loadSongAudio(currentSong);
 
-            // Cargar los datos de la canción
-            const difficulty = this.dataManager.selectedDifficulty;
-            const jsonPath = difficulty === 'normal' ? 
-                `public/assets/audio/songs/${currentSong}/charts/${currentSong}.json` :
-                `public/assets/audio/songs/${currentSong}/charts/${currentSong}-${difficulty}.json`;
-
-            this.load.json('songData', jsonPath);
-            
-            // Esperar a que se complete la carga del JSON
-            await new Promise(resolve => this.load.once('complete', resolve));
-            
-            const songData = this.cache.json.get('songData');
-            if (!songData || !songData.song) {
-                throw new Error("Invalid song data");
-            }
-
-            // Store song data
-            this.songData = songData;
-
-            // Precargar assets de personajes
-            await this.preloadCharacterAssets(songData);
+            // Precargar assets de personajes (solo texturas y datos)
+            await this.preloadCharacterAssets(this.songData);
 
             // Inicializar componentes
-            const stepCrochet = (60000 / songData.song.bpm) / 4;
+            const stepCrochet = (60000 / this.songData.song.bpm) / 4;
             const sectionLength = stepCrochet * 16;
             this.cameraController.initialize(sectionLength);
             
-            this.processBPMChanges(songData);
-            this.arrowsManager.loadNotes(songData);
+            this.processBPMChanges(this.songData);
+            this.arrowsManager.loadNotes(this.songData);
 
             // Limpiar elementos de carga
             if (this.loadingImage) this.loadingImage.destroy();
@@ -132,36 +129,29 @@ export class PlayState extends Phaser.Scene {
             
             this.cameras.main.setBackgroundColor("#000000");
             this.dataManager.showData();
-            
-            // Cargar personajes
-            await this.characters.loadCharacterFromSong(songData);
-            
-            // Iniciar countdown
-            this.countdownManager.start(() => this.startMusic());
 
         } catch (error) {
-            console.error("Error during song loading:", error);
+            console.error('Error cargando la canción:', error);
             this.redirectToNextState();
         }
     }
 
-    // Nuevo método para precargar assets de personajes
     async preloadCharacterAssets(songData) {
-        if (!songData.song) return;
+        if (!songData || !songData.song) {
+            console.error('Datos de canción inválidos:', songData);
+            return;
+        }
 
         const { player1, player2, gfVersion } = songData.song;
         const characterIds = [player1, player2];
         if (gfVersion) characterIds.push(gfVersion);
-
-        this.healthBarColors = {};
-        this.healthBarIcons = {};
 
         const loadPromises = characterIds.map(async (characterId) => {
             try {
                 const response = await fetch(`public/assets/data/characters/${characterId}.json`);
                 const characterData = await response.json();
 
-                // Cargar el sprite del personaje
+                // Cargar solo el sprite del personaje
                 const textureKey = `character_${characterId}`;
                 if (!this.textures.exists(textureKey)) {
                     return new Promise((resolve) => {
@@ -171,34 +161,23 @@ export class PlayState extends Phaser.Scene {
                             `public/assets/images/${characterData.image}.xml`
                         );
 
-                        // Cargar el icono de salud al mismo tiempo
-                        if (characterData.healthicon) {
-                            this.healthBarIcons[characterId] = characterData.healthicon;
-                            const iconKey = `icon-${characterData.healthicon}`;
-                            
-                            if (!this.textures.exists(iconKey)) {
-                                this.load.image(
-                                    iconKey,
-                                    `public/assets/images/characters/icons/icon-${characterData.healthicon}.png`
-                                );
-                            }
+                        // Procesar los colores de la barra de vida
+                        if (characterData.healthbar_colors) {
+                            const [r, g, b] = characterData.healthbar_colors;
+                            const color = (
+                                (Math.min(255, Math.max(0, Math.floor(r))) << 16) |
+                                (Math.min(255, Math.max(0, Math.floor(g))) << 8) |
+                                Math.min(255, Math.max(0, Math.floor(b)))
+                            );
+                            this.healthBarColors[characterId] = color;
                         }
 
-                        // Cuando se complete la carga
-                        this.load.once('complete', () => {
-                            // Procesar los colores de la barra de vida
-                            if (characterData.healthbar_colors) {
-                                const [r, g, b] = characterData.healthbar_colors;
-                                const color = (
-                                    (Math.min(255, Math.max(0, Math.floor(r))) << 16) |
-                                    (Math.min(255, Math.max(0, Math.floor(g))) << 8) |
-                                    Math.min(255, Math.max(0, Math.floor(b)))
-                                );
-                                this.healthBarColors[characterId] = color;
-                            }
-                            resolve();
-                        });
+                        // Guardar referencia del icono
+                        if (characterData.healthicon) {
+                            this.healthBarIcons[characterId] = characterData.healthicon;
+                        }
 
+                        this.load.once('complete', resolve);
                         this.load.start();
                     });
                 }
@@ -209,8 +188,119 @@ export class PlayState extends Phaser.Scene {
             }
         });
 
-        // Esperar a que se complete toda la carga
         await Promise.all(loadPromises);
+    }
+
+    async preloadHealthIcons() {
+        // Verificar que tengamos los datos necesarios
+        if (!this.healthBarIcons || !this.songData || !this.songData.song) {
+            console.error('No hay datos de iconos o canción para cargar');
+            return;
+        }
+
+        const { player1, player2 } = this.songData.song;
+        
+        // Asegurarse de que los iconos antiguos se eliminen primero
+        [player1, player2].forEach(characterId => {
+            const iconName = this.healthBarIcons[characterId];
+            if (iconName) {
+                const iconKey = `icon-${iconName}`;
+                if (this.textures.exists(iconKey)) {
+                    this.textures.remove(iconKey);
+                }
+            }
+        });
+
+        // Cargar los nuevos iconos
+        const iconLoadPromises = [player1, player2].map(characterId => {
+            const iconName = this.healthBarIcons[characterId];
+            if (!iconName) {
+                console.error(`No se encontró icono para el personaje: ${characterId}`);
+                return Promise.resolve();
+            }
+
+            return new Promise((resolve) => {
+                const iconKey = `icon-${iconName}`;
+                // Forzar la carga incluso si existía previamente
+                this.load.image(
+                    iconKey,
+                    `public/assets/images/characters/icons/icon-${iconName}.png`
+                );
+                
+                // Verificar si la carga fue exitosa
+                this.load.once('complete', () => {
+                    if (this.textures.exists(iconKey)) {
+                        console.log(`Icono cargado exitosamente: ${iconKey}`);
+                        resolve();
+                    } else {
+                        console.error(`Error al cargar el icono: ${iconKey}`);
+                        resolve();
+                    }
+                });
+
+                this.load.once('loaderror', (file) => {
+                    if (file.key === iconKey) {
+                        console.error(`Error al cargar el icono: ${iconKey}`);
+                        resolve();
+                    }
+                });
+
+                this.load.start();
+            });
+        });
+
+        // Esperar a que todos los iconos se carguen
+        await Promise.all(iconLoadPromises);
+
+        // Verificación final
+        const p1Icon = this.healthBarIcons[player1];
+        const p2Icon = this.healthBarIcons[player2];
+
+        console.log('Verificación final de iconos:', {
+            player1: {
+                character: player1,
+                icon: p1Icon,
+                loaded: this.textures.exists(`icon-${p1Icon}`)
+            },
+            player2: {
+                character: player2,
+                icon: p2Icon,
+                loaded: this.textures.exists(`icon-${p2Icon}`)
+            }
+        });
+    }
+
+    async createHealthBar() {
+        const p1Icon = this.healthBarIcons[this.songData.song.player1];
+        const p2Icon = this.healthBarIcons[this.songData.song.player2];
+
+        const p1IconKey = `icon-${p1Icon}`;
+        const p2IconKey = `icon-${p2Icon}`;
+
+        if (p1Icon && p2Icon && this.textures.exists(p1IconKey) && this.textures.exists(p2IconKey)) {
+            console.log('Creando barra de vida con:', {
+                p1Icon,
+                p2Icon,
+                p1Color: this.healthBarColors[this.songData.song.player1],
+                p2Color: this.healthBarColors[this.songData.song.player2]
+            });
+
+            this.healthBar = new HealthBar(this, {
+                p1Color: this.healthBarColors[this.songData.song.player1],
+                p2Color: this.healthBarColors[this.songData.song.player2],
+                p1Icon: p1Icon,
+                p2Icon: p2Icon
+            });
+        } else {
+            console.error('No se pudo crear la barra de vida:', {
+                iconosDisponibles: this.healthBarIcons,
+                texturas: Object.keys(this.textures.list),
+                p1Icon,
+                p2Icon,
+                p1Exists: this.textures.exists(p1IconKey),
+                p2Exists: this.textures.exists(p2IconKey)
+            });
+        }
     }
 
     async create() {
@@ -219,83 +309,56 @@ export class PlayState extends Phaser.Scene {
         this.dataManager.setupF3Toggle();
         this.cameras.main.setBackgroundColor("#000000");
         this.dataManager.setStartTime(this.time.now);
-        
-        // Inicializar NotesController y RatingManager primero
-        await this.arrowsManager.init();
-        await this.ratingManager.create();
-        
-        // Crear RatingText después
-        this.ratingText = new RatingText(this);
 
-        // Esperar a que los personajes y sus iconos estén cargados
-        await this.preloadCharacterAssets(this.songData);
+        try {
+            // Cargar los datos de la canción primero
+            await this.loadCurrentAndNextSong();
 
-        // Debug después de la carga
-        console.log('Post-load check:', {
-            songData: this.songData.song,
-            player1: this.songData.song.player1,
-            player2: this.songData.song.player2,
-            icons: this.healthBarIcons,
-            colors: this.healthBarColors
-        });
-
-        // Verificar que los iconos estén cargados
-        const p1Icon = this.healthBarIcons[this.songData.song.player1];
-        const p2Icon = this.healthBarIcons[this.songData.song.player2];
-
-        console.log('Verificación de iconos:', {
-            p1Icon,
-            p2Icon,
-            p1IconLoaded: this.textures.exists(`icon-${p1Icon}`),
-            p2IconLoaded: this.textures.exists(`icon-${p2Icon}`)
-        });
-
-        // Solo crear la barra de vida si tenemos todos los recursos necesarios
-        if (p1Icon && p2Icon && 
-            this.textures.exists(`icon-${p1Icon}`) && 
-            this.textures.exists(`icon-${p2Icon}`)) {
-            
-            this.healthBar = new HealthBar(this, {
-                p1Color: this.healthBarColors[this.songData.song.player1],
-                p2Color: this.healthBarColors[this.songData.song.player2],
-                p1Icon: p1Icon,
-                p2Icon: p2Icon
-            });
-        } else {
-            console.error('Failed to load health icons:', {
-                p1Icon,
-                p2Icon,
-                availableTextures: Object.keys(this.textures.list)
-            });
-        }
-        
-        // Configurar los inputs después de que todo esté listo
-        this.arrowsManager.setupInputHandlers();
-
-        // Establecer conexión entre RatingManager y NotesController
-        this.arrowsManager.ratingManager = this.ratingManager;
-
-        // Conectar la barra de vida con el NotesController
-        this.arrowsManager.scene = this;
-
-        console.log('Components initialized:', {
-            arrowsManager: !!this.arrowsManager,
-            ratingManager: {
-                initialized: !!this.ratingManager,
-                hasEvents: !!this.ratingManager?.events,
-                score: this.ratingManager?.score,
-                combo: this.ratingManager?.combo
-            },
-            ratingText: {
-                initialized: !!this.ratingText,
-                hasRatingManager: !!this.ratingText?.ratingManager
+            if (!this.songData || !this.songData.song) {
+                console.error('No se pudieron cargar los datos de la canción');
+                this.redirectToNextState();
+                return;
             }
-        });
+
+            // Inicializar NotesController y RatingManager
+            await this.arrowsManager.init();
+            await this.ratingManager.create();
+            
+            // Crear RatingText
+            this.ratingText = new RatingText(this);
+
+            // Cargar iconos
+            await this.preloadHealthIcons();
+
+            // Verificar y crear la barra de vida
+            await this.createHealthBar();
+
+            // Cargar personajes (solo una vez)
+            await this.characters.loadCharacterFromSong(this.songData);
+
+            // Configurar los inputs después de que todo esté listo
+            this.arrowsManager.setupInputHandlers();
+
+            // Establecer conexión entre RatingManager y NotesController
+            this.arrowsManager.ratingManager = this.ratingManager;
+
+            // Iniciar countdown
+            this.countdownManager.start(() => this.startMusic());
+
+        } catch (error) {
+            console.error('Error en create():', error);
+            this.redirectToNextState();
+        }
     }
 
     update() {
         if (this.isMusicPlaying && this.currentInst) {
             this.songPosition = this.currentInst.seek * 1000;
+            
+            // Actualizar bounce de iconos según BPM
+            if (this.healthBar) {
+                this.healthBar.updateBeatBounce(this.songPosition);
+            }
             
             // Check for BPM changes
             this.bpmChangePoints.forEach(change => {
@@ -386,11 +449,17 @@ export class PlayState extends Phaser.Scene {
                     const iconKey = `icon-${iconName}`;
                     if (this.textures.exists(iconKey)) {
                         this.textures.remove(iconKey);
+                        console.log(`Textura eliminada: ${iconKey}`);
                     }
                 });
             }
-            
-            // Limpiar referencias de la barra de salud
+
+            // Limpiar personajes específicamente
+            if (this.characters) {
+                this.characters.cleanup();
+            }
+
+            // Asegurarse de que los objetos se reinicien correctamente
             this.healthBarColors = {};
             this.healthBarIcons = {};
             
@@ -499,5 +568,4 @@ export class PlayState extends Phaser.Scene {
     }
 }
 
-// Mantén esta línea si es necesaria para compatibilidad
 globalThis.PlayState = PlayState;
