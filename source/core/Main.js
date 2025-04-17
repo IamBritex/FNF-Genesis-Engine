@@ -124,7 +124,7 @@ initVolumeControl();
 // ====== CONTROL DE PAUSA SEGÚN FOCO ======
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-        console.log("Juego pausado");
+        console.log("Juego pausado por pérdida de foco");
         game.loop.sleep(); 
     } else {
         console.log("Juego reanudado");
