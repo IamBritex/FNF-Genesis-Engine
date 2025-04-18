@@ -42,7 +42,8 @@ export class NotesController {
         this.holdScoreRate = 100;
         this.holdScoreInterval = 100;
         this.holdPenalty = 50;
-        this.holdSegmentHeight = 50 * this.arrowConfigs.scale.holds;
+        // Cambia el valor a 32 para juntar más los segmentos
+        this.holdSegmentHeight = 32 * this.arrowConfigs.scale.holds;
         
         // State tracking
         this.activeHoldNotes = [null, null, null, null];
@@ -534,7 +535,7 @@ export class NotesController {
             note.holdSprites = [];
         }
 
-        // Añadir animación de miss según la dirección
+        // Definir las animaciones de fallo según la dirección
         const missAnims = {
             0: "singLEFTmiss",
             1: "singDOWNmiss",
@@ -542,15 +543,13 @@ export class NotesController {
             3: "singRIGHTmiss"
         };
 
-        // Emitir evento para la animación de miss
-        this.events.emit('noteHit', {
+        // Emitir evento para reproducir la animación de fallo
+        this.events.emit('noteMiss', {
             direction: note.noteDirection,
-            isPlayerNote: true,
-            isMiss: true,
             animation: missAnims[note.noteDirection]
         });
         
-        // Usar nuevo RatingManager
+        // Usar RatingManager para registrar el fallo
         this.ratingManager.recordMiss();
         this.combo = this.ratingManager.combo;
 
@@ -740,47 +739,52 @@ export class NotesController {
         const direction = this.directions[directionIndex];
         const arrow = this.playerArrows[directionIndex];
         const key = this.keysHeld[direction];
-        const targetY = this.arrowConfigs.playerStatic[directionIndex].y;
 
         if (!note.isPlayerNote) return;
 
+        // Calcular la posición base Y de la nota
         const timeDiff = note.strumTime - currentTime;
-        const scrollSpeed = 0.45 * this.speed;
-        const baseY = targetY + (timeDiff * scrollSpeed);
-        
+        const baseY = this.arrowConfigs.playerStatic[directionIndex].y + (timeDiff * (0.45 * this.speed) * (this.currentBPM / 100));
+
+        // Destruir segmentos progresivamente según el avance de la nota
         if (note.holdSprites && note.holdSprites.length > 0) {
             const elapsedTime = currentTime - note.strumTime;
-            const progressRatio = Math.max(0, Math.min(1, elapsedTime / note.sustainLength));
+            const totalDuration = note.sustainLength;
+            const progressRatio = Math.max(0, Math.min(1, elapsedTime / totalDuration));
             const segmentsToDestroy = Math.floor(progressRatio * note.holdSprites.length);
-            
+
             let allDestroyed = true;
-            
             note.holdSprites.forEach((sprite, i) => {
-                if (sprite?.active) {
+                if (sprite && sprite.active) {
                     allDestroyed = false;
-                    
-                    // Simplified destruction condition
+                    // Actualizar posición
+                    sprite.y = baseY + (i * this.holdSegmentHeight);
+                    // Destruir si corresponde
                     if (i < segmentsToDestroy) {
                         sprite.destroy();
                         note.holdSprites[i] = null;
-                    } else {
-                        // Update position and ensure visibility
-                        const baseY = this.calculateNoteY(note, timeDiff);
-                        sprite.y = baseY + (i * this.holdSegmentHeight);
-                        sprite.setVisible(true);
-                        sprite.setAlpha(1);
                     }
                 }
             });
-            
-            if (allDestroyed) {
+
+            // Si todos los segmentos han sido destruidos, termina la nota
+            if (allDestroyed || note.holdSprites.every(s => !s)) {
                 this.cleanUpNote(note);
-                this.activeHoldNotes[directionIndex] = null;
+                if (this.activeHoldNotes[directionIndex] === note) {
+                    this.activeHoldNotes[directionIndex] = null;
+                }
                 return;
             }
         }
 
         if (note.isBeingHeld && key) {
+            this.events.emit('sustainHold', {
+                direction: directionIndex,
+                isPlayerNote: true,
+                animation: `sing${direction.toUpperCase()}`,
+                isHolding: true
+            });
+
             const confirmPos = this.arrowConfigs.playerConfirm[directionIndex];
             arrow.setPosition(confirmPos.x, confirmPos.y)
                 .setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
@@ -791,7 +795,6 @@ export class NotesController {
                 note.holdScoreTime = currentTime;
             }
 
-            // Añadir ganancia de salud por hold
             if (currentTime - note.lastHoldHealthTime >= this.healthConfig.holdRate) {
                 if (this.scene.healthBar) {
                     this.scene.healthBar.heal(this.healthConfig.holdGain);
@@ -799,6 +802,13 @@ export class NotesController {
                 note.lastHoldHealthTime = currentTime;
             }
         } else {
+            this.events.emit('sustainHold', {
+                direction: directionIndex,
+                isPlayerNote: true,
+                animation: `sing${direction.toUpperCase()}`,
+                isHolding: false
+            });
+
             if (!this.keysHeld[direction]) {
                 arrow.setPosition(arrow.originalX, arrow.originalY)
                     .setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)

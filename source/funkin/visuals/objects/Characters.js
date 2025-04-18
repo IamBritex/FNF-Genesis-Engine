@@ -403,19 +403,35 @@ export class Characters {
                     3: "singRIGHT"
                 };
                 
-                this.playAnimation(characterId, directionAnims[data.direction], true);
+                const animName = directionAnims[data.direction];
                 
-                // Solo actualizar el estado de sustain si realmente es una nota sostenida
+                // Si es una nota sustain, solo actualizamos la dirección si no existe
                 if (data.sustainNote) {
-                    directions.set(data.direction, {
-                        anim: directionAnims[data.direction],
-                        isSustain: true
-                    });
+                    if (!directions.has(data.direction)) {
+                        this.playAnimation(characterId, animName, true);
+                        directions.set(data.direction, {
+                            anim: animName,
+                            isSustain: true,
+                            startTime: Date.now()
+                        });
+                    }
+                    character.idleTimer = 0;
+                } else {
+                    // Si no es sustain, reproducimos la animación normalmente
+                    this.playAnimation(characterId, animName, true);
                 }
+                
             } else if (data.state === 'static') {
-                // Solo eliminar la dirección si existía previamente
+                // Solo removemos la dirección cuando se suelta la nota
                 if (directions.has(data.direction)) {
                     directions.delete(data.direction);
+                    
+                    // Verificar si aún hay otras direcciones sostenidas
+                    const hasOtherSustains = Array.from(directions.values()).some(note => note?.isSustain);
+                    if (!hasOtherSustains) {
+                        // Solo volvemos a idle si no hay otras notas sustain
+                        character.idleTimer = stepCrochet / 1000;
+                    }
                 }
             }
         }
@@ -433,14 +449,52 @@ export class Characters {
         };
 
         const animName = noteData.animation || directionAnims[noteData.direction];
+        
+        // Forzar la animación incluso si ya está reproduciéndose
         this.playAnimation(characterId, animName, true);
         
-        // Solo actualizar el estado de sustain si realmente es una nota sostenida
+        // Actualizar el estado de sustain
         if (noteData.sustainNote) {
             this.enemyHeldDirections.set(noteData.direction, {
                 anim: animName,
-                isSustain: true
+                isSustain: true,
+                startTime: Date.now() // Añadimos timestamp para tracking
             });
+            character.idleTimer = 0; // Aseguramos que el timer se resetea
+        } else {
+            // Si no es sustain, limpiamos cualquier sustain previo en esa dirección
+            this.enemyHeldDirections.delete(noteData.direction);
+        }
+    });
+
+    // Añadir un nuevo listener para el fin de notas del enemigo
+    this.notesController.events.on('enemyNoteDone', (noteData) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character || characterId !== this.currentEnemy) return;
+
+        if (this.enemyHeldDirections.has(noteData.direction)) {
+            this.enemyHeldDirections.delete(noteData.direction);
+        }
+
+        // Solo volvemos a idle si no hay otras notas sustain activas
+        const hasOtherSustains = Array.from(this.enemyHeldDirections.values()).some(note => note?.isSustain);
+        if (!hasOtherSustains) {
+            character.idleTimer = (60 / this.scene.songData.song.bpm) * 1000 * 0.5;
+        }
+    });
+
+    this.notesController.on('noteMiss', (data) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character) return;
+
+        // Solo reproducir animación de fallo si es el jugador y corresponde
+        if (characterId === this.currentPlayer) {
+            // Usa el nombre de animación recibido o construye uno por dirección
+            const missAnim = data.animation || (
+                ["singLEFTmiss", "singDOWNmiss", "singUPmiss", "singRIGHTmiss"][data.direction]
+            );
+            this.playAnimation(characterId, missAnim, true);
+            character.idleTimer = 0; // Opcional: reinicia el timer de idle
         }
     });
   }
@@ -448,19 +502,27 @@ export class Characters {
   update(elapsed) {
     if (!this.scene.songData?.song?.bpm) return;
 
-    // Multiplicamos por 4 para hacer el tiempo de retorno más largo
-    const stepCrochet = ((60 / this.scene.songData.song.bpm) * 1000) * 4;
+    const stepCrochet = ((60 / this.scene.songData.song.bpm) * 1000) * 1.5;
     
     for (const [characterId, character] of this.loadedCharacters) {
         const isPlayer = characterId === this.currentPlayer;
         const directions = isPlayer ? this.heldDirections : this.enemyHeldDirections;
+        
+        // Verificar si hay alguna nota sustain activa
         const hasSustainNote = Array.from(directions.values()).some(note => note?.isSustain);
 
         if (hasSustainNote) {
             character.idleTimer = 0;
+            
+            // Asegurarse de que la animación correcta se está reproduciendo
+            const currentSustain = Array.from(directions.entries()).find(([_, note]) => note?.isSustain);
+            if (currentSustain && character.currentAnimation !== currentSustain[1].anim) {
+                this.playAnimation(characterId, currentSustain[1].anim, true);
+            }
             continue;
         }
 
+        // Solo procesamos el timer de idle si no hay notas sustain
         if (character.idleTimer < stepCrochet / 1000) {
             character.idleTimer += elapsed;
             
