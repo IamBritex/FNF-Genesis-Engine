@@ -1,348 +1,252 @@
 export class HealthBar {
   constructor(scene, options = {}) {
-    this.scene = scene
-    this.health = 1 // 1 = 50% health (centro)
-    this.minHealth = 0 // Puede llegar a 0 (sin vida)
-    this.maxHealth = 2 // Puede llegar al doble de vida (100%)
+      this.scene = scene;
+      this._initProperties(options);
+      this._setupBPM();
+      this.init();
+  }
 
-    // Añadir variables para el BPM bounce
-    this.lastBeatTime = 0
-    this.bpm = scene.songData?.song?.bpm || 100
-    this.beatInterval = (60 / this.bpm) * 1000 // Convertir BPM a milisegundos
+  _initProperties(options) {
+      // Configuración básica
+      this.health = 1; // Valor inicial (50%)
+      this.curHealth = 1;
+      this.minHealth = 0;
+      this.maxHealth = 2;
+      
+      // Escalado de iconos
+      this.minIconScale = 0.7;
+      this.curIconScale = 0.7;
+      this.maxIconScale = 0.9;
+      
+      // Configuración visual
+      this.config = {
+          position: {
+              x: this.scene.cameras.main.width / 2,
+              y: this.scene.cameras.main.height - 70
+          },
+          scale: 1,
+          colors: {
+              p1: this._validateColor(options.p1Color, 0x00ff00),
+              p2: this._validateColor(options.p2Color, 0xff0000)
+          },
+          icons: {
+              p1: options.p1Icon || "face",
+              p2: options.p2Icon || "face"
+          }
+      };
+      
+      // Animaciones
+      this.iconBounceScale = 0.7;
+      this.iconBounceDuration = 0.2;
+      this.iconTweens = { p1: null, p2: null };
+      this.iconFrames = { p1: 0, p2: 0 };
+  }
 
-    // Initialize iconFrames object
-    this.iconFrames = {
-      p1: 0,
-      p2: 0,
-    }
+  _setupBPM() {
+      this.lastBeatTime = 0;
+      this.bpm = this.scene.songData?.song?.bpm || 100;
+      this.beatInterval = (60 / this.bpm) * 1000;
+  }
 
-    this.config = {
-      position: {
-        x: this.scene.cameras.main.width / 2,
-        y: this.scene.cameras.main.height - 70,
-      },
-      scale: 1.2,
-      colors: {
-        // Usar el color recibido solo si es un número válido
-        p1: typeof options.p1Color === "number" && !isNaN(options.p1Color) ? options.p1Color : 0x00ff00,
-        p2: typeof options.p2Color === "number" && !isNaN(options.p2Color) ? options.p2Color : 0xff0000,
-      },
-      icons: {
-        p1: options.p1Icon || "face",
-        p2: options.p2Icon || "face",
-      },
-    }
-
-    // Añadir propiedades para el bouncing
-    this.iconBounceScale = 0.7
-    this.iconBounceDuration = 0.2
-    this.iconTweens = {
-      p1: null,
-      p2: null,
-    }
-
-    this.init()
+  _validateColor(color, defaultValue) {
+      return typeof color === "number" && !isNaN(color) ? color : defaultValue;
   }
 
   init() {
-    this.container = this.scene.add.container(this.config.position.x, this.config.position.y)
-
-    // Crear la barra de fondo
-    this.backgroundBar = this.scene.add.image(0, 0, "healthBar")
-    this.backgroundBar.setScale(this.config.scale)
-    this.backgroundBar.setOrigin(0.5)
-
-    // Crear las barras de salud
-    this.createHealthBars()
-
-    // Crear los iconos
-    this.createIcons()
-
-    // Añadir todo al contenedor en el orden correcto
-    this.container.add([this.p1HealthBar, this.p2HealthBar, this.backgroundBar, this.p1Icon, this.p2Icon])
-
-    this.container.setDepth(90)
-    this.updateBar()
+      this.container = this.scene.add.container(this.config.position.x, this.config.position.y);
+      this._createBackground();
+      this._createHealthBars();
+      this._createIcons();
+      this._assembleContainer();
+      this.updateBar();
   }
 
-  createHealthBars() {
-    const width = this.backgroundBar.width * this.config.scale
-    const height = this.backgroundBar.height * this.config.scale
-
-    this.p1HealthBar = this.scene.add.graphics()
-    this.p2HealthBar = this.scene.add.graphics()
-
-    // Posicionar las barras correctamente
-    this.p1HealthBar.x = -width / 2 // Verde a la izquierda
-    this.p2HealthBar.x = -width / 2 // Rojo empieza desde el mismo punto
-
-    this.p1HealthBar.y = -height / 2
-    this.p2HealthBar.y = -height / 2
-
-    this.drawHealthBars(width, height)
+  _createBackground() {
+      this.backgroundBar = this.scene.add.image(0, 0, "healthBar")
+          .setScale(this.config.scale)
+          .setOrigin(0.5);
   }
 
-  createIcons() {
-    const width = this.backgroundBar.width * this.config.scale
+  _createHealthBars() {
+      const width = this.backgroundBar.width * this.config.scale;
+      const height = this.backgroundBar.height * this.config.scale;
 
-    const p1IconKey = `icon-${this.config.icons.p1}`
-    const p2IconKey = `icon-${this.config.icons.p2}`
+      this.p1HealthBar = this.scene.add.graphics()
+          .setPosition(-width / 2, -height / 2);
+      
+      this.p2HealthBar = this.scene.add.graphics()
+          .setPosition(-width / 2, -height / 2);
+  }
 
-    if (this.scene.textures.exists(p1IconKey)) {
-      const p1Texture = this.scene.textures.get(p1IconKey)
-      const p1Frame = p1Texture.get(0)
+  _createIcons() {
+      const width = this.backgroundBar.width * this.config.scale;
+      
+      this.p1Icon = this._createIcon(
+          `icon-${this.config.icons.p1}`, 
+          width / 4, 
+          'p1', 
+          true
+      );
+      
+      this.p2Icon = this._createIcon(
+          `icon-${this.config.icons.p2}`, 
+          -width / 4, 
+          'p2', 
+          false
+      );
+  }
 
-      // Get the actual dimensions of the texture
-      const p1Width = p1Frame.width
-      const p1Height = p1Frame.height
+  _createIcon(iconKey, xPos, playerKey, flipX) {
+      if (!this.scene.textures.exists(iconKey)) return null;
 
-      console.log(`P1 Icon dimensions: ${p1Width}x${p1Height}`)
+      const texture = this.scene.textures.get(iconKey);
+      const frame = texture.get(0);
+      this._processIconFrames(texture, frame, playerKey);
 
-      // If the sprite is a single image with two frames side by side
-      // We need to create a spritesheet dynamically
-      if (p1Width > p1Height * 1.5) {
-        // If width is significantly larger than height, likely has two frames
-        const frameWidth = Math.floor(p1Width / 2)
+      const icon = this.scene.add.sprite(xPos, 0, iconKey, 0)
+          .setOrigin(0.5)
+          .setScale(this.minIconScale)
+          .setFlipX(flipX);
 
-        // If the texture doesn't already have frames defined
-        if (p1Texture.frameTotal <= 1) {
-          console.log(`Dividing P1 sprite into frames: ${frameWidth}x${p1Height}`)
+      return icon;
+  }
 
-          // Create a new frame collection for this texture
-          p1Texture.add("__BASE", 0, 0, 0, p1Width, p1Height)
-
-          // Add frames to the texture - NORMAL frame (left half)
-          p1Texture.add(0, 0, 0, 0, frameWidth, p1Height)
-
-          // LOSING frame (right half)
-          p1Texture.add(1, 0, frameWidth, 0, frameWidth, p1Height)
-
-          // Update frame count
-          this.iconFrames.p1 = 2
-        } else {
-          this.iconFrames.p1 = p1Texture.frameTotal
-        }
+  _processIconFrames(texture, frame, playerKey) {
+      if (frame.width > frame.height * 1.5 && texture.frameTotal <= 1) {
+          const frameWidth = Math.floor(frame.width / 2);
+          texture.add("__BASE", 0, 0, 0, frame.width, frame.height);
+          texture.add(0, 0, 0, 0, frameWidth, frame.height);
+          texture.add(1, 0, frameWidth, 0, frameWidth, frame.height);
+          this.iconFrames[playerKey] = 2;
       } else {
-        this.iconFrames.p1 = p1Texture.frameTotal
+          this.iconFrames[playerKey] = texture.frameTotal;
       }
-
-      // Create player 1 sprite (right)
-      this.p1Icon = this.scene.add.sprite(
-        width / 4,
-        0,
-        p1IconKey,
-        0, // initial frame (neutral)
-      )
-      console.log(`P1 Icon frames: ${this.iconFrames.p1}`)
-      this.p1Icon.setOrigin(0.5)
-      this.p1Icon.setScale(this.iconBounceScale)
-      this.p1Icon.setFlipX(true) // Añadir esta línea para hacer flip horizontal
-    }
-
-    if (this.scene.textures.exists(p2IconKey)) {
-      const p2Texture = this.scene.textures.get(p2IconKey)
-      const p2Frame = p2Texture.get(0)
-
-      // Get the actual dimensions of the texture
-      const p2Width = p2Frame.width
-      const p2Height = p2Frame.height
-
-      console.log(`P2 Icon dimensions: ${p2Width}x${p2Height}`)
-
-      // If the sprite is a single image with two frames side by side
-      if (p2Width > p2Height * 1.5) {
-        // If width is significantly larger than height, likely has two frames
-        const frameWidth = Math.floor(p2Width / 2)
-
-        // If the texture doesn't already have frames defined
-        if (p2Texture.frameTotal <= 1) {
-          console.log(`Dividing P2 sprite into frames: ${frameWidth}x${p2Height}`)
-
-          // Create a new frame collection for this texture
-          p2Texture.add("__BASE", 0, 0, 0, p2Width, p2Height)
-
-          // Add frames to the texture - NORMAL frame (left half)
-          p2Texture.add(0, 0, 0, 0, frameWidth, p2Height)
-
-          // LOSING frame (right half)
-          p2Texture.add(1, 0, frameWidth, 0, frameWidth, p2Height)
-
-          // Update frame count
-          this.iconFrames.p2 = 2
-        } else {
-          this.iconFrames.p2 = p2Texture.frameTotal
-        }
-      } else {
-        this.iconFrames.p2 = p2Texture.frameTotal
-      }
-
-      // Create player 2 sprite (left)
-      this.p2Icon = this.scene.add.sprite(
-        -width / 4,
-        0,
-        p2IconKey,
-        0, // initial frame (neutral)
-      )
-      console.log(`P2 Icon frames: ${this.iconFrames.p2}`)
-      this.p2Icon.setOrigin(0.5)
-      this.p2Icon.setScale(this.iconBounceScale)
-    }
   }
 
-  drawHealthBars(width, height) {
-    this.p1HealthBar.clear()
-    this.p2HealthBar.clear()
-
-    const halfWidth = width / 2
-
-    // Dibujar barra verde (jugador) desde la derecha
-    this.p1HealthBar.fillStyle(this.config.colors.p1)
-    this.p1HealthBar.fillRect(0, 0, halfWidth, height)
-
-    // Dibujar barra roja (enemigo) desde la izquierda
-    this.p2HealthBar.fillStyle(this.config.colors.p2)
-    this.p2HealthBar.fillRect(0, 0, halfWidth, height)
-  }
-
-  bounceIcon(icon, scale) {
-    if (this.iconTweens[icon]) {
-      this.iconTweens[icon].kill()
-    }
-
-    const targetIcon = icon === "p1" ? this.p1Icon : this.p2Icon
-
-    this.iconTweens[icon] = gsap.to(targetIcon, {
-      scaleX: scale,
-      scaleY: scale,
-      duration: this.iconBounceDuration,
-      ease: "elastic.out(1, 0.5)",
-      onComplete: () => {
-        gsap.to(targetIcon, {
-          scaleX: this.iconBounceScale,
-          scaleY: this.iconBounceScale,
-          duration: this.iconBounceDuration,
-          ease: "elastic.out(1, 0.5)",
-        })
-      },
-    })
+  _assembleContainer() {
+      this.container.add([
+          this.p1HealthBar, 
+          this.p2HealthBar, 
+          this.backgroundBar, 
+          this.p1Icon, 
+          this.p2Icon
+      ]).setDepth(150);
   }
 
   updateBar() {
-    const width = this.backgroundBar.width * this.config.scale
-    const height = this.backgroundBar.height * this.config.scale
-    const totalWidth = width
+      const width = this.backgroundBar.width * this.config.scale;
+      const height = this.backgroundBar.height * this.config.scale;
+      const totalWidth = width;
+      const halfWidth = totalWidth / 2;
+      const healthPercent = Phaser.Math.Clamp(this.health, 0, 2);
 
-    this.p1HealthBar.clear()
-    this.p2HealthBar.clear()
+      this._animateHealthBars(width, height, totalWidth, halfWidth, healthPercent);
+      this._animateIcons(halfWidth, healthPercent, totalWidth);
+  }
 
-    const healthPercent = Phaser.Math.Clamp(this.health, 0, 2)
-    const halfWidth = totalWidth / 2
+  _animateHealthBars(width, height, totalWidth, halfWidth, healthPercent) {
+      const greenWidth = halfWidth * healthPercent;
+      const redWidth = totalWidth - greenWidth;
 
-    // Calculate green width based on health (0-2)
-    const greenWidth = halfWidth * healthPercent
-    const redWidth = totalWidth - greenWidth
+      this._animateBar(this.p1HealthBar, this.config.colors.p1, totalWidth - greenWidth, greenWidth, height);
+      this._animateBar(this.p2HealthBar, this.config.colors.p2, 0, redWidth, height);
+  }
 
-    // Draw green bar (right)
-    this.p1HealthBar.fillStyle(this.config.colors.p1)
-    this.p1HealthBar.fillRect(totalWidth - greenWidth, 0, greenWidth, height)
+  _animateBar(bar, color, x, width, height) {
+      gsap.to(bar, {
+          duration: 0.3,
+          onUpdate: () => {
+              bar.clear().fillStyle(color).fillRect(x, 0, width, height);
+          }
+      });
+  }
 
-    // Draw red bar (left)
-    this.p2HealthBar.fillStyle(this.config.colors.p2)
-    this.p2HealthBar.fillRect(0, 0, redWidth, height)
+  _animateIcons(halfWidth, healthPercent, totalWidth) {
+      const iconOffset = 30;
+      const greenWidth = halfWidth * healthPercent;
+      const redWidth = totalWidth - greenWidth;
 
-    // Calculate icon positions based on health bars
-    const iconOffset = 50; // Ajusta este valor para la distancia del icono al borde de la barra
+      if (this.p1Icon) {
+          gsap.to(this.p1Icon, {
+              x: -halfWidth + redWidth + iconOffset,
+              duration: 0.3,
+              ease: "power1.out"
+          });
+      }
 
-    // P1 (verde) ahora se comporta como P2
-    this.p1Icon.x = -halfWidth + redWidth + iconOffset;
-    
-    // P2 (rojo) ahora se comporta como P1
-    this.p2Icon.x = halfWidth - greenWidth - iconOffset;
+      if (this.p2Icon) {
+          gsap.to(this.p2Icon, {
+              x: halfWidth - greenWidth - iconOffset,
+              duration: 0.3,
+              ease: "power1.out"
+          });
+      }
 
-    // Remover el bounce basado en salud
-    this.p1Icon.setScale(0.7);
-    this.p2Icon.setScale(0.7);
+      this._updateIconFrames(healthPercent);
+  }
 
-    // Actualizar frames de los iconos basado en la salud
-    if (this.p1Icon && this.p2Icon) {
-      this.p1Icon.setFrame(0); // frame normal para jugador
-      this.p2Icon.setFrame(0); // frame normal para oponente
+  _updateIconFrames(healthPercent) {
+      if (!this.p1Icon || !this.p2Icon) return;
+
+      this.p1Icon.setFrame(0);
+      this.p2Icon.setFrame(0);
 
       if (healthPercent < 0.2 && this.iconFrames.p1 > 1) {
-        this.p1Icon.setFrame(1); // frame losing para jugador
+          this.p1Icon.setFrame(1);
       } else if (healthPercent > 1.8 && this.iconFrames.p2 > 1) {
-        this.p2Icon.setFrame(1); // frame losing para oponente
+          this.p2Icon.setFrame(1);
       }
-    }
   }
 
-  updateBeatBounce(currentTime) {
-    if (!this.lastBeatTime || currentTime - this.lastBeatTime >= this.beatInterval) {
-      this.bounceIcons();
-      this.lastBeatTime = currentTime;
-    }
+  updateBeatBounce(currentTime, time, delta) {
+      const beatTime = (60 / this.bpm) * 1000;
+      const currentBeat = Math.floor(currentTime / beatTime);
+
+      if (currentBeat > Math.floor(this.lastBeatTime / beatTime)) {
+          this.curIconScale = this.maxIconScale;
+          this.lastBeatTime = currentTime;
+      }
+
+      this.updateIconsScale(delta / 1000);
+      this.updateHealth(delta / 1000);
   }
 
-  bounceIcons() {
-    const bounceScale = 0.8;
-    const normalScale = 0.7;
-    const duration = 0.1;
+  updateIconsScale(elapsed) {
+      this.curIconScale = Phaser.Math.Linear(
+          this.minIconScale, 
+          this.curIconScale, 
+          Math.exp(-elapsed * 9)
+      );
+      
+      if (this.p1Icon) this.p1Icon.setScale(this.curIconScale);
+      if (this.p2Icon) this.p2Icon.setScale(this.curIconScale);
+  }
 
-    if (this.p1Icon) {
-      gsap.to(this.p1Icon, {
-        scaleX: bounceScale,
-        scaleY: bounceScale,
-        duration: duration,
-        ease: "linear",
-        onComplete: () => {
-          gsap.to(this.p1Icon, {
-            scaleX: normalScale,
-            scaleY: normalScale,
-            duration: duration,
-            ease: "linear"
-          });
-        }
-      });
-    }
-
-    if (this.p2Icon) {
-      gsap.to(this.p2Icon, {
-        scaleX: bounceScale,
-        scaleY: bounceScale,
-        duration: duration,
-        ease: "linear",
-        onComplete: () => {
-          gsap.to(this.p2Icon, {
-            scaleX: normalScale,
-            scaleY: normalScale,
-            duration: duration,
-            ease: "linear"
-          });
-        }
-      });
-    }
+  updateHealth(elapsed) {
+      this.curHealth = Phaser.Math.Linear(
+          this.health, 
+          this.curHealth, 
+          Math.exp(-elapsed * 9)
+      );
+      this.health = this.curHealth;
   }
 
   setHealth(value) {
-    // Limitamos el valor entre 0 y 2 para evitar que se salga de la imagen
-    this.health = Phaser.Math.Clamp(value, 0, 2)
-    this.updateBar()
+      this.curHealth = Phaser.Math.Clamp(value, 0, 2);
+      this.updateBar();
   }
 
-  // Modificamos la lógica de daño y curación para que coincida con FNF
   damage(amount) {
-    // Al recibir daño, la barra verde se reduce hacia la derecha
-    this.setHealth(this.health - amount)
+      this.setHealth(this.curHealth - amount);
   }
 
   heal(amount) {
-    // Al curarse, la barra verde crece hacia la izquierda
-    this.setHealth(this.health + amount)
+      this.setHealth(this.curHealth + amount);
   }
 
   destroy() {
-    if (this.iconTweens.p1) this.iconTweens.p1.kill()
-    if (this.iconTweens.p2) this.iconTweens.p2.kill()
-    this.container.destroy()
+      if (this.iconTweens.p1) this.iconTweens.p1.kill();
+      if (this.iconTweens.p2) this.iconTweens.p2.kill();
+      if (this.container) this.container.destroy();
   }
 }

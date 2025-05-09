@@ -1,13 +1,14 @@
 export class CountdownManager {
     constructor(scene) {
         this.scene = scene;
-        this.depth = 12; // Store depth value
+        this.depth = 100; // Ajustado para estar por encima de personajes (50-70) pero debajo de UI (100+)
         this.countdownData = [
             { sound: 'intro3', image: null },
             { sound: 'intro2', image: 'ready' },
             { sound: 'intro1', image: 'set' },
             { sound: 'introGo', image: 'go' }
         ];
+        this.activeImages = []; // Para rastrear imágenes activas
     }
 
     preload() {
@@ -21,18 +22,15 @@ export class CountdownManager {
         this.scene.load.image('go', 'public/assets/images/UI/countdown/funkin/go.png');
     }
 
-    create() {
-        this.countdownSprites.forEach(sprite => {
-            sprite.setDepth(12); // Above characters, below notes
-        });
-    }
-
     start(callback) {
         let step = 0;
         const songData = this.scene.songData;
         const bpm = songData?.song?.bpm || 100;
         const crochet = (60 / bpm) * 1000; // Tiempo entre beats en milisegundos
-        let lastBeat = 0;
+        const fadeDuration = crochet * 0.5; // Duración del fade out
+
+        // Limpiar imágenes previas si las hay
+        this.clearActiveImages();
 
         // Crear un evento que se ejecute en cada beat
         const beatEvent = this.scene.time.addEvent({
@@ -51,11 +49,25 @@ export class CountdownManager {
                             this.scene.scale.width / 2,
                             this.scene.scale.height / 2,
                             image
-                        ).setDepth(this.depth);
+                        )
+                        .setDepth(this.depth)
+                        .setAlpha(1); // Asegurar que empieza visible
 
-                        // Destruir la imagen justo antes del siguiente beat
-                        this.scene.time.delayedCall(crochet * 0.9, () => {
-                            countdownImage.destroy();
+                        // Añadir a la lista de imágenes activas
+                        this.activeImages.push(countdownImage);
+
+                        // Efecto de fade out
+                        this.scene.tweens.add({
+                            targets: countdownImage,
+                            alpha: 0,
+                            duration: fadeDuration,
+                            ease: 'Power1',
+                            delay: crochet * 0.5, // Comenzar fade out a la mitad del tiempo
+                            onComplete: () => {
+                                countdownImage.destroy();
+                                // Remover de la lista de activas
+                                this.activeImages = this.activeImages.filter(img => img !== countdownImage);
+                            }
                         });
                     }
 
@@ -65,7 +77,18 @@ export class CountdownManager {
                     callback(); // Llamar al callback cuando termine
                 }
             },
-            loop: true
+            loop: true,
+            callbackScope: this
         });
+    }
+
+    clearActiveImages() {
+        // Destruir todas las imágenes activas y limpiar el array
+        this.activeImages.forEach(image => {
+            if (image && typeof image.destroy === 'function') {
+                image.destroy();
+            }
+        });
+        this.activeImages = [];
     }
 }

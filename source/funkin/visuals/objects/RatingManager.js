@@ -1,4 +1,4 @@
-// RatingManager.js
+
 export class RatingManager {
     constructor(scene) {
         this.scene = scene;
@@ -161,7 +161,7 @@ export class RatingManager {
 
             const numberImage = this.scene.add.sprite(x, baseY, textureKey)
                 .setVisible(true)
-                .setDepth(16)
+                .setDepth(100)
                 .setScale(comboNumbers.scale)
                 .setRotation(comboNumbers.rotation * Math.PI / 180)
                 .setAlpha(1);
@@ -304,7 +304,7 @@ export class RatingManager {
 
         const newImage = this.scene.add.sprite(centerX, startY, textureKey)
             .setVisible(true)
-            .setDepth(15)
+            .setDepth(100)
             .setScale(animation.imageScale)
             .setAlpha(1);
 

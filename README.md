@@ -92,11 +92,6 @@ Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detal
 [![FNF](https://avatars.githubusercontent.com/u/117059284?s=200&v=4)](https://github.com/FunkinCrew)
 
 
-- A Alejo GD 
-
-[![ALEE](https://cdn.discordapp.com/avatars/840045663730794526/f9372c252386c6dc27f0c1185aa163ac.webp?size=80)](https://github.com/AlejoGDOfficial)
-
-
 - A la comunidad de Phaser.js 
 
 [![PHASER](https://avatars.githubusercontent.com/u/54856938?s=200&v=4)](https://github.com/phaserjs)

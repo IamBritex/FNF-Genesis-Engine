@@ -1,6 +1,20 @@
 @font-face {
-    font-family: 'vcr';
-    src: url('assets/fonts/pixel-latin.ttf') format('truetype');
+    font-family: 'FNF';
+    src: url('../assets/fonts/FridayNightFunkin-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'FNF-rellenito';
+    src: url('../assets/fonts/FridayNightFunkin-Regular-relleno.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "VCR";
+    src: url("../assets/fonts/vcr.ttf") format("truetype");
 }
 
 * {

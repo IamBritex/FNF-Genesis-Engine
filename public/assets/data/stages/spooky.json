@@ -1,0 +1,13 @@
+{
+    "stage":[
+        {
+            "priority": 1,
+            "layer": 2,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/spooky/halloween_bg_low.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-300, -200]
+        }
+    ]
+}

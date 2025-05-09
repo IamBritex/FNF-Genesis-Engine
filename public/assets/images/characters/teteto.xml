@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TextureAtlas imagePath="teteto.png">
+<SubTexture name="teteto altdown0000" x="1902" y="1212" width="437" height="942" frameX="-383" frameY="-395" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto altdown0001" x="3074" y="1003" width="438" height="980" frameX="-382" frameY="-357" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto altleft0000" x="884" y="1212" width="527" height="1061" frameX="-180" frameY="-314" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto altleft0001" x="1898" y="0" width="496" height="1105" frameX="-210" frameY="-266" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto altright0000" x="3074" y="0" width="505" height="1003" frameX="-437" frameY="-342" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto altright0001" x="2394" y="1033" width="491" height="1017" frameX="-437" frameY="-320" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto altup0000" x="0" y="0" width="458" height="1212" frameX="-323" frameY="-110" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto altup0001" x="458" y="0" width="575" height="1182" frameX="-251" frameY="-144" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto down0000" x="1464" y="2293" width="434" height="909" frameX="-387" frameY="-418" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto down0001" x="1027" y="2293" width="437" height="935" frameX="-381" frameY="-393" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto idle0000" x="438" y="1212" width="446" height="1063" frameX="-323" frameY="-270" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto idle0001" x="0" y="1212" width="438" height="1081" frameX="-324" frameY="-254" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto left0000" x="2394" y="0" width="680" height="1033" frameX="-20" frameY="-314" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto left0001" x="1411" y="1212" width="491" height="1058" frameX="-212" frameY="-293" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto right0000" x="522" y="2293" width="505" height="969" frameX="-434" frameY="-366" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto right0001" x="0" y="2293" width="522" height="988" frameX="-406" frameY="-348" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto up0000" x="1033" y="0" width="421" height="1173" frameX="-348" frameY="-152" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="teteto up0001" x="1454" y="0" width="444" height="1113" frameX="-325" frameY="-211" frameWidth="2000" frameHeight="1500" />
+</TextureAtlas>

@@ -1,91 +1,103 @@
 export class CameraController {
     constructor(scene) {
         this.scene = scene;
-        this.camera = scene.cameras.main;
+        
+        // Crear cámaras
+        this.gameCamera = scene.cameras.add(0, 0, scene.scale.width, scene.scale.height);
+        this.uiCamera = scene.cameras.add(0, 0, scene.scale.width, scene.scale.height);
+        
+        // Configuración inicial
+        this.gameCamera.setName('gameCamera');
+        this.uiCamera.setName('uiCamera');
+        
+        // Configuración de zoom
         this.defaultZoom = 1;
-        this.bopZoom = 1.01; // Reduced zoom intensity (from 1.02 to 1.01)
-        this.lastSectionTime = 0;
-        this.sectionInterval = 0;
+        this.bopZoom = 1.05;
+        this.currentZoom = this.defaultZoom;
+        
+        // Control de ritmo
+        this.currentBPM = 100;
+        this.beatInterval = 0;
+        this.lastBeatTime = 0;
+        this.beatCounter = 0;
         this.isBopping = false;
-        this.zoomTween = null;
-        this.isZooming = false;
+        
+        // Desactivar la cámara principal
+        scene.cameras.main.visible = false;
     }
 
-    initialize(sectionLength = 1600) { // Default section length (16 steps at 100 BPM)
-        this.sectionInterval = sectionLength;
-        this.camera.setZoom(this.defaultZoom);
+    addToGameCamera(object) {
+        if (!object) return;
+        // Mostrar solo en gameCamera, ocultar en uiCamera
+        this.uiCamera.ignore(object);
+        this.gameCamera.ignore(object, false);
+    }
+    
+    addToUICamera(object) {
+        if (!object) return;
+        // Mostrar solo en uiCamera, ocultar en gameCamera
+        this.gameCamera.ignore(object);
+        this.uiCamera.ignore(object, false);
     }
 
-    update(songPosition) {
-        if (!this.isBopping) return;
-
-        // Check for section change
-        if (songPosition > this.lastSectionTime + this.sectionInterval) {
-            this.bopToSection();
-            this.lastSectionTime = songPosition - (songPosition % this.sectionInterval);
-        }
-    }
-
-    bopToSection() {
-        if (this.isZooming) return;
-
-        // Cancel previous tween if exists
-        if (this.zoomTween) {
-            this.zoomTween.stop();
-        }
-
-        this.isZooming = true;
-
-        // Faster and gentler zoom in/out animation
-        this.zoomTween = this.scene.tweens.add({
-            targets: this.camera,
-            zoom: this.bopZoom,
-            duration: 100, // Reduced from 200 to 100
-            ease: 'Quad.easeOut',
-            onComplete: () => {
-                this.zoomTween = this.scene.tweens.add({
-                    targets: this.camera,
-                    zoom: this.defaultZoom,
-                    duration: 150, // Reduced from 300 to 150
-                    ease: 'Quad.easeIn', // Changed from easeInOut to easeIn for faster return
-                    onComplete: () => {
-                        this.isZooming = false;
-                    }
-                });
-            }
-        });
-    }
-
+    // Método para iniciar el efecto de bop
     startBoping() {
         this.isBopping = true;
-        this.lastSectionTime = 0;
-        this.isZooming = false;
+        this.lastBeatTime = 0;
+        this.beatCounter = 0;
+        this.currentZoom = this.defaultZoom;
     }
 
+    // Método para detener el efecto de bop
     stopBoping() {
         this.isBopping = false;
-        this.isZooming = false;
-        if (this.zoomTween) {
-            this.zoomTween.stop();
+        this.gameCamera.setZoom(this.defaultZoom);
+        this.uiCamera.setZoom(this.defaultZoom);
+    }
+
+    // Actualizar el BPM y recalcular intervalos
+    updateBPM(newBPM) {
+        this.currentBPM = newBPM;
+        this.beatInterval = (60000 / this.currentBPM); // Duración de un beat en ms
+    }
+
+    // Método principal de actualización
+    update(songPosition, time, delta) {
+        // simular el elapsed de flixel lol
+        const elapsed = delta / 1000;
+        
+        if (!this.isBopping) return;
+
+        // Calcular si estamos en un nuevo beat
+        if (songPosition >= this.lastBeatTime + this.beatInterval) {
+            this.lastBeatTime = songPosition;
+            this.beatCounter++;
+            
+            // Hacer bop cada 4 beats
+            if (this.beatCounter % 4 === 0) {
+                this.currentZoom = this.bopZoom;
+            }
         }
-        this.camera.setZoom(this.defaultZoom);
+
+        // Aplicar interpolación suave
+        this.currentZoom = Phaser.Math.Linear(this.defaultZoom, this.currentZoom, Math.exp(-elapsed * 3.125));
+        
+        // Aplicar el zoom a ambas cámaras
+        this.gameCamera.setZoom(this.currentZoom);
+        this.uiCamera.setZoom(this.currentZoom);
     }
 
-    setDefaultZoom(zoom) {
-        this.defaultZoom = zoom;
-        this.camera.setZoom(zoom);
+    // Método para forzar un bop manualmente
+    triggerBop() {
+        this.currentZoom = this.bopZoom;
     }
 
-    setBopIntensity(intensity) {
-        // Even more reduced intensity range
-        this.bopZoom = 1 + (intensity * 0.003); // Reduced from 0.005 to 0.003
-    }
-
+    // Restablecer configuración
     reset() {
         this.stopBoping();
-        this.setDefaultZoom(1);
-        this.bopZoom = 1.01; // Updated default bop zoom
-        this.lastSectionTime = 0;
-        this.isZooming = false;
+        this.defaultZoom = 1;
+        this.bopZoom = 1.05;
+        this.lastBeatTime = 0;
+        this.beatCounter = 0;
     }
 }

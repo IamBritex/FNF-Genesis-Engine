@@ -1,215 +1,340 @@
 class FreeplayState extends Phaser.Scene {
     constructor() {
         super({ key: 'FreeplayState' });
-        this.songList = [];
-        this.selectedIndex = 0;
-        this.keyCooldown = false;
-        this.difficulties = ["easy", "normal", "hard"];
-        this.selectedDifficulty = 1; // Por defecto "normal"
-        this.scrollY = 0; // Nueva variable para controlar el scroll
-    }
-
-    init() {
-        // Resetear variables importantes al iniciar/reiniciar la escena
-        this.keyCooldown = false;
+        
+        // Datos persistentes
         this.songList = [];
         this.selectedIndex = 0;
         this.selectedDifficulty = 1;
+        this.difficulties = ["easy", "normal", "hard"]; // Asegurar que está definido
+        
+        // Estado temporal
+        this.keyCooldown = false;
+        this.scrollY = 0;
+        this.assetsLoaded = false;
+    }
+
+    init() {
+        this.keyCooldown = false;
     }
 
     preload() {
         console.log("FreeplayState cargado");
-        this.load.audio('cancelSound', 'public/assets/audio/sounds/cancelMenu.ogg');
-        this.load.audio('scrollSound', 'public/assets/audio/sounds/scrollMenu.ogg');
-        this.load.audio('confirmSound', 'public/assets/audio/sounds/confirmMenu.ogg');
         
-        this.load.text('weekList', 'public/assets/data/weekList.txt');
+        // Verificar y cargar imágenes
+        if (!this.textures.exists('menuBGMagenta')) {
+            this.load.image('menuBGMagenta', 'public/assets/images/menuBGMagenta.png');
+        }
         
-        // Cargar todos los JSONs de las semanas
-        fetch('public/assets/data/weekList.txt')
-            .then(response => response.text())
-            .then(text => {
-                const weeks = text.split('\n').filter(week => week.trim());
-                weeks.forEach(week => {
-                    this.load.json(week, `public/assets/data/weekList/${week}.json`);
-                });
-            });
-
-        // Agregar carga del fondo
-        this.load.image('menuBGMagenta', 'public/assets/images/menuBGMagenta.png');
-    }
-
-    create() {
-        // Agregar el fondo al inicio del create
-        const { width, height } = this.scale;
-        this.bg = this.add.image(width / 2, height / 2, 'menuBGMagenta')
-            .setOrigin(0.5)
-            .setScale(1.1)
-            .setScrollFactor(0);
-
-        // Ajustar la profundidad para que esté detrás de todo
-        this.bg.setDepth(-1);
-
-        this.cancelSound = this.sound.add('cancelSound');
-        this.scrollSound = this.sound.add('scrollSound');
-        this.confirmSound = this.sound.add('confirmSound');
-
-        // Crear contenedor para los textos
-        this.textContainer = this.add.container(0, 0);
-
-        // Procesar las canciones de todas las semanas
-        const weekList = this.cache.text.get('weekList').split('\n').filter(week => week.trim());
-        
-        weekList.forEach(week => {
-            const weekData = this.cache.json.get(week);
-            if (weekData && weekData.tracks) {
-                weekData.tracks.flat().forEach(song => {
-                    this.songList.push({
-                        name: song,
-                        weekName: weekData.weekName
-                    });
-                });
+        // Cargar audios con verificaciones
+        const audioKeys = ['cancelSound', 'scrollSound', 'confirmSound'];
+        audioKeys.forEach(key => {
+            if (!this.cache.audio.exists(key)) {
+                this.load.audio(key, `public/assets/audio/sounds/${key}.ogg`);
             }
         });
-
-        // Crear textos para las canciones dentro del contenedor
-        this.songTexts = this.songList.map((song, index) => {
-            const text = this.add.text(50, 100 + (index * 50), song.name, {
-                fontSize: '32px',
-                fill: '#FFFFFF'
-            });
-            this.textContainer.add(text);
-            return text;
-        });
-
-        // Crear texto para la dificultad (fuera del contenedor)
-        this.difficultyText = this.add.text(400, 50, this.difficulties[this.selectedDifficulty], {
-            fontSize: '32px',
-            fill: '#FFFFFF'
-        });
-
-        // Posición inicial del scroll
-        this.updateScroll(true);
-        this.updateSelection();
-
-        // Asegurarnos de que los inputs estén limpios
-        this.input.keyboard.removeAllListeners();
-        this.setupInputs();
-    }
-
-    setupInputs() {
-        // Remover listeners anteriores si existen
-        this.input.keyboard.removeAllListeners('keydown');
         
-        this.input.keyboard.on('keydown', (event) => {
-            if (this.keyCooldown) return;
-
-            switch (event.code) {
-                case 'ArrowUp':
-                    this.changeSelection(-1);
-                    break;
-                case 'ArrowDown':
-                    this.changeSelection(1);
-                    break;
-                case 'ArrowLeft':
-                    this.changeDifficulty(-1);
-                    break;
-                case 'ArrowRight':
-                    this.changeDifficulty(1);
-                    break;
-                case 'Enter':
-                    this.confirmSound.play();
-                    this.selectSong();
-                    break;
-                case 'Backspace':
-                    this.cancelSound.play();
-                    this.scene.start("MainMenuState");
-                    break;
-            }
-
-            this.keyCooldown = true;
-            this.time.delayedCall(150, () => this.keyCooldown = false);
-        });
-    }
-
-    changeDifficulty(change) {
-        this.selectedDifficulty = (this.selectedDifficulty + change + this.difficulties.length) % this.difficulties.length;
-        this.difficultyText.setText(this.difficulties[this.selectedDifficulty]);
-        this.scrollSound.play();
-    }
-
-    changeSelection(change) {
-        this.scrollSound.play();
-        const lastIndex = this.selectedIndex;
-        this.selectedIndex = (this.selectedIndex + change + this.songList.length) % this.songList.length;
-        
-        // Actualizar selección visual
-        this.updateSelection();
-        
-        // Actualizar scroll
-        this.updateScroll();
-
-        // Añadir efecto de movimiento a los textos
-        this.songTexts.forEach((text, index) => {
-            if (index === this.selectedIndex) {
-                this.tweens.add({
-                    targets: text,
-                    scale: 1.2,
-                    duration: 150,
-                    ease: 'Cubic.out'
-                });
-            } else {
-                this.tweens.add({
-                    targets: text,
-                    scale: 1.0,
-                    duration: 150,
-                    ease: 'Cubic.out'
-                });
-            }
-        });
-    }
-
-    updateScroll(immediate = false) {
-        // Calcular posición objetivo del scroll
-        const targetY = -(this.selectedIndex * 50) + 300;
-
-        if (immediate) {
-            this.textContainer.y = targetY;
-            this.scrollY = targetY;
-        } else {
-            // Solo animar el contenedor de texto
-            this.tweens.add({
-                targets: this.textContainer,
-                y: targetY,
-                duration: 150,
-                ease: 'Cubic.out'
-            });
-
-            this.scrollY = targetY;
+        // Cargar datos de semanas
+        if (!this.cache.text.exists('weekList')) {
+            this.load.text('weekList', 'public/assets/data/weekList.txt');
         }
     }
 
-    updateSelection() {
-        this.songTexts.forEach((text, index) => {
-            if (index === this.selectedIndex) {
-                text.setColor('#FFFF00');
-            } else {
-                text.setColor('#FFFFFF');
+    async create() {
+        // Esperar a que los recursos estén listos
+        if (!this.assetsLoaded && this.load.isLoading()) {
+            await new Promise(resolve => {
+                this.load.once('complete', () => {
+                    this.assetsLoaded = true;
+                    resolve();
+                });
+                if (!this.load.isLoading()) this.load.start();
+            });
+        }
+        
+        // Verificar carga de audio
+        if (!this.sound.get('scrollSound')) {
+            console.warn("Audio no cargado, reintentando...");
+            this.load.audio('scrollSound', 'public/assets/audio/sounds/scrollMenu.ogg');
+            await new Promise(resolve => {
+                this.load.once('complete', resolve);
+                this.load.start();
+            });
+        }
+        
+        // Si ya tenemos datos, recrear la UI
+        if (this.songList.length > 0) {
+            this.recreateUI();
+            return;
+        }
+        
+        // Primera carga
+        await this.initialLoad();
+    }
+
+    async initialLoad() {
+        const { width, height } = this.scale;
+        
+        this.setupBackground(width, height);
+        this.setupSounds();
+        
+        await this.loadWeekData();
+        this.setupUI(width, height);
+        
+        this.updateScroll(true);
+        this.updateSelection();
+        this.setupInputs();
+    }
+
+    recreateUI() {
+        const { width, height } = this.scale;
+        
+        this.setupBackground(width, height);
+        this.setupSounds();
+        this.setupUI(width, height);
+        
+        this.updateScroll(true);
+        this.updateSelection();
+        this.setupInputs();
+    }
+
+    setupBackground(width, height) {
+        if (this.bg) this.bg.destroy();
+        
+        this.bg = this.add.image(width / 2, height / 2, 'menuBGMagenta')
+            .setOrigin(0.5)
+            .setScale(1.1)
+            .setScrollFactor(0)
+            .setDepth(-1);
+    }
+
+    setupSounds() {
+        // Crear o obtener instancias de sonido con verificaciones
+        this.cancelSound = this.getOrCreateSound('cancelSound');
+        this.scrollSound = this.getOrCreateSound('scrollSound');
+        this.confirmSound = this.getOrCreateSound('confirmSound');
+        
+        if (!this.scrollSound) {
+            console.error("Error crítico: scrollSound no disponible");
+        }
+    }
+
+    getOrCreateSound(key) {
+        try {
+            return this.sound.get(key) || this.sound.add(key);
+        } catch (error) {
+            console.error(`Error con el audio ${key}:`, error);
+            return null;
+        }
+    }
+
+    async loadWeekData() {
+        try {
+            const weekListText = this.cache.text.get('weekList');
+            if (!weekListText) throw new Error("weekList no cargado");
+            
+            const weeks = weekListText.split('\n').filter(week => week.trim());
+            
+            // Cargar semanas faltantes
+            const weeksToLoad = weeks.filter(week => !this.cache.json.exists(week));
+            if (weeksToLoad.length > 0) {
+                await Promise.all(weeksToLoad.map(week => 
+                    new Promise(resolve => {
+                        this.load.json(week, `public/assets/data/weekList/${week}.json`);
+                        this.load.once(`filecomplete-json-${week}`, resolve);
+                        if (!this.load.isLoading()) this.load.start();
+                    })
+                ));
             }
+
+            // Procesar canciones solo si no hay
+            if (this.songList.length === 0) {
+                weeks.forEach(week => {
+                    const weekData = this.cache.json.get(week);
+                    if (weekData?.tracks) {
+                        weekData.tracks.flat().forEach(song => {
+                            this.songList.push({
+                                name: song,
+                                weekName: weekData.weekName,
+                                color: weekData.color || '#FFFFFF'
+                            });
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Error cargando weekData:", error);
+            throw error;
+        }
+    }
+
+    setupUI(width, height) {
+        // Limpiar UI existente
+        if (this.textContainer) this.textContainer.destroy();
+        if (this.difficultyContainer) this.difficultyContainer.destroy();
+        
+        // Crear nueva UI
+        this.textContainer = this.add.container(50, height / 2 - 50);
+        
+        this.songTexts = this.songList.map((song, index) => {
+            const songContainer = this.add.container(0, index * 80);
+            const songText = this.createText(0, 0, song.name.toUpperCase(), {
+                fontSize: '32px',
+                color: '#FFFFFF'
+            }).setOrigin(0, 0.5);
+            
+            songContainer.add(songText);
+            this.textContainer.add(songContainer);
+            return songContainer;
+        });
+        
+        this.difficultyContainer = this.add.container(width - 150, 100);
+        this.updateDifficultyText();
+    }
+
+    createText(x, y, text, style = {}) {
+        return this.add.text(x, y, text, {
+            fontFamily: 'FNF',
+            fontSize: '32px',
+            color: '#FFFFFF',
+            ...style
+        });
+    }
+
+    updateDifficultyText() {
+        if (!this.difficultyContainer) return;
+        this.difficultyContainer.removeAll(true);
+        
+        // Verificación segura de difficulties
+        const difficulty = this.difficulties[this.selectedDifficulty] || this.difficulties[0];
+        const diffText = this.createText(0, 0, `DIFICULTY: ${difficulty.toUpperCase()}`)
+            .setOrigin(0.5);
+        
+        const leftArrow = this.createText(-100, 0, '<')
+            .setOrigin(0.5)
+            .setInteractive()
+            .on('pointerdown', () => this.changeDifficulty(-1));
+        
+        const rightArrow = this.createText(100, 0, '>')
+            .setOrigin(0.5)
+            .setInteractive()
+            .on('pointerdown', () => this.changeDifficulty(1));
+        
+        this.difficultyContainer.add([diffText, leftArrow, rightArrow]);
+    }
+
+    setupInputs() {
+        this.input.keyboard.removeAllListeners('keydown');
+        this.input.keyboard.on('keydown', this.handleKeyPress.bind(this));
+    }
+
+    handleKeyPress(event) {
+        if (this.keyCooldown) return;
+
+        const keyActions = {
+            'ArrowUp': () => this.changeSelection(-1),
+            'ArrowDown': () => this.changeSelection(1),
+            'ArrowLeft': () => this.changeDifficulty(-1),
+            'ArrowRight': () => this.changeDifficulty(1),
+            'Enter': () => {
+                if (this.confirmSound) this.confirmSound.play();
+                this.selectSong();
+            },
+            'Backspace': () => {
+                if (this.cancelSound) this.cancelSound.play();
+                this.scene.start("MainMenuState");
+            }
+        };
+
+        if (keyActions[event.code]) {
+            keyActions[event.code]();
+            this.keyCooldown = true;
+            this.time.delayedCall(150, () => this.keyCooldown = false);
+        }
+    }
+
+    changeDifficulty(change) {
+        if (!this.scrollSound) {
+            console.warn("scrollSound no disponible");
+        } else {
+            this.scrollSound.play();
+        }
+        
+        this.selectedDifficulty = Phaser.Math.Wrap(
+            this.selectedDifficulty + change, 
+            0, 
+            this.difficulties.length
+        );
+        this.updateDifficultyText();
+    }
+
+    changeSelection(change) {
+        if (this.scrollSound) {
+            this.scrollSound.play();
+        } else {
+            console.warn("scrollSound no disponible");
+        }
+        
+        this.selectedIndex = Phaser.Math.Wrap(
+            this.selectedIndex + change,
+            0,
+            this.songList.length
+        );
+        this.updateSelection();
+        this.updateScroll();
+    }
+
+    updateScroll(immediate = false) {
+        if (!this.textContainer) return;
+        
+        const targetY = - (this.selectedIndex * 80) + (this.scale.height / 2 - 150);
+
+        if (immediate) {
+            this.textContainer.y = targetY;
+        } else {
+            this.tweens.add({
+                targets: this.textContainer,
+                y: targetY,
+                duration: 200,
+                ease: 'Cubic.out'
+            });
+        }
+        this.scrollY = targetY;
+    }
+
+    updateSelection() {
+        if (!this.songTexts) return;
+        
+        this.songTexts.forEach((container, index) => {
+            const songText = container.list[0];
+            if (!songText) return;
+            
+            const isSelected = index === this.selectedIndex;
+            songText.setColor(isSelected ? '#FFFF00' : '#FFFFFF')
+                   .setScale(isSelected ? 1.2 : 1)
+                   .setStyle({ fontSize: isSelected ? '38px' : '32px' });
         });
     }
 
     selectSong() {
         const selectedSong = this.songList[this.selectedIndex];
+        if (!selectedSong) return;
+
         const songData = {
             storyPlaylist: [selectedSong.name],
-            storyDifficulty: this.difficulties[this.selectedDifficulty],
+            storyDifficulty: this.difficulties[this.selectedDifficulty] || 'normal',
             isStoryMode: false,
             weekName: selectedSong.weekName,
-            selectedDifficulty: this.difficulties[this.selectedDifficulty]
+            selectedDifficulty: this.difficulties[this.selectedDifficulty] || 'normal'
         };
 
-        this.scene.start("PlayState", songData);
+        this.tweens.add({
+            targets: this.songTexts[this.selectedIndex],
+            scale: 1.3,
+            duration: 100,
+            yoyo: true,
+            onComplete: () => this.scene.start("PlayState", songData)
+        });
     }
 }
 

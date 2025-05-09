@@ -1,0 +1,44 @@
+{
+    "stage":
+    [
+        {
+            "priority": 1,
+            "layer": 2,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/stage/stagefront.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-650, 500]
+        },
+        {
+            "priority": 1,
+            "layer": 1,
+            "scale": 0.6,
+            "path": "public/assets/data/stages/stage/stageback.png",
+            "visible": true,
+            "opacity": 1,
+            "position": [0, 0]
+        },
+        {
+            "player": 1,
+            "layer": 4
+        },
+        {
+            "player": 2,
+            "layer": 4
+        },
+        {
+            "player": "gf",
+            "layer": 3
+        },
+        {
+            "priority": 1,
+            "layer": 6,
+            "scale": 1,
+            "path": "public/assets/data/stages/stage/stagecurtains.png",
+            "visible": true,
+            "opacity": 1,
+            "position": [-350, -500]
+        }
+    ]
+}
