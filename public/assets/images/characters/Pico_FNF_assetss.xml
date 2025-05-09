@@ -2,8 +2,8 @@
 <TextureAtlas imagePath="Pico_FNF_assetss.png">
 	<!-- Created with Adobe Animate version 20.0.0.17400 -->
 	<!-- http://www.adobe.com/products/animate.html -->
-	<SubTexture name="Pico Down Note0000" x="0" y="0" width="723" height="382" frameX="-13" frameY="-9" frameWidth="736" frameHeight="392"/>
-	<SubTexture name="Pico Down Note0001" x="0" y="0" width="723" height="382" frameX="-13" frameY="-9" frameWidth="736" frameHeight="392"/>
+	<SubTexture name="Pico Down Note0000" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
+	<SubTexture name="Pico Down Note0001" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
 	<SubTexture name="Pico Down Note0002" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
 	<SubTexture name="Pico Down Note0003" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
 	<SubTexture name="Pico Down Note0004" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
@@ -11,8 +11,6 @@
 	<SubTexture name="Pico Down Note0006" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
 	<SubTexture name="Pico Down Note0007" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
 	<SubTexture name="Pico Down Note0008" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
-	<SubTexture name="Pico Down Note0009" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
-	<SubTexture name="Pico Down Note0010" x="733" y="0" width="502" height="392" frameX="0" frameY="0" frameWidth="736" frameHeight="392"/>
 	<SubTexture name="Pico Down Note MISS0000" x="0" y="0" width="723" height="382" frameX="-10" frameY="-52" frameWidth="736" frameHeight="392"/>
 	<SubTexture name="Pico Down Note MISS0001" x="1245" y="0" width="495" height="432" frameX="-2" frameY="0" frameWidth="733" frameHeight="434"/>
 	<SubTexture name="Pico Down Note MISS0002" x="1245" y="0" width="495" height="432" frameX="-2" frameY="0" frameWidth="733" frameHeight="434"/>

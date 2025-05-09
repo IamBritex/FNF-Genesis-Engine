@@ -1,5 +1,6 @@
 import { initVolumeControl, setVolumeUI, setCurrentScene, setVolumeSounds } from './soundtray.js';
 import { MainScene } from './MainScene.js';
+import { CrashHandler } from './CrashHandler.js';
 
 class VolumeUIScene extends Phaser.Scene {
     constructor() {
@@ -119,6 +120,11 @@ let config = {
 
 // Iniciar el juego después de definir las escenas
 window.game = new Phaser.Game(config);
+
+game.events.once('ready', () => {
+    window.crashHandler = new CrashHandler(game.scene.scenes[0]);
+});
+
 initVolumeControl();
 
 // ====== CONTROL DE PAUSA SEGÚN FOCO ======

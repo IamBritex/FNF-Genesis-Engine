@@ -1,109 +1,136 @@
 class GfDanceState extends Phaser.Scene {
     constructor() {
         super({ key: "GfDanceState" });
-        this.isTransitioning = false; // Add this flag
+        this.isTransitioning = false;
     }
 
     preload() {
         console.log("GfDanceState cargado correctamente");
-
-        // ====== CARGAR ASSETS ======
-        this.load.atlasXML('gfDance', 'public/assets/images/states/IntroMenu/gfDanceTitle.png', 'public/assets/images/states/IntroMenu/gfDanceTitle.xml');
-        this.load.atlasXML('titleEnter', 'public/assets/images/states/IntroMenu/titleEnter.png', 'public/assets/images/states/IntroMenu/titleEnter.xml');
-        this.load.atlasXML('logoBumpin', 'public/assets/images/states/IntroMenu/logoBumpin.png', 'public/assets/images/states/IntroMenu/logoBumpin.xml');
-        this.load.audio('confirm', 'public/assets/audio/sounds/confirmMenu.ogg');
+        this.loadAssets();
     }
 
     create() {
+        this.setupAnimations();
+        this.createSprites();
+        this.setupControls();
+        this.initAndroidSupport();
+    }
 
-        // ====== ANIMACIONES ======
+    loadAssets() {
+        const assets = [
+            { type: 'atlasXML', key: 'gfDance', img: 'public/assets/images/states/IntroMenu/gfDanceTitle.png', xml: 'public/assets/images/states/IntroMenu/gfDanceTitle.xml' },
+            { type: 'atlasXML', key: 'titleEnter', img: 'public/assets/images/states/IntroMenu/titleEnter.png', xml: 'public/assets/images/states/IntroMenu/titleEnter.xml' },
+            { type: 'atlasXML', key: 'logoBumpin', img: 'public/assets/images/states/IntroMenu/logoBumpin.png', xml: 'public/assets/images/states/IntroMenu/logoBumpin.xml' },
+            { type: 'audio', key: 'confirm', url: 'public/assets/audio/sounds/confirmMenu.ogg' }
+        ];
+
+        assets.forEach(asset => {
+            this.load[asset.type](asset.key, asset.img || asset.url, asset.xml);
+        });
+    }
+
+    setupAnimations() {
+        // Animación de GF bailando
         this.anims.create({
             key: 'gf_dance',
             frames: this.anims.generateFrameNames('gfDance', {
-                start: 0,
-                end: 29,
-                zeroPad: 4,
-                prefix: 'gfDance',
-                suffix: ''
+                start: 0, end: 29, zeroPad: 4, prefix: 'gfDance', suffix: ''
             }),
             frameRate: 23,
             repeat: -1
         });
 
-        let gf = this.add.sprite(910, 380, 'gfDance').setScale(1).setOrigin(0.5);
-        gf.play('gf_dance');
-
+        // Animación 'enter_idle'
         this.anims.create({
             key: 'enter_idle',
             frames: this.anims.generateFrameNames('titleEnter', {
-                start: 0,
-                end: 0,
-                prefix: 'ENTER IDLE000',
-                suffix: ''
+                prefix: 'Press Enter to Begin', suffix: '', start: 0, end: 44, zeroPad: 4
             }),
-            frameRate: 0,
+            frameRate: 12,
             repeat: -1
         });
 
-        let enterLogo = this.add.sprite(900, 620, 'titleEnter').setScale(1).setOrigin(0.5);
-        enterLogo.play('enter_idle');
-
+        // Animación 'logo_bumpin'
         this.anims.create({
             key: 'logo_bumpin',
             frames: this.anims.generateFrameNames('logoBumpin', {
-                start: 0,
-                end: 14,
-                prefix: 'logo bumpin000',
-                suffix: ''
+                start: 0, end:9, prefix: 'logo bumpin', suffix: '', zeroPad: 4
             }),
-            frameRate: 23,
+            frameRate: 16,
             repeat: -1
         });
 
-        let logo = this.add.sprite(340, 240, 'logoBumpin').setScale(1).setOrigin(0.5);
-        logo.play('logo_bumpin');
-
+        // Animación 'enter_pressed'
         this.anims.create({
             key: 'enter_pressed',
-            frames: this.anims.generateFrameNames('titleEnter', {
-                start: 0,
-                end: 1,
-                prefix: 'ENTER PRESSED000',
-                suffix: ''
-            }),
+            frames: [
+                { key: 'titleEnter', frame: 'ENTER PRESSED0000' }, 
+                { key: 'titleEnter', frame: 'ENTER PRESSED0001' },
+                { key: 'titleEnter', frame: 'ENTER PRESSED0002' }, 
+                { key: 'titleEnter', frame: 'ENTER PRESSED0003' },
+                { key: 'titleEnter', frame: 'ENTER PRESSED0004' }, 
+                { key: 'titleEnter', frame: 'ENTER PRESSED0005' },
+                { key: 'titleEnter', frame: 'ENTER PRESSED0006' }, 
+                { key: 'titleEnter', frame: 'ENTER PRESSED0007' },
+                { key: 'titleEnter', frame: 'ENTER PRESSED0008' },
+            ],
             frameRate: 14,
-            repeat: -1
+            repeat: 0
         });
+    }
 
-        // ====== DETECTAR TECLA ENTER Y TOUCH EN ANDROID ======
-        this.input.keyboard.on('keydown-ENTER', () => {
-            if (!this.isTransitioning) {
-                this.isTransitioning = true;
-                enterLogo.play('enter_pressed');
-                this.sound.play('confirm');
-                this.time.delayedCall(800, () => { 
-                    this.scene.get("TransitionScene").startTransition("MainMenuState");
-                });
-            }
+    createSprites() {
+        // GF bailando
+        this.gf = this.add.sprite(560, 50, 'gfDance')
+            .setScale(1)
+            .setOrigin(0)
+            .play('gf_dance');
+
+        // Logo "Press Enter"
+        this.enterLogo = this.add.sprite(900, 620, 'titleEnter')
+            .setScale(1)
+            .setOrigin(0.5)
+            .play('enter_idle');
+
+        // Logo principal
+        this.logo = this.add.sprite(-165, -140, 'logoBumpin')
+            .setScale(1.07)
+            .setOrigin(0)
+            .play('logo_bumpin');
+    }
+
+    setupControls() {
+        this.input.keyboard.on('keydown-ENTER', () => this.handleTransition());
+
+        if (this.sys.game.device.os.android) {
+            this.input.on('pointerdown', () => this.handleTransition());
+        }
+    }
+
+    handleTransition() {
+        if (this.isTransitioning) return;
+
+        this.isTransitioning = true;
+        this.enterLogo.play('enter_pressed');
+        this.sound.play('confirm');
+
+        this.time.delayedCall(800, () => {
+            this.transitionToMainMenu();
         });
+    }
 
-        // Añadir soporte táctil para Android
-        if (this.game.device.os.android) {
-            this.input.on('pointerdown', () => {
-                if (!this.isTransitioning) {
-                    this.isTransitioning = true;
-                    enterLogo.play('enter_pressed');
-                    this.sound.play('confirm');
-                    this.time.delayedCall(800, () => { 
-                        this.scene.get("TransitionScene").startTransition("MainMenuState");
-                    });
-                }
-            });
+    transitionToMainMenu() {
+        if (this.scene.get("TransitionScene")?.startTransition) {
+            this.scene.get("TransitionScene").startTransition("MainMenuState");
+        } else {
+            console.warn("TransitionScene no encontrada o no tiene el método startTransition. Cambiando directamente.");
+            this.scene.start("MainMenuState");
+        }
+    }
 
-            // Inicializar AndroidSupport si está disponible
-            if (window.AndroidSupport) {
-                window.AndroidSupport.initialize(this);
-            }
+    initAndroidSupport() {
+        if (this.sys.game.device.os.android && window.AndroidSupport?.initialize) {
+            window.AndroidSupport.initialize(this);
         }
     }
 }

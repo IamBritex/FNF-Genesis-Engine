@@ -7,15 +7,48 @@ export class Characters {
     this.currentEnemy = null;
     this.currentGF = null;
     this.tweens = new Map();
-    this.lastCombo = 0; // Añadir tracking del último combo
-    this.idleTimers = new Map(); // Para guardar los timers de cada personaje
+    this.lastCombo = 0;
+    this.idleTimers = new Map();
     this.lastBeat = 0;
-    this.heldDirections = new Map(); // Añadir heldDirections para el jugador
-    this.enemyHeldDirections = new Map(); // Añadir heldDirections para el enemigo
+    this.heldDirections = new Map();
+    this.enemyHeldDirections = new Map();
+
+    // Depths por defecto (se pueden sobrescribir desde StageManager)
+    this.characterDepths = {
+      player1: 60,  // Valor por defecto para player1
+      player2: 50,  // Valor por defecto para player2
+      gf: 40        // Valor por defecto para gf
+    };
+  }
+
+  // Método para actualizar depths desde StageManager
+  updateCharacterDepths(depthsConfig) {
+    if (depthsConfig.player1 !== undefined) {
+      this.characterDepths.player1 = depthsConfig.player1;
+      if (this.currentPlayer) {
+        const player = this.loadedCharacters.get(this.currentPlayer);
+        if (player?.sprite) player.sprite.setDepth(depthsConfig.player1);
+      }
+    }
+    
+    if (depthsConfig.player2 !== undefined) {
+      this.characterDepths.player2 = depthsConfig.player2;
+      if (this.currentEnemy) {
+        const enemy = this.loadedCharacters.get(this.currentEnemy);
+        if (enemy?.sprite) enemy.sprite.setDepth(depthsConfig.player2);
+      }
+    }
+    
+    if (depthsConfig.gf !== undefined) {
+      this.characterDepths.gf = depthsConfig.gf;
+      if (this.currentGF) {
+        const gf = this.loadedCharacters.get(this.currentGF);
+        if (gf?.sprite) gf.sprite.setDepth(depthsConfig.gf);
+      }
+    }
   }
 
   async loadCharacterFromSong(songData) {
-    // Carga los personajes desde los datos de la canción - Load characters from song data
     if (!songData.song) return;
 
     const { player1, player2, gfVersion } = songData.song;
@@ -42,22 +75,23 @@ export class Characters {
       const response = await fetch(characterPath);
       const characterData = await response.json();
 
-      // Verificar que la textura exista y esté lista
       if (!this.scene.textures.exists(textureKey)) {
         throw new Error(`Texture ${textureKey} not found!`);
       }
 
       let sprite = this.scene.add.sprite(0, 0, textureKey);
       sprite.setOrigin(0, 0);
-      sprite.setDepth(isPlayer ? 2 : 1);
+      
+      // Asignar depth basado en el tipo de personaje (usando valores de characterDepths)
+      const depthKey = isPlayer ? 'player1' : 
+                      (characterId === this.currentGF ? 'gf' : 'player2');
+      sprite.setDepth(this.characterDepths[depthKey]);
 
       const texture = this.scene.textures.get(textureKey);
       
       if (isPlayer) {
         this.flipPlayerFrames(texture);
         sprite.setFlipX(characterData.flip_x === false);
-      } else if (characterId === this.currentGF) {
-        sprite.setFlipX(characterData.flip_x === true);
       } else {
         sprite.setFlipX(characterData.flip_x === true);
       }
@@ -74,28 +108,23 @@ export class Characters {
           x: characterData.position[0],
           y: characterData.position[1],
         },
-        idleTimeout: null,  // Añadir esta línea
-        idleTimer: 0, // Añadir idleTimer
-        animationsInitialized: false  // Añadir esta línea
+        idleTimeout: null,
+        idleTimer: 0,
+        animationsInitialized: false 
       };
 
-      // Set initial position
       gsap.set(sprite, {
         x: characterData.position[0],
         y: characterData.position[1],
       });
 
-      // Initialize animations
       await this.setupAnimations(characterInfo);
-      
-      // Esperar un frame adicional para asegurar que las animaciones estén listas
       await new Promise(resolve => this.scene.time.delayedCall(16, resolve));
       
       characterInfo.animationsInitialized = true;
       characterInfo.isReady = true;
       this.loadedCharacters.set(characterId, characterInfo);
       
-      // Asegurarse de que la animación idle se reproduce correctamente
       await this.ensureIdleAnimation(characterId);
       this.subscribeToNoteEvents(characterId);
 
@@ -108,18 +137,15 @@ export class Characters {
 
   async createGFCharacter(characterId) {
     try {
-        console.log('Creando GF:', characterId); // Debug log
         const textureKey = `character_${characterId}`;
         const characterPath = `public/assets/data/characters/${characterId}.json`;
         const response = await fetch(characterPath);
         const characterData = await response.json();
 
-        console.log('Datos de GF cargados:', characterData); // Debug log
-
         const sprite = this.scene.add.sprite(0, 0, textureKey);
         sprite.setOrigin(0, 0);
-        sprite.setDepth(0);
-        sprite.setFlipX(characterData.flip_x === true); // Añadir esto
+        sprite.setDepth(this.characterDepths.gf); // Usar el depth configurado
+        sprite.setFlipX(characterData.flip_x === true);
         sprite.setScale(characterData.scale || 1);
 
         const characterInfo = {
@@ -129,8 +155,8 @@ export class Characters {
             isPlayer: false,
             currentAnimation: null,
             isGF: true,
-            animationsInitialized: false, // Añadir esta propiedad
-            isReady: false, // Añadir esta propiedad
+            animationsInitialized: false,
+            isReady: false,
             basePosition: {
                 x: characterData.position[0],
                 y: characterData.position[1],
@@ -142,12 +168,11 @@ export class Characters {
             y: characterData.position[1],
         });
 
-        await this.setupGFAnimation(characterInfo); // Hacer async
+        await this.setupGFAnimation(characterInfo);
         characterInfo.animationsInitialized = true;
         characterInfo.isReady = true;
         
         this.loadedCharacters.set(characterId, characterInfo);
-        console.log('GF creada, reproduciendo idle...'); // Debug log
         this.playGFIdleAnimation(characterId);
 
         return characterInfo;
@@ -155,16 +180,14 @@ export class Characters {
         console.error(`Error creating GF character ${characterId}:`, error);
         return null;
     }
-}
+  }
 
   async setupGFAnimation(characterInfo) {
-    console.log('Configurando animaciones de GF...'); // Debug log
     const { data, textureKey } = characterInfo;
     
     const animationPromises = data.animations.map(animation => {
         return new Promise((resolve) => {
             const frames = this.scene.textures.get(textureKey).getFrameNames();
-            console.log(`Frames encontrados para ${animation.anim}:`, frames.length); // Debug log
             
             let animationFrames;
 
@@ -181,7 +204,6 @@ export class Characters {
 
             if (animationFrames.length > 0) {
                 const animKey = `${textureKey}_${animation.anim}`;
-                console.log(`Creando animación ${animKey} con ${animationFrames.length} frames`); // Debug log
 
                 if (!this.scene.anims.exists(animKey)) {
                     this.scene.anims.create({
@@ -194,16 +216,13 @@ export class Characters {
                         repeat: animation.anim === "idle" || animation.loop ? -1 : 0,
                     });
                 }
-            } else {
-                console.warn(`No se encontraron frames para la animación: ${animation.anim} (${animation.name})`);
             }
             resolve();
         });
     });
 
     await Promise.all(animationPromises);
-    console.log('Animaciones de GF configuradas'); // Debug log
-}
+  }
 
   playGFIdleAnimation(characterId) {
     const character = this.loadedCharacters.get(characterId);
@@ -293,7 +312,6 @@ export class Characters {
 
     const animKey = `${character.textureKey}_idle`;
     
-    // Esperar a que la animación idle exista
     await new Promise(resolve => {
         if (this.scene.anims.exists(animKey)) {
             resolve();
@@ -302,7 +320,6 @@ export class Characters {
         }
     });
 
-    // Forzar la reproducción de idle
     this.playAnimation(characterId, "idle", false);
   }
 
@@ -335,6 +352,34 @@ export class Characters {
     });
 
     this.tweens.set(characterId, tween);
+  }
+
+  playAnimation(characterId, animName, force = false) {
+    const character = this.loadedCharacters.get(characterId);
+    if (!character || !character.isReady || !character.animationsInitialized) return;
+
+    if (animName !== "idle") {
+        character.idleTimer = 0;
+    }
+
+    const animation = character.data.animations.find(a => a.anim === animName);
+    if (!animation) return;
+
+    this.applyOffsets(characterId, animName);
+    const animKey = `${character.textureKey}_${animation.anim}`;
+    
+    if (this.scene.anims.exists(animKey)) {
+        if (character.currentAnimation === animName) {
+            character.sprite.stop();
+        }
+        character.sprite.play(animKey, true);
+        character.currentAnimation = animName;
+    } else {
+        console.warn(`Animation ${animKey} not found for character ${characterId}`);
+        if (animName !== "idle") {
+            this.playAnimation(characterId, "idle", true);
+        }
+    }
   }
 
   playAnimation(characterId, animName, force = false) {
@@ -415,22 +460,23 @@ export class Characters {
                             startTime: Date.now()
                         });
                     }
-                    character.idleTimer = 0;
+                    character.idleTimer = 0; // <-- Esto asegura que el timer se mantenga en 0 mientras se sostiene
                 } else {
                     // Si no es sustain, reproducimos la animación normalmente
                     this.playAnimation(characterId, animName, true);
                 }
                 
             } else if (data.state === 'static') {
-                // Solo removemos la dirección cuando se suelta la nota
-                if (directions.has(data.direction)) {
+                // Solo removemos la dirección si era sustain
+                const note = directions.get(data.direction);
+                if (note && note.isSustain) {
                     directions.delete(data.direction);
-                    
+
                     // Verificar si aún hay otras direcciones sostenidas
                     const hasOtherSustains = Array.from(directions.values()).some(note => note?.isSustain);
                     if (!hasOtherSustains) {
                         // Solo volvemos a idle si no hay otras notas sustain
-                        character.idleTimer = stepCrochet / 1000;
+                        character.idleTimer = 0; // Aquí lo pones en 0 para que empiece a contar desde el próximo update
                     }
                 }
             }
@@ -472,14 +518,15 @@ export class Characters {
         const character = this.loadedCharacters.get(characterId);
         if (!character || characterId !== this.currentEnemy) return;
 
-        if (this.enemyHeldDirections.has(noteData.direction)) {
+        const note = this.enemyHeldDirections.get(noteData.direction);
+        if (note && note.isSustain) {
             this.enemyHeldDirections.delete(noteData.direction);
         }
 
         // Solo volvemos a idle si no hay otras notas sustain activas
         const hasOtherSustains = Array.from(this.enemyHeldDirections.values()).some(note => note?.isSustain);
         if (!hasOtherSustains) {
-            character.idleTimer = (60 / this.scene.songData.song.bpm) * 1000 * 0.5;
+            character.idleTimer = 0;
         }
     });
 
@@ -497,40 +544,59 @@ export class Characters {
             character.idleTimer = 0; // Opcional: reinicia el timer de idle
         }
     });
+
+    // Escuchar el evento de sustainHold para mantener la animación y el idleTimer
+    this.notesController.events.on('sustainHold', (data) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character) return;
+
+        // Solo aplica si es el personaje correcto
+        if ((data.isPlayerNote && characterId === this.currentPlayer) ||
+            (!data.isPlayerNote && characterId === this.currentEnemy)) {
+            if (data.isHolding) {
+                if (character.currentAnimation !== data.animation) {
+                    this.playAnimation(characterId, data.animation, true);
+                }
+                character.idleTimer = 0;
+            }
+        }
+    });
   }
 
   update(elapsed) {
     if (!this.scene.songData?.song?.bpm) return;
 
     const stepCrochet = ((60 / this.scene.songData.song.bpm) * 1000) * 1.5;
-    
+
     for (const [characterId, character] of this.loadedCharacters) {
-        const isPlayer = characterId === this.currentPlayer;
-        const directions = isPlayer ? this.heldDirections : this.enemyHeldDirections;
-        
-        // Verificar si hay alguna nota sustain activa
-        const hasSustainNote = Array.from(directions.values()).some(note => note?.isSustain);
+      const isPlayer = characterId === this.currentPlayer;
+      const directions = isPlayer ? this.heldDirections : this.enemyHeldDirections;
 
-        if (hasSustainNote) {
-            character.idleTimer = 0;
-            
-            // Asegurarse de que la animación correcta se está reproduciendo
-            const currentSustain = Array.from(directions.entries()).find(([_, note]) => note?.isSustain);
-            if (currentSustain && character.currentAnimation !== currentSustain[1].anim) {
-                this.playAnimation(characterId, currentSustain[1].anim, true);
-            }
-            continue;
+      // Buscar la nota sustain más reciente (por startTime)
+      let latestSustain = null;
+      for (const note of directions.values()) {
+        if (note?.isSustain) {
+          if (!latestSustain || note.startTime > latestSustain.startTime) {
+            latestSustain = note;
+          }
         }
+      }
 
-        // Solo procesamos el timer de idle si no hay notas sustain
-        if (character.idleTimer < stepCrochet / 1000) {
-            character.idleTimer += elapsed;
-            
-            if (character.idleTimer >= stepCrochet / 1000 && 
-                character.currentAnimation !== "idle") {
-                this.playAnimation(characterId, "idle", true);
-            }
+      if (latestSustain) {
+        character.idleTimer = 0;
+        // Solo cambia la animación si no es la actual
+        if (character.currentAnimation !== latestSustain.anim) {
+          this.playAnimation(characterId, latestSustain.anim, true);
         }
+        continue;
+      }
+
+      // Si NO hay notas sustain, idleTimer empieza a contar
+      character.idleTimer += elapsed;
+
+      if (character.idleTimer >= stepCrochet / 1000 && character.currentAnimation !== "idle") {
+        this.playAnimation(characterId, "idle", true);
+      }                                                                                                                                                                                               
     }
   }
 

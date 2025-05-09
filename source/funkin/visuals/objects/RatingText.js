@@ -12,14 +12,14 @@ export class RatingText {
         this.textGroup = [];
         this.config = {
             position: {
-                x: this.scene.cameras.main.width / 2, // Centrar horizontalmente
-                y: this.scene.cameras.main.height - 30 // 30px desde el fondo
+                x: this.scene.cameras.main.width / 2,
+                y: this.scene.cameras.main.height - 30
             },
             style: {
-                fontFamily: 'Arial',
+                fontFamily: 'VCR', // CAMBIO: usar la fuente cargada
                 fontSize: '20px',
                 color: '#FFFFFF',
-                align: 'center', // Alinear el texto al centro
+                align: 'center',
                 stroke: '#000000',
                 strokeThickness: 3
             },
@@ -32,17 +32,15 @@ export class RatingText {
     }
 
     init() {
-        // Crear el texto centrado
         this.mainText = this.scene.add.text(
             this.config.position.x,
             this.config.position.y,
             '',
             this.config.style
         )
-        .setDepth(100)
-        .setOrigin(0.5, 0.5); // Centrar el punto de origen tanto horizontal como verticalmente
+        .setDepth(150) // CAMBIO: profundidad establecida a 150
+        .setOrigin(0.5, 0.5);
 
-        // Actualizar el texto inicial
         this.updateMainText();
     }
 

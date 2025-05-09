@@ -275,7 +275,7 @@ export class NotesController {
                     `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
                 
                 arrow.setScale(this.arrowConfigs.scale.static);
-                arrow.setDepth(10);
+                arrow.setDepth(110);
                 arrow.direction = direction;
                 arrow.directionIndex = i;
                 arrow.originalX = pos.x;
@@ -294,7 +294,7 @@ export class NotesController {
             const direction = this.directions[i];
             const arrow = this.scene.add.sprite(pos.x, pos.y, 'noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
             arrow.setScale(this.arrowConfigs.scale.static);
-            arrow.setDepth(10); // Mayor profundidad que los personajes
+            arrow.setDepth(110); // Mayor profundidad que los personajes
             arrow.direction = direction;
             arrow.directionIndex = i;
             arrow.originalX = pos.x;
@@ -588,7 +588,7 @@ export class NotesController {
             `note${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`
         );
         noteSprite.setScale(this.arrowConfigs.scale.notes);
-        noteSprite.setDepth(15); // Notes above everything
+        noteSprite.setDepth(115); // Notes above everything
         note.sprite = noteSprite;
         note.spawned = true;
         
@@ -621,7 +621,7 @@ export class NotesController {
                 // Enhanced visibility settings
                 holdPiece.setScale(this.arrowConfigs.scale.holds);
                 holdPiece.setOrigin(0.5, 0);
-                holdPiece.setDepth(14); // Hold notes slightly below regular notes
+                holdPiece.setDepth(114); // Hold notes slightly below regular notes
                 holdPiece.setAlpha(1);
                 holdPiece.setVisible(true);
                 holdPiece.setActive(true);
@@ -642,7 +642,7 @@ export class NotesController {
             
             holdEnd.setScale(this.arrowConfigs.scale.holds);
             holdEnd.setOrigin(0.5, 0);
-            holdEnd.setDepth(14); // Hold notes slightly below regular notes
+            holdEnd.setDepth(114); // Hold notes slightly below regular notes
             holdEnd.setAlpha(1);
             holdEnd.setVisible(true);
             holdEnd.setActive(true);
@@ -659,6 +659,13 @@ export class NotesController {
         } else {
             this.enemyNotes.push(note);
         }
+    }
+
+    getAllNotes() {
+        return this.songNotes.filter(note => 
+            note.spawned && 
+            (!note.wasHit || (note.isHoldNote && !note.holdEndPassed))
+        );
     }
     
     update(songPosition) {
@@ -961,6 +968,13 @@ export class NotesController {
             arrow.y = confirmPos.y;
             arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
             arrow.setScale(this.arrowConfigs.scale.confirm);
+
+            this.scene.events.emit('sustainHold', {
+                isPlayerNote: false,
+                isHolding: true,
+                direction: note.direction,
+                animation: note.animation
+            });
         }
 
         if (currentTime >= holdEndTime) {

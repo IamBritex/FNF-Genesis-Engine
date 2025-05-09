@@ -85,6 +85,6 @@
     "transitionConfig": {
         "blinkDelay": 90,
         "blinkRepeats": 24,
-        "transitionDelay": 1200
+        "transitionDelay": 100
     }
 }

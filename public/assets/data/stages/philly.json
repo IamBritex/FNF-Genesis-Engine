@@ -1,0 +1,40 @@
+{
+    "stage":[
+        {
+            "priority": 1,
+            "layer": 1,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/sky.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-240, -70]
+        },
+        {
+            "priority": 1,
+            "layer": 2,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/city.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-200, -80]
+        },
+        {
+            "priority": 1,
+            "layer": 3,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/behindTrain.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-102, -50]
+        },
+        {
+            "priority": 1,
+            "layer": 4,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/street.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-100, -50]
+        }
+    ]
+}
