@@ -1,0 +1,11 @@
+{
+	"idle_anim": "M Senpai Idle",
+	"confirm_anim": "M Senpai Idle",
+	"image": "senpai",
+	"position": [
+		60,
+		-70
+	],
+	"scale": 1,
+	"antialiasing": true
+}

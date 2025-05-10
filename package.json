@@ -1,0 +1,29 @@
+{
+  "name": "fnf-genesis-engine",
+  "version": "1.0.0",
+  "description": "Estoy harto de compilar esta mierda...",
+  "type": "module",
+  "main": "source/core/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IamBritex/FNF-Genesis-Engine.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IamBritex/FNF-Genesis-Engine/issues"
+  },
+  "homepage": "https://github.com/IamBritex/FNF-Genesis-Engine#readme",
+  "dependencies": {
+    "@xhayper/discord-rpc": "^1.2.1",
+    "discord-rpc": "^4.0.1",
+    "electron": "^36.2.0",
+    "electron-store": "^8.2.0",
+    "http": "^0.0.1-security"
+  }
+}
