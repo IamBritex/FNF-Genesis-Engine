@@ -70,12 +70,11 @@ class CharacterEditorState extends Phaser.Scene {
     const scaleFactor = 1.5;
     this.bg.setScale(Math.max(width / this.bg.width, height / this.bg.height) * scaleFactor);
 
-    // 5. Configure what each camera sees
-    this.uiCamera.ignore(this.gameLayer); // UI camera ignores game layer
-    this.cameras.main.ignore(this.modalLayer); // Main camera ignores UI layer
+    // COnfiguracion de como es que se ven las camaras
+    this.uiCamera.ignore(this.gameLayer); // Ignorar camaras de la UI para separarlas del jugador
+    this.cameras.main.ignore(this.modalLayer); // Camara principla ignora  al acamara de la UI
 
-
-    // Input handlers
+    // INput de teclas
     this.setupInputHandlers();
 
     // Configurar controles de cámara
@@ -87,7 +86,7 @@ class CharacterEditorState extends Phaser.Scene {
     if (this.characterPropertiesModal) this.characterPropertiesModal.container.setScrollFactor(0);
     if (this.characterConfigsModal) this.characterConfigsModal.container.setScrollFactor(0);
 
-    // Add the modal window
+    // Añadir las ventanas modales
     this.setupModals();
 
     // Create menu bar
@@ -95,7 +94,7 @@ class CharacterEditorState extends Phaser.Scene {
   }
 
   createMenuBar() {
-    // Create menu bar background with higher depth
+    // Crear el menu del fondo con profundidad
     const menuBar = this.add.rectangle(0, 0, this.scale.width, 25, 0x333333);
     menuBar.setOrigin(0, 0);
     menuBar.setScrollFactor(0);

@@ -6,13 +6,6 @@
 }
 
 @font-face {
-    font-family: 'FNF-rellenito';
-    src: url('../assets/fonts/FridayNightFunkin-Regular-relleno.otf') format('opentype');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
     font-family: "VCR";
     src: url("../assets/fonts/vcr.ttf") format("truetype");
 }
@@ -36,23 +29,4 @@ body html {
     height: 100%;
     padding: 0;
     margin: 0;
-}
-
-#fullscreen-btn {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    color: white;
-    z-index: 1000;
-    display: none; /* Hide by default */
-}
-
-/* Show only on mobile devices */
-@media screen and (max-width: 768px) {
-    #fullscreen-btn {
-        display: block;
-    }
 }

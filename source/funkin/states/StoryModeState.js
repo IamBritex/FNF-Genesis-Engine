@@ -508,34 +508,28 @@ class StoryModeState extends Phaser.Scene {
 
     selectWeek() {
         let selectedWeekData = this.weeks[this.weekKeys[this.selectedWeekIndex]];
-        let selectedDifficulty = this.difficulties[this.selectedDifficulty]; // Ahora guarda "easy", "normal" o "hard"
-    
-        // Asegúrate de que storyPlaylist sea un array
-        const storyPlaylist = Array.isArray(selectedWeekData.tracks) ? selectedWeekData.tracks : [selectedWeekData.tracks];
-    
+        let selectedDifficulty = this.difficulties[this.selectedDifficulty];
+
+        // Asegurarse de que las canciones estén en formato plano
+        const storyPlaylist = selectedWeekData.tracks.flat();
+
         const storyData = {
-            storyPlaylist: selectedWeekData.tracks.flat(),
-            storyDifficulty: selectedDifficulty, // Ahora tiene el nombre de la dificultad en vez de un número
+            storyPlaylist: storyPlaylist,
+            songList: storyPlaylist, // Añadir esto
+            storyDifficulty: selectedDifficulty,
             isStoryMode: true,
+            currentSongIndex: 0, // Asegurarse de que empiece desde la primera canción
             campaignScore: 0,
             campaignMisses: 0,
             weekName: selectedWeekData.weekName,
             weekBackground: selectedWeekData.bg,
             weekCharacters: selectedWeekData.weekCharacters,
             weekTracks: selectedWeekData.tracks,
-            selectedDifficulty: selectedDifficulty // También aquí
+            selectedDifficulty: selectedDifficulty
         };
-    
-        console.log("Datos guardados:", storyData);
-    
-        if (!this.scene.get("PlayState")) {
-            console.error("PlayState no está registrado en Phaser. Registrándolo...");
-            this.scene.add("PlayState", globalThis.PlayState);
-        }
-    
-        this.time.delayedCall(1500, () => {
-            this.scene.start("PlayState", storyData);
-        });
+
+        console.log("Enviando datos a PlayState:", storyData);
+        this.scene.start("PlayState", storyData);
     }
 
     handleConfirm() {

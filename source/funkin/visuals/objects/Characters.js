@@ -184,6 +184,7 @@ export class Characters {
 
   async setupGFAnimation(characterInfo) {
     const { data, textureKey } = characterInfo;
+    const bpm = this.scene.songData?.song?.bpm || 100;
     
     const animationPromises = data.animations.map(animation => {
         return new Promise((resolve) => {
@@ -205,6 +206,9 @@ export class Characters {
             if (animationFrames.length > 0) {
                 const animKey = `${textureKey}_${animation.anim}`;
 
+                // Ajustar frameRate basado en BPM
+                const frameRate = animation.fps || (24 * (bpm / 100));
+
                 if (!this.scene.anims.exists(animKey)) {
                     this.scene.anims.create({
                         key: animKey,
@@ -212,7 +216,7 @@ export class Characters {
                             key: textureKey,
                             frame: frameName,
                         })),
-                        frameRate: animation.fps || 24,
+                        frameRate: frameRate,
                         repeat: animation.anim === "idle" || animation.loop ? -1 : 0,
                     });
                 }
@@ -267,6 +271,8 @@ export class Characters {
 
   async setupAnimations(characterInfo) {
     const { data, textureKey } = characterInfo;
+    const bpm = this.scene.songData?.song?.bpm || 100;
+    const beatTime = (60 / bpm) * 1000;
 
     const createAnimationPromises = data.animations.map(animation => {
         return new Promise((resolve) => {
@@ -287,6 +293,9 @@ export class Characters {
             if (animationFrames.length > 0) {
                 const animKey = `${textureKey}_${animation.anim}`;
 
+                // Calcular frameRate basado en el BPM
+                const frameRate = animation.fps || (24 * (bpm / 100));
+
                 if (!this.scene.anims.exists(animKey)) {
                     this.scene.anims.create({
                         key: animKey,
@@ -294,7 +303,7 @@ export class Characters {
                             key: textureKey,
                             frame: frameName,
                         })),
-                        frameRate: animation.fps || 24,
+                        frameRate: frameRate,
                         repeat: animation.anim === "idle" || animation.loop ? -1 : 0,
                     });
                 }
@@ -431,7 +440,33 @@ export class Characters {
 
   subscribeToNoteEvents(characterId) {
     if (!this.notesController) return;
-    
+
+    // Para notas del enemigo
+    this.notesController.events.on('cpuNoteHit', (data) => {
+        const character = this.loadedCharacters.get(characterId);
+        if (!character || characterId !== this.currentEnemy) return;
+
+        const directionAnims = {
+            0: "singLEFT",
+            1: "singDOWN",
+            2: "singUP",
+            3: "singRIGHT"
+        };
+
+        const animName = directionAnims[data.direction];
+        this.playAnimation(characterId, animName, true);
+        character.idleTimer = 0;
+
+        // Manejar notas sostenidas del enemigo
+        if (data.sustainLength > 0) {
+            this.enemyHeldDirections.set(data.direction, {
+                anim: animName,
+                isSustain: true,
+                startTime: Date.now()
+            });
+        }
+    });
+
     this.notesController.on('strumlineStateChange', (data) => {
         const character = this.loadedCharacters.get(characterId);
         if (!character) return;
@@ -566,41 +601,102 @@ export class Characters {
   update(elapsed) {
     if (!this.scene.songData?.song?.bpm) return;
 
-    const stepCrochet = ((60 / this.scene.songData.song.bpm) * 1000) * 1.5;
+    const bpm = this.scene.songData.song.bpm;
+    const stepCrochet = ((60 / bpm) * 1000) / 4; // Dividido por 4 para que sea más preciso
 
     for (const [characterId, character] of this.loadedCharacters) {
-      const isPlayer = characterId === this.currentPlayer;
-      const directions = isPlayer ? this.heldDirections : this.enemyHeldDirections;
+        if (!character || !character.isReady) continue;
 
-      // Buscar la nota sustain más reciente (por startTime)
-      let latestSustain = null;
-      for (const note of directions.values()) {
-        if (note?.isSustain) {
-          if (!latestSustain || note.startTime > latestSustain.startTime) {
-            latestSustain = note;
-          }
+        const isPlayer = characterId === this.currentPlayer;
+        const isEnemy = characterId === this.currentEnemy;
+        const directions = isPlayer ? this.heldDirections : this.enemyHeldDirections;
+
+        // Verificar notas sostenidas activas
+        let hasActiveSustain = false;
+        let latestSustain = null;
+        
+        for (const [direction, note] of directions) {
+            if (note?.isSustain) {
+                hasActiveSustain = true;
+                if (!latestSustain || note.startTime > latestSustain.startTime) {
+                    latestSustain = note;
+                }
+            }
         }
-      }
 
-      if (latestSustain) {
-        character.idleTimer = 0;
-        // Solo cambia la animación si no es la actual
-        if (character.currentAnimation !== latestSustain.anim) {
-          this.playAnimation(characterId, latestSustain.anim, true);
+        // Manejar el tiempo de idle
+        if (!hasActiveSustain) {
+            character.idleTimer += elapsed * 1000; // Convertir a milisegundos
+
+            if (character.idleTimer >= stepCrochet && character.currentAnimation !== "idle") {
+                this.playAnimation(characterId, "idle");
+                character.idleTimer = 0;
+            }
+        } else {
+            // Si hay una nota sostenida activa
+            character.idleTimer = 0;
+            if (latestSustain && character.currentAnimation !== latestSustain.anim) {
+                this.playAnimation(characterId, latestSustain.anim, true);
+            }
         }
-        continue;
-      }
-
-      // Si NO hay notas sustain, idleTimer empieza a contar
-      character.idleTimer += elapsed;
-
-      if (character.idleTimer >= stepCrochet / 1000 && character.currentAnimation !== "idle") {
-        this.playAnimation(characterId, "idle", true);
-      }                                                                                                                                                                                               
     }
-  }
+
+    // Actualizar animaciones de GF basadas en beats
+    if (this.currentGF) {
+        const gf = this.loadedCharacters.get(this.currentGF);
+        if (gf && this.lastBeat !== this.scene.lastBeat) {
+            if (gf.currentAnimation === "idle") {
+                this.playAnimation(this.currentGF, "idle", true);
+            }
+            this.lastBeat = this.scene.lastBeat;
+        }
+    }
+}
 
   onBeat(beat) {
     this.lastBeat = beat;
   }
+
+  cleanup() {
+    try {
+        // Limpiar sprites y contenedores
+        if (this.container) {
+            this.container.removeAll(true); // Destruir todos los hijos
+            this.container.destroy();
+            this.container = null;
+        }
+
+        // Limpiar referencias a personajes
+        if (this.boyfriend) {
+            this.boyfriend.destroy();
+            this.boyfriend = null;
+        }
+        if (this.girlfriend) {
+            this.girlfriend.destroy();
+            this.girlfriend = null;
+        }
+        if (this.dad) {
+            this.dad.destroy();
+            this.dad = null;
+        }
+
+        console.log('Characters cleanup complete');
+    } catch (error) {
+        console.error('Error during Characters cleanup:', error);
+    }
 }
+
+  updateBPM(newBPM) {
+    // Actualizar las animaciones existentes con el nuevo BPM
+    for (const [characterId, character] of this.loadedCharacters) {
+        if (character && character.data.animations) {
+            character.data.animations.forEach(animation => {
+                const animKey = `${character.textureKey}_${animation.anim}`;
+                if (this.scene.anims.exists(animKey)) {
+                    const frameRate = animation.fps || (24 * (newBPM / 100));
+                    this.scene.anims.get(animKey).frameRate = frameRate;
+                }
+            });
+        }
+    }
+}}

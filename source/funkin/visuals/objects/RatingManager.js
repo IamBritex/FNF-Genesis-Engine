@@ -1,4 +1,3 @@
-
 export class RatingManager {
     constructor(scene) {
         this.scene = scene;
@@ -70,6 +69,16 @@ export class RatingManager {
 
     async create() {
         await this.preloadAssets();
+        
+        // Crear un contenedor principal para todos los elementos del rating
+        this.container = this.scene.add.container(0, 0);
+        this.container.setDepth(100);
+        
+        // Asignar el contenedor a la capa UI
+        if (this.scene.cameraController) {
+            this.container.setScrollFactor(0);
+            this.scene.cameraController.addToUILayer(this.container);
+        }
     }
 
     preloadAssets() {
@@ -140,7 +149,7 @@ export class RatingManager {
         if (this.combo === 0) return;
         
         const comboStr = this.combo.toString().padStart(3, '0');
-        const { positions, imagePaths } = this.defaultConfig;
+        const { positions } = this.defaultConfig;
         const { comboNumbers } = positions;
         
         const baseX = positions.rating.x !== null ? positions.rating.x : this.scene.cameras.main.width / 2;
@@ -149,14 +158,13 @@ export class RatingManager {
         const totalWidth = (comboStr.length - 1) * comboNumbers.spacing;
         const startX = baseX - (totalWidth / 2) + comboNumbers.x;
 
-        for (let i = 0; i < comboStr.length; i++) {
-            const digit = parseInt(comboStr[i]);
+        comboStr.split('').forEach((digit, i) => {
             const x = startX + (i * comboNumbers.spacing);
             const textureKey = `number_${digit}`;
 
             if (!this.scene.textures.exists(textureKey)) {
                 console.error(`Missing texture for number: ${digit}`);
-                continue;
+                return;
             }
 
             const numberImage = this.scene.add.sprite(x, baseY, textureKey)
@@ -164,14 +172,17 @@ export class RatingManager {
                 .setDepth(100)
                 .setScale(comboNumbers.scale)
                 .setRotation(comboNumbers.rotation * Math.PI / 180)
-                .setAlpha(1);
+                .setAlpha(1)
+                .setScrollFactor(0);
 
+            // Añadir al contenedor UI
+            this.container.add(numberImage);
             this.comboNumbers.push(numberImage);
             
             if (shouldAnimate) {
                 this.animateComboNumber(numberImage);
             }
-        }
+        });
     }
 
     clearComboNumbers() {
@@ -288,7 +299,6 @@ export class RatingManager {
     }
 
     showRatingImage(rating) {
-        // Skip showing image for misses
         if (rating === "miss") return;
 
         const { positions, animation } = this.defaultConfig;
@@ -306,8 +316,11 @@ export class RatingManager {
             .setVisible(true)
             .setDepth(100)
             .setScale(animation.imageScale)
-            .setAlpha(1);
+            .setAlpha(1)
+            .setScrollFactor(0);
 
+        // Añadir la imagen al contenedor UI
+        this.container.add(newImage);
         this.activeRatingInstances.push(newImage);
         this.animateRating(newImage, startY, peakY);
     }

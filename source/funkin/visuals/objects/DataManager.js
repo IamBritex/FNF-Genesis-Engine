@@ -10,17 +10,25 @@ export class DataManager {
 
   init(data) {
       this.isStoryMode = data.isStoryMode || false;
-      this.songList = data.storyPlaylist || [];
-      this.currentSongIndex = 0;
-      this.storyDifficulty = data.selectedDifficulty || 'normal'; // Asegurarse de usar selectedDifficulty
-      this.storyPlaylist = data.storyPlaylist ? data.storyPlaylist.flat() : [];
-      this.campaignScore = data.campaignScore;
-      this.campaignMisses = data.campaignMisses;
+      this.storyPlaylist = data.storyPlaylist || [];
+      this.songList = data.songList || data.storyPlaylist || []; // Usar cualquiera de las dos listas
+      this.currentSongIndex = data.currentSongIndex || 0;
+      this.storyDifficulty = data.selectedDifficulty || 'normal';
+      this.campaignScore = data.campaignScore || 0;
+      this.campaignMisses = data.campaignMisses || 0;
       this.weekName = data.weekName;
       this.weekBackground = data.weekBackground;
       this.weekCharacters = data.weekCharacters;
       this.weekTracks = data.weekTracks;
       this.selectedDifficulty = data.selectedDifficulty;
+      
+      console.log('DataManager initialized with:', {
+          isStoryMode: this.isStoryMode,
+          currentSongIndex: this.currentSongIndex,
+          storyPlaylist: this.storyPlaylist,
+          songList: this.songList,
+          difficulty: this.storyDifficulty
+      });
   }
 
   getSceneData() {

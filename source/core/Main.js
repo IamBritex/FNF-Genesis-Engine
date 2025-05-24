@@ -10,9 +10,7 @@ class VolumeUIScene extends Phaser.Scene {
     preload() {
         this.load.image('volumeBox', 'public/assets/images/UI/soundtray/volumebox.png');
         for (let i = 1; i <= 10; i++) {
-            this.load.image(`volumeBar${i}`, `public/assets/images/UI/soundtray/bars_${i}.png`);
-        }this.load.atlasXML('hitbox', 'public/assets/images/android/hitbox.png', 'public/assets/images/android/hitbox.xml');
-        this.load.atlasXML('virtualpad', 'public/assets/images/android/virtualpad.png', 'public/assets/images/android/virtualpad.xml');
+            this.load.image(`volumeBar${i}`, `public/assets/images/UI/soundtray/bars_${i}.png`);}
         this.load.audio('volUp', 'public/assets/audio/sounds/soundtray/Volup.ogg');
         this.load.audio('volDown', 'public/assets/audio/sounds/soundtray/Voldown.ogg');
         this.load.audio('volMax', 'public/assets/audio/sounds/soundtray/VolMAX.ogg');
@@ -150,16 +148,6 @@ window.addEventListener("focus", () => {
 
 // ====== BOTÓN DE PANTALLA COMPLETA ======
 const fullscreenBtn = document.getElementById('fullscreen-btn');
-fullscreenBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    const gameContainer = document.getElementById('game-container');
-
-    if (!document.fullscreenElement) {
-        gameContainer.requestFullscreen?.() || gameContainer.webkitRequestFullscreen?.() || gameContainer.msRequestFullscreen?.();
-    } else {
-        document.exitFullscreen?.() || document.webkitExitFullscreen?.() || document.msExitFullscreen?.();
-    }
-});
 
 document.addEventListener('fullscreenchange', () => {
     fullscreenBtn.style.display = document.fullscreenElement ? 'none' : 'block';

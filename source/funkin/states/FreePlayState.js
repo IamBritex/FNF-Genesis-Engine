@@ -1,131 +1,84 @@
 class FreeplayState extends Phaser.Scene {
     constructor() {
         super({ key: 'FreeplayState' });
-        
-        // Datos persistentes
+        this._initProperties();
+    }
+
+    _initProperties() {
         this.songList = [];
         this.selectedIndex = 0;
         this.selectedDifficulty = 1;
-        this.difficulties = ["easy", "normal", "hard"]; // Asegurar que está definido
-        
-        // Estado temporal
+        this.difficulties = ["easy", "normal", "hard"];
         this.keyCooldown = false;
-        this.scrollY = 0;
-        this.assetsLoaded = false;
+        this.bg = null;
+        this.textContainer = null;
+        this.difficultyContainer = null;
+        this.songTexts = null;
+        this.scrollSound = null;
+        this.confirmSound = null;
+        this.cancelSound = null;
     }
 
-    init() {
-        this.keyCooldown = false;
+    init(data) {
+        // Reinicializar propiedades
+        this._initProperties();
+        
+        // Restaurar selección previa si existe
+        if (data?.selectedIndex !== undefined) {
+            this.selectedIndex = data.selectedIndex;
+        }
+        if (data?.selectedDifficulty !== undefined) {
+            this.selectedDifficulty = this.difficulties.indexOf(data.selectedDifficulty);
+        }
     }
 
     preload() {
-        console.log("FreeplayState cargado");
-        
-        // Verificar y cargar imágenes
-        if (!this.textures.exists('menuBGMagenta')) {
-            this.load.image('menuBGMagenta', 'public/assets/images/menuBGMagenta.png');
-        }
-        
-        // Cargar audios con verificaciones
-        const audioKeys = ['cancelSound', 'scrollSound', 'confirmSound'];
-        audioKeys.forEach(key => {
-            if (!this.cache.audio.exists(key)) {
-                this.load.audio(key, `public/assets/audio/sounds/${key}.ogg`);
-            }
-        });
-        
-        // Cargar datos de semanas
-        if (!this.cache.text.exists('weekList')) {
-            this.load.text('weekList', 'public/assets/data/weekList.txt');
-        }
+        // Cargar recursos básicos
+        this.load.image('menuBGMagenta', 'public/assets/images/menuBGMagenta.png');
+        this.load.audio('scrollMenu', 'public/assets/audio/sounds/scrollMenu.ogg');
+        this.load.audio('confirmMenu', 'public/assets/audio/sounds/confirmMenu.ogg');
+        this.load.audio('cancelMenu', 'public/assets/audio/sounds/cancelMenu.ogg');
+        this.load.text('weekList', 'public/assets/data/weekList.txt');
     }
 
     async create() {
-        // Esperar a que los recursos estén listos
-        if (!this.assetsLoaded && this.load.isLoading()) {
-            await new Promise(resolve => {
-                this.load.once('complete', () => {
-                    this.assetsLoaded = true;
-                    resolve();
-                });
-                if (!this.load.isLoading()) this.load.start();
-            });
-        }
-        
-        // Verificar carga de audio
-        if (!this.sound.get('scrollSound')) {
-            console.warn("Audio no cargado, reintentando...");
-            this.load.audio('scrollSound', 'public/assets/audio/sounds/scrollMenu.ogg');
-            await new Promise(resolve => {
-                this.load.once('complete', resolve);
-                this.load.start();
-            });
-        }
-        
-        // Si ya tenemos datos, recrear la UI
-        if (this.songList.length > 0) {
-            this.recreateUI();
-            return;
-        }
-        
-        // Primera carga
-        await this.initialLoad();
-    }
-
-    async initialLoad() {
         const { width, height } = this.scale;
         
+        // Setup básico
         this.setupBackground(width, height);
         this.setupSounds();
         
-        await this.loadWeekData();
+        // Cargar datos de semanas si es necesario
+        if (this.songList.length === 0) {
+            await this.loadWeekData();
+        }
+        
+        // Setup UI
         this.setupUI(width, height);
         
+        // Actualizar scroll y selección
         this.updateScroll(true);
         this.updateSelection();
+        
+        // Setup inputs
         this.setupInputs();
-    }
 
-    recreateUI() {
-        const { width, height } = this.scale;
-        
-        this.setupBackground(width, height);
-        this.setupSounds();
-        this.setupUI(width, height);
-        
-        this.updateScroll(true);
-        this.updateSelection();
-        this.setupInputs();
+        // Asegurar que la escena esté visible
+        this.cameras.main.setVisible(true);
+        this.cameras.main.fadeIn(500);
     }
 
     setupBackground(width, height) {
-        if (this.bg) this.bg.destroy();
-        
         this.bg = this.add.image(width / 2, height / 2, 'menuBGMagenta')
             .setOrigin(0.5)
             .setScale(1.1)
-            .setScrollFactor(0)
             .setDepth(-1);
     }
 
     setupSounds() {
-        // Crear o obtener instancias de sonido con verificaciones
-        this.cancelSound = this.getOrCreateSound('cancelSound');
-        this.scrollSound = this.getOrCreateSound('scrollSound');
-        this.confirmSound = this.getOrCreateSound('confirmSound');
-        
-        if (!this.scrollSound) {
-            console.error("Error crítico: scrollSound no disponible");
-        }
-    }
-
-    getOrCreateSound(key) {
-        try {
-            return this.sound.get(key) || this.sound.add(key);
-        } catch (error) {
-            console.error(`Error con el audio ${key}:`, error);
-            return null;
-        }
+        this.scrollSound = this.sound.add('scrollMenu');
+        this.confirmSound = this.sound.add('confirmMenu');
+        this.cancelSound = this.sound.add('cancelMenu');
     }
 
     async loadWeekData() {
@@ -207,7 +160,7 @@ class FreeplayState extends Phaser.Scene {
         
         // Verificación segura de difficulties
         const difficulty = this.difficulties[this.selectedDifficulty] || this.difficulties[0];
-        const diffText = this.createText(0, 0, `DIFICULTY: ${difficulty.toUpperCase()}`)
+        const diffText = this.createText(0, 0, `DIFICULTY: \n ${difficulty.toUpperCase()}`)
             .setOrigin(0.5);
         
         const leftArrow = this.createText(-100, 0, '<')
@@ -322,19 +275,43 @@ class FreeplayState extends Phaser.Scene {
 
         const songData = {
             storyPlaylist: [selectedSong.name],
-            storyDifficulty: this.difficulties[this.selectedDifficulty] || 'normal',
+            songList: [selectedSong.name], // Añadir esto
+            currentSongIndex: 0,
+            storyDifficulty: this.difficulties[this.selectedDifficulty],
             isStoryMode: false,
             weekName: selectedSong.weekName,
-            selectedDifficulty: this.difficulties[this.selectedDifficulty] || 'normal'
+            selectedDifficulty: this.difficulties[this.selectedDifficulty]
         };
 
-        this.tweens.add({
-            targets: this.songTexts[this.selectedIndex],
-            scale: 1.3,
-            duration: 100,
-            yoyo: true,
-            onComplete: () => this.scene.start("PlayState", songData)
+        console.log("Enviando datos a PlayState:", songData);
+        this.scene.start("PlayState", songData);
+    }
+
+    shutdown() {
+        // Limpieza al salir de la escena
+        if (this.textContainer) {
+            this.textContainer.destroy(true);
+        }
+        if (this.difficultyContainer) {
+            this.difficultyContainer.destroy(true);
+        }
+        if (this.bg) {
+            this.bg.destroy();
+        }
+
+        // Detener y destruir sonidos
+        [this.scrollSound, this.confirmSound, this.cancelSound].forEach(sound => {
+            if (sound) {
+                sound.stop();
+                sound.destroy();
+            }
         });
+
+        // Limpiar eventos
+        this.input.keyboard.removeAllListeners();
+        
+        // Limpiar tweens
+        this.tweens.killAll();
     }
 }
 

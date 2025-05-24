@@ -1,677 +1,861 @@
-import { LoadingScreen } from '../visuals/objects/Loading.js';
-import { AudioManager } from '../visuals/objects/AudioManager.js';
-import { DataManager } from '../visuals/objects/DataManager.js';
-import { NotesController } from '../visuals/objects/NotesController.js';
-import { CountdownManager } from '../visuals/objects/CountdownManager.js';
-import { RatingManager } from '../visuals/objects/RatingManager.js';
-import { Characters } from '../visuals/objects/Characters.js';
-import { CameraController } from '../visuals/objects/Camera.js';
-import { RatingText } from '../visuals/objects/RatingText.js';
-import { HealthBar } from '../visuals/objects/HealthBar.js';
-import { StageManager } from '../visuals/objects/StageManager.js';
-import { TimeBar } from '../visuals/objects/TimeBar.js';
-import { Paths } from '../../utils/Paths.js';
+import { LoadingScreen } from "../visuals/objects/Loading.js"
+import { AudioManager } from "../visuals/objects/AudioManager.js"
+import { DataManager } from "../visuals/objects/DataManager.js"
+import { NotesController } from "../visuals/objects/NotesController.js"
+import { CountdownManager } from "../visuals/objects/CountdownManager.js"
+import { RatingManager } from "../visuals/objects/RatingManager.js"
+import { Characters } from "../visuals/objects/Characters.js"
+import { CameraController } from "../visuals/objects/Camera.js"
+import { RatingText } from "../visuals/objects/RatingText.js"
+import { HealthBar } from "../visuals/objects/HealthBar.js"
+import { StageManager } from "../visuals/objects/StageManager.js"
+import { TimeBar } from "../visuals/objects/TimeBar.js"
+import { Paths } from "../../utils/Paths.js"
 
 export class PlayState extends Phaser.Scene {
-    constructor() {
-        super({ key: "PlayState" });
-        this._initProperties();
-        this.loadingScreen = new LoadingScreen(this);
+  constructor() {
+    super({ key: "PlayState" })
+    this._initProperties()
+    this.loadingScreen = new LoadingScreen(this)
+  }
+
+  _initProperties() {
+    // Pantalla de carga
+    this._loadingDots = 0
+    this._loadingText = null
+    this._loadingAnim = null
+    this._isCreating = false
+
+    // Estado del juego
+    this.songPosition = 0
+    this.isMusicPlaying = false
+    this.lastBeat = -1
+
+    // Datos de la canción
+    this.songData = null
+    this.currentBPM = 0
+    this.bpmChangePoints = []
+
+    // Instancias de audio
+    this.currentInst = null
+    this.currentVoices = null
+
+    // Componentes del juego
+    this.audioManager = null
+    this.dataManager = null
+    this.arrowsManager = null
+    this.countdownManager = null
+    this.ratingManager = null
+    this.characters = null
+    this.stageManager = null
+    this.cameraController = null
+    this.ratingText = null
+    this.healthBar = null
+
+    // UI y assets
+    this.healthBarIcons = {}
+    this.healthBarColors = {}
+    this.loadingImage = null
+    this.loadBar = null
+    this.timeBar = null
+  }
+
+  init(data) {
+    this._initializeManagers()
+    this._resetGameState()
+    
+    // Asegurarnos de que el DataManager reciba todos los datos necesarios
+    if (data) {
+        this.dataManager.init({
+            isStoryMode: data.isStoryMode,
+            storyPlaylist: data.storyPlaylist || [],
+            selectedDifficulty: data.selectedDifficulty,
+            currentSongIndex: data.currentSongIndex || 0,
+            campaignScore: data.campaignScore || 0,
+            campaignMisses: data.campaignMisses || 0,
+            weekName: data.weekName,
+            weekBackground: data.weekBackground,
+            weekCharacters: data.weekCharacters,
+            weekTracks: data.weekTracks
+        });
     }
+    
+    this._clearSongCache()
+  }
 
-    _initProperties() {
-        // Pantalla de carga
-        this._loadingDots = 0;
-        this._loadingText = null;
-        this._loadingAnim = null;
-        this._isCreating = false;
+  _initializeManagers() {
+    this.audioManager = new AudioManager(this)
+    this.dataManager = new DataManager(this)
+    this.arrowsManager = new NotesController(this)
+    this.countdownManager = new CountdownManager(this)
+    this.ratingManager = new RatingManager(this)
+    this.characters = new Characters(this)
+    this.stageManager = new StageManager(this)
+  }
 
-        // Estado del juego
-        this.songPosition = 0;
-        this.isMusicPlaying = false;
-        this.lastBeat = -1;
-        
-        // Datos de la canción
-        this.songData = null;
-        this.currentBPM = 0;
-        this.bpmChangePoints = [];
-        
-        // Instancias de audio
-        this.currentInst = null;
-        this.currentVoices = null;
-        
-        // Componentes del juego
-        this.audioManager = null;
-        this.dataManager = null;
-        this.arrowsManager = null;
-        this.countdownManager = null;
-        this.ratingManager = null;
-        this.characters = null;
-        this.stageManager = null;
-        this.cameraController = null;
-        this.ratingText = null;
-        this.healthBar = null;
-        
-        // UI y assets
-        this.healthBarIcons = {};
-        this.healthBarColors = {};
-        this.loadingImage = null;
-        this.loadBar = null;
-        this.timeBar = null;
+  _resetGameState() {
+    this.songPosition = 0
+    this.isMusicPlaying = false
+    this.lastBeat = -1
+    this.currentInst = null
+    this.currentVoices = null
+    this.currentBPM = 0
+    this.bpmChangePoints = []
+  }
+
+  _clearSongCache() {
+    if (this.cache.json.exists("songData")) {
+      this.cache.json.remove("songData")
     }
+  }
 
-    init(data) {
-        this._initializeManagers();
-        this._resetGameState();
-        this.dataManager.init(data);
-        this._clearSongCache();
-    }
+  preload() {
+    this.load.reset()
+    this._loadCoreAssets()
+    this.countdownManager.preload()
+    this._loadSongData()
+  }
 
-    _initializeManagers() {
-        this.audioManager = new AudioManager(this);
-        this.dataManager = new DataManager(this);
-        this.arrowsManager = new NotesController(this);
-        this.countdownManager = new CountdownManager(this);
-        this.ratingManager = new RatingManager(this);
-        this.characters = new Characters(this);
-        this.stageManager = new StageManager(this);
-    }
+  _loadCoreAssets() {
+    // Assets de UI
+    this.load.image("healthBar", Paths.HEALTH_BAR)
+    this.load.image("funkay", Paths.FUNKAY)
+    this.load.image("timeBar", Paths.TIME_BAR)
 
-    _resetGameState() {
-        this.songPosition = 0;
-        this.isMusicPlaying = false;
-        this.lastBeat = -1;
-        this.currentInst = null;
-        this.currentVoices = null;
-        this.currentBPM = 0;
-        this.bpmChangePoints = [];
-    }
+    // Sonidos
+    this.load.audio("missnote1", Paths.MISS_NOTE_1)
+    this.load.audio("missnote2", Paths.MISS_NOTE_2)
+    this.load.audio("missnote3", Paths.MISS_NOTE_3)
+    this.load.audio("freakyMenu", Paths.FREAKY_MENU)
 
-    _clearSongCache() {
-        if (this.cache.json.exists('songData')) {
-            this.cache.json.remove('songData');
-        }
-    }
+    // Assets de notas
+    this.load.atlasXML("notes", Paths.NOTES.TEXTURE, Paths.NOTES.ATLAS)
+    this.load.atlasXML("noteStrumline", Paths.NOTE_STRUMLINE.TEXTURE, Paths.NOTE_STRUMLINE.ATLAS)
+    this.load.atlasXML("NOTE_hold_assets", Paths.NOTE_HOLD_ASSETS.TEXTURE, Paths.NOTE_HOLD_ASSETS.ATLAS)
+  }
 
-    preload() {
-        this.load.reset();
-        this._loadCoreAssets();
-        this.countdownManager.preload();
-        this._loadSongData();
-    }
-
-    _loadCoreAssets() {
-        // Assets de UI
-        this.load.image('healthBar', Paths.HEALTH_BAR);
-        this.load.image('funkay', Paths.FUNKAY);
-        this.load.image('timeBar', Paths.TIME_BAR);
-        
-        // Sonidos
-        this.load.audio('missnote1', Paths.MISS_NOTE_1);
-        this.load.audio('missnote2', Paths.MISS_NOTE_2);
-        this.load.audio('missnote3', Paths.MISS_NOTE_3);
-        this.load.audio('freakyMenu', Paths.FREAKY_MENU);
-        
-        // Assets de notas
-        this.load.atlasXML('notes', Paths.NOTES.TEXTURE, Paths.NOTES.ATLAS);
-        this.load.atlasXML('noteStrumline', Paths.NOTE_STRUMLINE.TEXTURE, Paths.NOTE_STRUMLINE.ATLAS);
-        this.load.atlasXML('NOTE_hold_assets', Paths.NOTE_HOLD_ASSETS.TEXTURE, Paths.NOTE_HOLD_ASSETS.ATLAS);
-    }
-
-    _loadSongData() {
-        if (this.dataManager.songList?.length > 0) {
-            this.loadCurrentAndNextSong();
+  _loadSongData() {
+    // Verificar si tenemos datos de canción
+    if (this.dataManager.isStoryMode) {
+        if (this.dataManager.storyPlaylist?.length > this.dataManager.currentSongIndex) {
+            const currentSong = this.dataManager.storyPlaylist[this.dataManager.currentSongIndex];
+            console.log('Cargando canción de Story Mode:', currentSong);
+            return true;
         } else {
-            console.error("No hay canciones para cargar.");
+            console.error("No hay más canciones en la playlist de Story Mode.");
             this.redirectToNextState();
+            return false;
         }
-    }
-
-    async loadCurrentAndNextSong() {
-        try {
-            const currentSong = this._getCurrentSong();
-            await this._loadSongChart(currentSong);
-            await this._loadSongAssets(currentSong);
-            this._initializeSongComponents();
-            this._completeLoading();
-        } catch (error) {
-            console.error('Error cargando la canción:', error);
-            this.redirectToNextState();
-        }
-    }
-
-    _getCurrentSong() {
+    } else if (this.dataManager.songList?.length > 0) {
         const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
-        if (!currentSong) throw new Error('No hay canción actual');
-        return currentSong;
-    }
-
-    async _loadSongChart(currentSong) {
-        const difficulty = this.dataManager.storyDifficulty || 'normal';
-        
-        try {
-            const response = await fetch(Paths.getSongChart(currentSong, difficulty));
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            this.songData = await response.json();
-        } catch (e) {
-            console.warn('Usando chart por defecto debido a:', e);
-            const response = await fetch(Paths.getDefaultSongChart(currentSong));
-            this.songData = await response.json();
-        }
-
-        if (!this.songData?.song) throw new Error('Datos de canción inválidos');
-    }
-
-    async _loadSongAssets(currentSong) {
-        await this.audioManager.loadSongAudio(currentSong);
-        await this.preloadCharacterAssets(this.songData);
-    }
-
-    _initializeSongComponents() {
-        if (!this.songData?.song) return;
-        
-        this.cameraController.updateBPM(this.songData.song.bpm);
-        this.processBPMChanges(this.songData);
-        this.arrowsManager.loadNotes(this.songData);
-    }
-
-    _completeLoading() {
-        this._safeDestroy(this.loadingImage);
-        this._safeDestroy(this.loadBar);
-        
-        this.cameras.main.setBackgroundColor("#000000");
-        this.dataManager.showData();
-    }
-
-    async preloadCharacterAssets(songData) {
-        if (!songData?.song) {
-            console.error('Datos de canción inválidos:', songData);
-            return;
-        }
-
-        const characterIds = this._getCharacterIds(songData);
-        await this._loadCharactersData(characterIds);
-    }
-
-    _getCharacterIds(songData) {
-        const { player1, player2, gfVersion } = songData.song;
-        const characterIds = [player1, player2];
-        if (gfVersion) characterIds.push(gfVersion);
-        return characterIds.filter(Boolean);
-    }
-
-    async _loadCharactersData(characterIds) {
-        const loadPromises = characterIds.map(characterId => 
-            this._loadSingleCharacter(characterId)
-        );
-        await Promise.all(loadPromises);
-    }
-
-    async _loadSingleCharacter(characterId) {
-        try {
-            if (this.healthBarColors[characterId] && this.healthBarIcons[characterId]) {
-                return;
-            }
-
-            const response = await fetch(Paths.getCharacterData(characterId));
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const characterData = await response.json();
-
-            this._processCharacterHealthData(characterId, characterData);
-            await this._loadCharacterTextures(characterId, characterData);
-        } catch (error) {
-            console.error(`Error loading character ${characterId}:`, error);
-            throw error;
-        }
-    }
-
-    _processCharacterHealthData(characterId, characterData) {
-        if (characterData.healthbar_colors) {
-            const [r, g, b] = characterData.healthbar_colors;
-            const color = (
-                (Math.min(255, Math.floor(r)) << 16) |
-                (Math.min(255, Math.floor(g)) << 8 | Math.min(255, Math.floor(b))
-            ));
-            this.healthBarColors[characterId] = color;
-        }
-
-        if (characterData.healthicon) {
-            this.healthBarIcons[characterId] = characterData.healthicon;
-        }
-    }
-
-    async _loadCharacterTextures(characterId, characterData) {
-        const textureKey = `character_${characterId}`;
-        if (this.textures.exists(textureKey)) return;
-
-        const sprites = Paths.getCharacterSprites(characterData);
-        return new Promise((resolve) => {
-            this.load.atlasXML(
-                textureKey,
-                sprites.TEXTURE,
-                sprites.ATLAS
-            );
-            this.load.once('complete', resolve);
-            this.load.start();
+        console.log('Cargando canción de Freeplay:', currentSong);
+        return true;
+    } else {
+        console.error("No hay canciones para cargar. DataManager:", {
+            isStoryMode: this.dataManager.isStoryMode,
+            storyPlaylist: this.dataManager.storyPlaylist,
+            songList: this.dataManager.songList,
+            currentSongIndex: this.dataManager.currentSongIndex
         });
+        this.redirectToNextState();
+        return false;
+    }
+  }
+
+  async _loadSongChart(currentSong) {
+    const difficulty = this.dataManager.storyDifficulty || "normal"
+
+    try {
+      const response = await fetch(Paths.getSongChart(currentSong, difficulty))
+      if (!response.ok) throw new Error(`HTTP ${response.status} para ${Paths.getSongChart(currentSong, difficulty)}`)
+      this.songData = await response.json()
+    } catch (e) {
+      console.warn(`Usando chart por defecto para ${currentSong} debido a:`, e.message)
+      try {
+        const response = await fetch(Paths.getDefaultSongChart(currentSong))
+        if (!response.ok)
+          throw new Error(`HTTP ${response.status} para chart por defecto ${Paths.getDefaultSongChart(currentSong)}`)
+        this.songData = await response.json()
+      } catch (defaultError) {
+        console.error(`Error cargando chart por defecto para ${currentSong}:`, defaultError.message)
+        throw defaultError // Re-lanzar el error si el chart por defecto también falla
+      }
     }
 
-    async preloadHealthIcons() {
-        if (!this.healthBarIcons || !this.songData?.song) {
-            console.error('No hay datos de iconos o canción para cargar');
-            return;
+    if (!this.songData?.song) throw new Error("Datos de canción inválidos o no cargados.")
+  }
+
+  async _loadSongAssets(currentSong) {
+    await this.audioManager.loadSongAudio(currentSong)
+    await this.preloadCharacterAssets(this.songData) // Asume que songData ya está cargado
+  }
+
+  _initializeSongComponents() {
+    if (!this.songData?.song) {
+      console.error("No hay datos de canción para inicializar componentes.")
+      return
+    }
+
+    this.cameraController.updateBPM(this.songData.song.bpm)
+    this.processBPMChanges(this.songData)
+    this.arrowsManager.loadNotes(this.songData)
+  }
+
+  _completeLoading() {
+    // Esto parece ser parte de una pantalla de carga interna, no de Phaser
+    this._safeDestroy(this.loadingImage)
+    this._safeDestroy(this.loadBar)
+
+    // this.cameras.main.setBackgroundColor("#000000"); // main cámara está desactivada
+    if (this.cameraController && this.cameraController.gameCamera) {
+      this.cameraController.gameCamera.setBackgroundColor("#000000")
+    }
+    this.dataManager.showData()
+  }
+
+  async preloadCharacterAssets(songData) {
+    if (!songData?.song) {
+      console.error("Datos de canción inválidos para precargar assets de personajes:", songData)
+      return
+    }
+
+    const characterIds = this._getCharacterIds(songData)
+    if (characterIds.length === 0) {
+      // console.warn("No se encontraron IDs de personajes para cargar.");
+      return
+    }
+    await this._loadCharactersData(characterIds)
+  }
+
+  _getCharacterIds(songData) {
+    const { player1, player2, gfVersion } = songData.song
+    const characterIds = []
+    if (player1) characterIds.push(player1)
+    if (player2) characterIds.push(player2)
+    if (gfVersion) characterIds.push(gfVersion) // Asumiendo que gfVersion es un ID de personaje
+    return characterIds.filter(Boolean) // Filtra nulos o undefined
+  }
+
+  async _loadCharactersData(characterIds) {
+    const loadPromises = characterIds.map((characterId) => this._loadSingleCharacter(characterId))
+    await Promise.all(loadPromises)
+  }
+
+  async _loadSingleCharacter(characterId) {
+    try {
+      // Evitar recargar si ya tenemos los datos y assets (esto es una optimización, revisar si aplica siempre)
+      // if (this.healthBarColors[characterId] && this.healthBarIcons[characterId] && this.textures.exists(`character_${characterId}`)) {
+      //     return;
+      // }
+
+      const response = await fetch(Paths.getCharacterData(characterId))
+      if (!response.ok) throw new Error(`HTTP ${response.status} para ${Paths.getCharacterData(characterId)}`)
+      const characterData = await response.json()
+
+      this._processCharacterHealthData(characterId, characterData)
+      await this._loadCharacterTextures(characterId, characterData)
+    } catch (error) {
+      console.error(`Error cargando personaje ${characterId}:`, error.message)
+      // Decidir si re-lanzar el error o continuar sin el personaje
+      // throw error; // Si es crítico
+    }
+  }
+
+  _processCharacterHealthData(characterId, characterData) {
+    if (
+      characterData.healthbar_colors &&
+      Array.isArray(characterData.healthbar_colors) &&
+      characterData.healthbar_colors.length === 3
+    ) {
+      const [r, g, b] = characterData.healthbar_colors
+      const color =
+        (Math.min(255, Math.max(0, Math.floor(r))) << 16) |
+        (Math.min(255, Math.max(0, Math.floor(g))) << 8) |
+        Math.min(255, Math.max(0, Math.floor(b)))
+      this.healthBarColors[characterId] = color
+    }
+
+    if (characterData.healthicon) {
+      this.healthBarIcons[characterId] = characterData.healthicon
+    }
+  }
+
+  async _loadCharacterTextures(characterId, characterData) {
+    const textureKey = `character_${characterId}`
+    if (this.textures.exists(textureKey)) return
+
+    const sprites = Paths.getCharacterSprites(characterData) // Asume que esto devuelve { TEXTURE: 'path', ATLAS: 'path' }
+    if (!sprites || !sprites.TEXTURE || !sprites.ATLAS) {
+      console.warn(`No se encontraron rutas de sprites para el personaje ${characterId}`)
+      return
+    }
+
+    // Cargar atlas XML
+    this.load.atlasXML(textureKey, sprites.TEXTURE, sprites.ATLAS)
+    // No se necesita Promise aquí si se maneja con el 'complete' global de Phaser o se carga en preload.
+    // Si se necesita esperar específicamente, la gestión de promesas con this.load.start() es más compleja.
+    // Normalmente, se deja que el loader de Phaser maneje la cola y se espera al evento 'complete' de la escena.
+  }
+
+  async preloadHealthIcons() {
+    if (!this.healthBarIcons || !this.songData?.song) {
+      console.error("No hay datos de iconos de salud o de canción para cargar.")
+      return
+    }
+
+    const { player1, player2 } = this.songData.song
+    const characterIdsWithIcons = [player1, player2].filter((id) => this.healthBarIcons[id])
+
+    if (characterIdsWithIcons.length === 0) return
+
+    characterIdsWithIcons.forEach((characterId) => {
+      const iconName = this.healthBarIcons[characterId]
+      const iconKey = `icon-${iconName}`
+
+      // No es necesario remover y recargar si ya existe, a menos que el asset pueda cambiar dinámicamente.
+      if (!this.textures.exists(iconKey)) {
+        this.load.image(iconKey, Paths.getCharacterIcon(iconName))
+      }
+    })
+    // Dejar que el loader de Phaser maneje la carga. Si se necesita esperar, usar this.load.start() y eventos.
+  }
+
+  async _createHealthBar() {
+    if (!this.songData?.song) {
+      console.error("No hay datos de canción para crear la HealthBar.")
+      return
+    }
+
+    const { player1, player2 } = this.songData.song
+    const p1IconName = this.healthBarIcons[player1]
+    const p2IconName = this.healthBarIcons[player2]
+
+    if (!p1IconName || !p2IconName) {
+      console.warn("Faltan nombres de iconos para los jugadores en HealthBar.", { p1IconName, p2IconName })
+      return
+    }
+
+    this.healthBar = new HealthBar(this, {
+      p1Color: this.healthBarColors[player1] !== undefined ? this.healthBarColors[player1] : 0xffffff,
+      p2Color: this.healthBarColors[player2] !== undefined ? this.healthBarColors[player2] : 0xffffff,
+      p1Icon: p1IconName,
+      p2Icon: p2IconName,
+      position: {
+        x: this.scale.width / 2,
+        y: this.scale.height - 70,
+      },
+    })
+
+    // Forzar la adición a la capa UI
+    if (this.healthBar.container) {
+      this.cameraController.addToUILayer(this.healthBar.container)
+      console.log("HealthBar añadido a la capa UI")
+    }
+  }
+
+  async create() {
+    console.log("PlayState iniciado.")
+    this._setupInitialState() // Configura cameraController aquí.
+    this.loadingScreen.setup() // Configura la pantalla de carga visual.
+
+    try {
+      this.loadingScreen.setCreatingMode(true) // Mostrar "Creating..."
+      this.loadingScreen.setCurrentItem("Song Data") // Informar al usuario
+
+      // Cargar datos de la canción y assets básicos necesarios ANTES de crear elementos de juego
+      const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex]
+      if (!currentSong) throw new Error("No hay canción actual para cargar en create.")
+
+      await this._loadSongChart(currentSong) // Carga el JSON de la canción
+      await this._loadSongAssets(currentSong) // Carga audio y assets de personajes (texturas)
+      await this.preloadHealthIcons() // Carga texturas de iconos de vida
+
+      // Iniciar la carga de assets en Phaser si hay algo en la cola
+      if (this.load.totalToLoad > 0) {
+        this.loadingScreen.setCurrentItem("Loading Assets")
+        await new Promise((resolve) => {
+          this.load.on("complete", resolve)
+          this.load.start()
+        })
+      }
+
+      this.loadingScreen.setCurrentItem("Game Components")
+      await this._initializeGameComponents() // Inicializa managers, personajes, notas con datos cargados
+
+      this.loadingScreen.setCurrentItem("Game Elements")
+      this._setupGameElements() // Añade elementos a la capa del juego
+
+      this.loadingScreen.setCurrentItem("User Interface")
+      this._setupUICameraElements() // Añade elementos a la capa UI
+
+      // Clasificar todos los elementos de la escena
+      this.loadingScreen.setCurrentItem("Organizing Elements")
+      this.cameraController.classifyAllSceneElements()
+
+      this.loadingScreen.setCurrentItem("Controls")
+      this._setupInputHandlers()
+
+      this.loadingScreen.setCurrentItem("Preparing Game")
+      this._startCountdown()
+
+      this.loadingScreen.destroy() // Ocultar pantalla de carga
+      this.events.emit("createcomplete")
+
+      // Asegurar que las cámaras estén visibles
+      if (this.cameraController) {
+        this.cameraController.gameCamera.setVisible(true)
+        this.cameraController.uiCamera.setVisible(true)
+      }
+    } catch (error) {
+      console.error("Error detallado en PlayState create():", error)
+      this.loadingScreen.destroy(); // Changed from hide() to destroy()
+      this.redirectToNextState() // O manejar el error de forma más elegante
+    }
+  }
+
+  _setupInitialState() {
+    this.sound.stopAll()
+    this.dataManager.setupF3Toggle()
+    this.dataManager.setStartTime(this.time.now)
+
+    // CameraController debe crearse aquí y estar disponible para todo el flujo
+    this.cameraController = new CameraController(this)
+
+    // Asegurar que las cámaras estén visibles
+    this.cameraController.gameCamera.setVisible(true)
+    this.cameraController.uiCamera.setVisible(true)
+  }
+
+  async _initializeGameComponents() {
+    if (!this.songData?.song) {
+      throw new Error("Datos de canción no disponibles en _initializeGameComponents")
+    }
+
+    this._initializeSongComponents()
+
+    // Primero inicializar el stage y los personajes (capa de juego)
+    if (this.songData.song.stage) {
+      await this.stageManager.loadStage(this.songData.song.stage)
+    }
+    await this.characters.loadCharacterFromSong(this.songData)
+
+    // Luego inicializar los elementos UI
+    await this.ratingManager.create()
+    await this._createHealthBar()
+    await this.arrowsManager.init()
+
+    // Asegurar que los elementos UI estén en la capa correcta
+    if (this.cameraController) {
+      if (this.ratingManager?.container) {
+        this.cameraController.addToUILayer(this.ratingManager.container)
+      }
+      if (this.healthBar?.container) {
+        this.cameraController.addToUILayer(this.healthBar.container)
+      }
+    }
+
+    // Crear nuevo RatingText para cada canción
+    if (this.ratingText) {
+      this.ratingText.destroy()
+    }
+    this.ratingText = new RatingText(this)
+
+    // Asegurar que esté en la capa UI
+    if (this.cameraController && this.ratingText?.container) {
+      this.cameraController.addToUILayer(this.ratingText.container)
+    }
+  }
+
+  _setupGameElements() {
+    if (!this.cameraController) return
+
+    // Asegurarse de que los elementos del juego se añadan SOLO a gameLayer
+    if (this.stageManager?.container) {
+      this.stageManager.container.setName("Stage_container")
+      this.cameraController.addToGameLayer(this.stageManager.container)
+    }
+
+    if (this.characters?.container) {
+      this.characters.container.setName("Characters_container")
+      this.cameraController.addToGameLayer(this.characters.container)
+    }
+
+    // Asegurar que todos los elementos del juego sean visibles
+    if (this.stageManager?.container) this.stageManager.container.setVisible(true)
+    if (this.characters?.container) this.characters.container.setVisible(true)
+  }
+
+  _setupUICameraElements() {
+    if (!this.cameraController) return
+
+    // Crear y configurar RatingText
+    if (!this.ratingText) {
+      this.ratingText = new RatingText(this)
+    }
+
+    // Crear y configurar HealthBar si no existe
+    if (!this.healthBar) {
+      this._createHealthBar()
+    }
+
+    // Asegurarse de que los elementos UI estén en la capa correcta
+    const uiElements = [
+      { container: this.healthBar?.container, name: "HealthBar_container" },
+      { container: this.ratingText?.container, name: "RatingText_container" },
+      { container: this.timeBar?.container, name: "TimeBar_container" },
+      { container: this.ratingManager?.container, name: "RatingManager_container" },
+    ]
+
+    // Añadir cada elemento UI a la capa UI
+    uiElements.forEach((element) => {
+      if (element.container) {
+        element.container.setName(element.name)
+        this.cameraController.addToUILayer(element.container)
+        element.container.setVisible(true)
+      }
+    })
+
+    // Añadir flechas a la capa UI
+    if (this.arrowsManager?.uiElements) {
+      this.arrowsManager.uiElements
+        .filter(Boolean)
+        .forEach((element, index) => {
+          element.setName(`Arrow_${index}`)
+          this.cameraController.addToUILayer(element)
+          element.setVisible(true)
+        })
+    }
+
+    // Forzar actualización de las capas de la cámara
+    this.cameraController._setupCameraLayers()
+  }
+
+  _setupInputHandlers() {
+    this.arrowsManager.setupInputHandlers()
+    this.arrowsManager.ratingManager = this.ratingManager // Enlazar ratingManager
+
+    // Debug handlers
+    this.input.keyboard.on("keydown-V", () => {
+      if (this.cameraController) {
+        this.cameraController.toggleUICamera()
+      }
+    })
+
+    this.input.keyboard.on("keydown-F2", () => {
+      if (this.cameraController) {
+        this.cameraController.debugCameras()
+      }
+    })
+
+    // Añadir tecla para mostrar/ocultar límites de cámaras
+    this.input.keyboard.on("keydown-F3", () => {
+      if (this.cameraController) {
+        this.cameraController.toggleCameraBounds()
+      }
+    })
+
+    // Añadir tecla para forzar la clasificación de todos los elementos
+    this.input.keyboard.on("keydown-F4", () => {
+      if (this.cameraController) {
+        console.log("Forzando clasificación de todos los elementos...")
+        this.cameraController.classifyAllSceneElements()
+        this.cameraController.debugCameras()
+      }
+    })
+
+    // Añadir tecla para alternar visibilidad de cámara de juego
+    this.input.keyboard.on("keydown-F5", () => {
+      if (this.cameraController && this.cameraController.gameCamera) {
+        this.cameraController.gameCamera.visible = !this.cameraController.gameCamera.visible
+        console.log("Visibilidad de Game Camera:", this.cameraController.gameCamera.visible)
+        this.cameraController.debugCameras()
+      }
+    })
+  }
+
+  _startCountdown() {
+    this.countdownManager.start(() => this.startMusic())
+  }
+
+  update(time, delta) {
+    if (!this.isMusicPlaying || !this.currentInst || !this.songData) return
+
+    // Actualizar posición de la canción
+    // Usar el seek del audio es más preciso que acumular delta.
+    this.songPosition = this.currentInst.seek * 1000
+    if (this.timeBar) {
+      this.timeBar.update(this.songPosition)
+    }
+
+    this._updateGameComponents(time, delta) // Pasa songPosition si es necesario
+    this._updateBeatDetection() // Usa this.songPosition actualizado
+    this._updateBPMChanges() // Usa this.songPosition actualizado
+    this._updateUI(time, delta) // Actualizaciones de UI que dependen de time/delta
+  }
+
+  _updateSongPosition(delta) {
+    // Ya se actualiza desde currentInst.seek en el método update principal
+    // this.songPosition += delta; // Acumular delta puede llevar a desincronización.
+  }
+
+  _updateGameComponents(time, delta) {
+    const elapsedSeconds = delta / 1000 // Para animaciones y físicas basadas en tiempo real
+
+    this.stageManager?.update(time, delta) // O (elapsedSeconds) si es lo que espera
+    this.characters?.update(elapsedSeconds) // Suponiendo que Characters.update usa segundos
+    this.cameraController?.update(this.songPosition, time, delta) // CameraController usa songPosition y delta
+    this.healthBar?.updateBeatBounce(this.songPosition, time, delta) // Similar a cameraController
+
+    // arrowsManager necesita songPosition para saber qué notas mostrar/activar
+    this.arrowsManager?.update(this.songPosition)
+    // this.arrowsManager?.updateEnemyNotes(this.songPosition); // Si es una lógica separada
+  }
+
+  _updateBeatDetection() {
+    // Asegurar que songData y bpm estén disponibles
+    const bpm = this.currentBPM || this.songData?.song?.bpm || 100
+    const beatTime = 60000 / bpm // Duración de un beat en ms
+
+    if (beatTime <= 0) return // Evitar división por cero o BPM inválido
+
+    const currentBeat = Math.floor(this.songPosition / beatTime)
+
+    if (currentBeat > this.lastBeat) {
+      this.characters?.onBeat(currentBeat)
+      // Aquí también podrían ir otros efectos de beat como el de la cámara o healthbar,
+      // si no se manejan con su propia lógica de bop/songPosition en sus updates.
+      this.lastBeat = currentBeat
+    }
+  }
+
+  _updateBPMChanges() {
+    if (!this.bpmChangePoints || this.bpmChangePoints.length === 0) return;
+
+    for (const change of this.bpmChangePoints) {
+        if (this.songPosition >= change.time && this.currentBPM !== change.bpm) {
+            console.log(`BPM Change: From ${this.currentBPM} to ${change.bpm} at time ${this.songPosition}`);
+            this.currentBPM = change.bpm;
+            
+            // Actualizar BPM en todos los componentes necesarios
+            this.cameraController?.updateBPM(this.currentBPM);
+            this.arrowsManager?.updateScrollSpeed(this.currentBPM);
+            this.characters?.updateBPM(this.currentBPM); // Añadir este método a Characters
+            
+            const beatTime = 60000 / this.currentBPM;
+            this.lastBeat = Math.floor(this.songPosition / beatTime) - 1;
+            break;
         }
+    }
+  }
 
-        const { player1, player2 } = this.songData.song;
-        await this._loadHealthIcons([player1, player2]);
+  _updateUI(time, delta) {
+    if (this.dataManager.isDataVisible) {
+      this.dataManager.updateData(this.songPosition, this.currentBPM, this.lastBeat)
+    }
+    this.ratingText?.updateMainText(time) // Asumiendo que updateMainText maneja su propia lógica de tiempo
+  }
+
+  async startMusic() {
+    const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex]
+    const audioInstances = this.audioManager.playSongAudio(currentSong)
+
+    if (!audioInstances || !audioInstances.inst) {
+      console.error("No se pudo reproducir la música, instancia de audio no válida.")
+      this.isMusicPlaying = false
+      // Considerar manejar este error, ej. reintentar o ir al siguiente estado.
+      return
     }
 
-    async _loadHealthIcons(characterIds) {
-        const iconLoadPromises = characterIds.map(characterId => {
-            const iconName = this.healthBarIcons[characterId];
-            if (!iconName) return Promise.resolve();
+    this.currentInst = audioInstances.inst
+    this.currentVoices = audioInstances.voices // Puede ser null/undefined si no hay voces
 
-            const iconKey = `icon-${iconName}`;
-            if (this.textures.exists(iconKey)) {
-                this.textures.remove(iconKey);
-            }
+    this.isMusicPlaying = true
+    this.cameraController?.startBoping()
+    this.dataManager.setStartTime(this.time.now - (this.currentInst.seek * 1000 || 0)) // Sincronizar con el tiempo actual de la música si ya empezó (seek > 0)
 
-            return new Promise((resolve) => {
-                this.load.image(iconKey, Paths.getCharacterIcon(iconName));
-                this.load.once('complete', () => resolve());
-                this.load.once('loaderror', () => resolve());
-                this.load.start();
-            });
-        });
+    // Crear y configurar TimeBar
+    this.timeBar = new TimeBar(this)
+    this.timeBar.create() // Asumiendo que create es async o devuelve una promesa
+ // Asumiendo que create es async o devuelve una promesa
 
-        await Promise.all(iconLoadPromises);
+    // Asignar nombre al contenedor de TimeBar
+    if (this.timeBar.container) {
+      this.timeBar.container.setName("TimeBar_container")
     }
 
-    async createHealthBar() {
-        const { player1, player2 } = this.songData.song;
-        const p1Icon = this.healthBarIcons[player1];
-        const p2Icon = this.healthBarIcons[player2];
-
-        if (!p1Icon || !p2Icon || 
-            !this.textures.exists(`icon-${p1Icon}`) || 
-            !this.textures.exists(`icon-${p2Icon}`)) {
-            console.error('Error creando HealthBar:', { p1Icon, p2Icon });
-            return;
+    if (this.currentInst.duration > 0) {
+      this.timeBar.setTotalDuration(this.currentInst.duration * 1000)
+    } else {
+      // Si la duración no está disponible inmediatamente, escuchar evento 'durationchange' o similar
+      this.currentInst.once("play", () => {
+        // o 'canplaythrough' o cuando la duración esté disponible
+        if (this.currentInst.duration > 0) {
+          this.timeBar.setTotalDuration(this.currentInst.duration * 1000)
         }
-
-        this.healthBar = new HealthBar(this, {
-            p1Color: this.healthBarColors[player1],
-            p2Color: this.healthBarColors[player2],
-            p1Icon: p1Icon,
-            p2Icon: p2Icon
-        });
+      })
     }
 
-    async create() {
-        console.log("PlayState iniciado.");
-        this._setupInitialState();
-        this.loadingScreen.setup();
-        
-        try {
-            await this._initializeGameComponents();
-            this.loadingScreen.setCreatingMode(true);
-            this.loadingScreen.setCurrentItem("Game Elements");
-            this._setupGameElements();
-            this.loadingScreen.setCurrentItem("User UI");
-            this._setupUICameraElements();
-            this.loadingScreen.setCurrentItem("Controls");
-            this._setupInputHandlers();
-            this.loadingScreen.setCurrentItem("Preparing Game");
-            this._startCountdown();
-            this.events.emit('createcomplete');
-        } catch (error) {
-            console.error('Error en create():', error);
-            this.redirectToNextState();
-        }
+    if (this.timeBar.container) {
+      this.timeBar.container.setDepth(150) // Profundidad alta para estar sobre otros elementos UI
+      this.cameraController?.addToUILayer(this.timeBar.container)
+      this.timeBar.container.setVisible(true) // Asegurar que sea visible
     }
 
-    _setupInitialState() {
-        this.sound.stopAll();
-        this.dataManager.setupF3Toggle();
-        this.dataManager.setStartTime(this.time.now);
-        
-        this.cameraController = new CameraController(this);
-        this.cameras.main.visible = false;
-    }
+    this.currentInst.once("complete", () => this._handleSongCompletion())
+    this.currentInst.once("stop", () => {
+      // En caso de que se detenga por otra razón
+      // console.log("Instancia de música detenida.");
+      // this.isMusicPlaying = false; // Ya se maneja en _handleSongCompletion o shutdown
+    })
+  }
 
-    async _initializeGameComponents() {
-        await this.loadCurrentAndNextSong();
-        
-        if (!this.songData?.song) {
-            throw new Error('Datos de canción no disponibles');
-        }
-
-        if (this.songData.song.stage) {
-            await this.stageManager.loadStage(this.songData.song.stage);
-        }
-
-        await this.characters.loadCharacterFromSong(this.songData);
-        await this.arrowsManager.init();
-        await this.ratingManager.create();
-        
-        this.ratingText = new RatingText(this);
-        await this.preloadHealthIcons();
-        await this.createHealthBar();
-    }
-
-    _setupGameElements() {
-        this.cameraController.addToGameCamera(this.stageManager?.container);
-        this.cameraController.addToGameCamera(this.characters?.container);
-    }
-
-    _setupUICameraElements() {
-        const uiElements = [
-            this.ratingText,
-            this.healthBar?.background,
-            this.healthBar?.foreground,
-            this.healthBar?.iconP1,
-            this.healthBar?.iconP2,
-            ...(this.arrowsManager.uiElements || [])
-        ].filter(Boolean);
-        
-        uiElements.forEach(element => {
-            this.cameraController.addToUICamera(element);
-        });
-    }
-
-    _setupInputHandlers() {
-        this.arrowsManager.setupInputHandlers();
-        this.arrowsManager.ratingManager = this.ratingManager;
-    }
-
-    _startCountdown() {
-        this.countdownManager.start(() => this.startMusic());
-    }
-
-    update(time, delta) {
-        if (!this.isMusicPlaying || !this.currentInst) return;
-        if (this.timeBar && this.currentInst) {this.timeBar.update(this.songPosition);}
-
-        this._updateSongPosition(delta);
-        this._updateGameComponents(time, delta);
-        this._updateBeatDetection();
-        this._updateBPMChanges();
-        this._updateUI();
-    }
-
-    _updateSongPosition(delta) {
-        this.songPosition = this.currentInst.seek * 1000;
-    }
-
-    _updateGameComponents(time, delta) {
-        const elapsed = delta / 1000;
-        
-        this.stageManager?.update(time, delta);
-        
-        if (this.characters) {
-            this.characters.update(elapsed);
-        }
-        
-        this.cameraController.update(this.songPosition, time, delta);
-        this.healthBar?.updateBeatBounce(this.songPosition, time, delta);
-        this.arrowsManager?.update(this.songPosition);
-        this.arrowsManager?.updateEnemyNotes(this.songPosition);
-    }
-
-    _updateBeatDetection() {
-        const beatTime = (60000 / (this.songData.song.bpm || 100));
-        const currentBeat = Math.floor(this.songPosition / beatTime);
-        
-        if (currentBeat > this.lastBeat) {
-            this.characters?.onBeat(currentBeat);
-            this.lastBeat = currentBeat;
-        }
-    }
-
-    _updateBPMChanges() {
-        this.bpmChangePoints.forEach(change => {
-            if (this.songPosition >= change.time && this.currentBPM !== change.bpm) {
-                this.currentBPM = change.bpm;
-                this.cameraController.updateBPM(this.currentBPM);
-                this.arrowsManager?.updateScrollSpeed(this.currentBPM);
-            }
-        });
-    }
-
-    _updateUI() {
-        if (this.dataManager.isDataVisible) {
-            this.dataManager.updateData();
-        }
-        
-        this.ratingText?.updateTexts();
-    }
-
-    async startMusic() {
-        const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
-        const audioInstances = this.audioManager.playSongAudio(currentSong);
+  async _cleanupBeforeRestart() {
+    // Limpiar componentes actuales
+    this.arrowsManager?.cleanup();
+    this.ratingManager?.reset();
+    this.characters?.cleanup();
+    this.stageManager?.cleanup();
+    this.healthBar?.destroy();
+    this.ratingText?.destroy();
+    this.timeBar?.destroy();
     
-        this.isMusicPlaying = true;
-        this.cameraController.startBoping();
-        
-        this.currentInst = audioInstances.inst;
-        this.currentVoices = audioInstances.voices;
-
-        this.timeBar = new TimeBar(this);
-        this.timeBar.create();
-        this.timeBar.setTotalDuration(this.currentInst.duration * 1000);
+    // Limpiar audio
+    this._safeStopAudio(this.currentVoices);
+    this._safeStopAudio(this.currentInst);
     
-        this.currentInst.once('complete', async () => {
-            await this._handleSongCompletion();
-        });
-    }
+    // Resetear estado
+    this.songPosition = 0;
+    this.isMusicPlaying = false;
+    this.lastBeat = -1;
+    
+    // Limpiar datos de canción
+    this.songData = null;
+    
+    // Resetear cámaras
+    this.cameraController?.reset();
+}
 
-    async _handleSongCompletion() {
+async _handleSongCompletion() {
+    try {
         this.isMusicPlaying = false;
         
+        // Detener audio actual
         this._safeStopAudio(this.currentVoices);
         this._safeStopAudio(this.currentInst);
         
-        this.dataManager.currentSongIndex++;
-        
-        if (this.dataManager.currentSongIndex < this.dataManager.songList.length) {
-            await this.cleanupBeforeRestart();
-            this.time.delayedCall(100, () => {
-                this.scene.restart(this.dataManager.getSceneData());
-            });
-        } else {
-            this.playFreakyMenuAndRedirect();
-        }
-    }
+        this.currentInst = null;
+        this.currentVoices = null;
 
-    async cleanupBeforeRestart() {
-        // 1. Detener todos los sonidos primero
-        this.sound.stopAll();
-        
-        // 2. Limpiar componentes del juego
-        if (this.arrowsManager?.cleanup) {
-            await this.arrowsManager.cleanup();
-        }
-        
-        if (this.stageManager?.clearCurrentStage) {
-            await this.stageManager.clearCurrentStage();
-        }
-        
-        if (this.characters?.cleanup) {
-            await this.characters.cleanup();
-        }
-
-        // 3. Limpiar texturas y assets
-        await this._cleanupCharacterTextures();
-        await this._cleanupHealthIcons();
-        
-        // 4. Resetear datos de UI
-        this._resetHealthBarData();
-        this._destroyUIElements();
-        
-        // 5. Resetear estado del juego
-        this._resetGameState();
-        
-        // 6. Limpiar cámara
-        if (this.cameraController?.reset) {
-            this.cameraController.reset();
-        }
-        
-        // 7. Limpiar timeBar
-        this._safeDestroy(this.timeBar);
-        this.timeBar = null;
-        
-        // 8. Limpiar cache y datos
-        this._clearSongCache();
-        this.songData = null;
-        
-        // 9. Pequeña pausa para asegurar limpieza
-        await new Promise(resolve => this.time.delayedCall(50, resolve));
-    }
-
-    async _cleanupCharacterTextures() {
-        if (!this.songData?.song) return;
-
-        const { player1, player2, gfVersion } = this.songData.song;
-        const characters = [player1, player2, gfVersion].filter(Boolean);
-        
-        // Limpiar sprites primero
-        this.children.each(child => {
-            if (child.texture && characters.some(id => 
-                child.texture.key === `character_${id}` ||
-                child.texture.key === `icon-${this.healthBarIcons[id]}`
-            )) {
-                this._safeDestroy(child);
-            }
-        });
-        
-        // Luego limpiar texturas
-        for (const characterId of characters) {
-            const textureKey = `character_${characterId}`;
-            if (this.textures.exists(textureKey)) {
-                this.textures.remove(textureKey);
-            }
-        }
-    }
-
-    async _cleanupHealthIcons() {
-        if (!this.healthBarIcons) return;
-        
-        // Limpiar sprites de iconos primero
-        this.children.each(child => {
-            if (child.texture && child.texture.key.startsWith('icon-')) {
-                this._safeDestroy(child);
-            }
-        });
-        
-        // Luego limpiar texturas
-        for (const iconName of Object.values(this.healthBarIcons)) {
-            if (!iconName) continue;
+        // Verificar si estamos en modo historia
+        if (this.dataManager.isStoryMode) {
+            // Incrementar el índice de la canción actual
+            this.dataManager.currentSongIndex++;
             
-            const iconKey = `icon-${iconName}`;
-            if (this.textures.exists(iconKey)) {
-                this.textures.remove(iconKey);
-            }
-        }
-    }
-
-    _destroyUIElements() {
-        // Destruir elementos UI específicos
-        this._safeDestroy(this.ratingText);
-        this.ratingText = null;
-        
-        this._safeDestroy(this.healthBar);
-        this.healthBar = null;
-        
-        // Destruir otros elementos UI
-        this.children.each(child => {
-            // Conservar solo elementos esenciales
-            if (!child.texture?.key?.includes('hitbox') && 
-                child !== this.loadingScreen) {
-                this._safeDestroy(child);
-            }
-        });
-    }
-
-    _resetHealthBarData() {
-        this.healthBarColors = {};
-        this.healthBarIcons = {};
-    }
-
-    playFreakyMenuAndRedirect() {
-        if (!this.sound.get('freakyMenu')) {
-            this.sound.add('freakyMenu', { loop: true }).play();
-        }
-        this.redirectToNextState();
-    }
-
-    redirectToNextState() {
-        const target = this.dataManager.isStoryMode ? "StoryModeState" : "FreeplayState";
-        this.scene.start(target);
-    }
-    
-    shutdown() {
-        this.cleanupBeforeRestart().then(() => {
-            this.audioManager = null;
-            this.dataManager = null;
-            this.arrowsManager = null;
-            this.countdownManager = null;
-            this.characters = null;
-            this.cameraController = null;
-            super.shutdown();
-        });
-    }
-
-    processBPMChanges(songData) {
-        this.currentBPM = songData.song?.bpm || 100;
-        this.bpmChangePoints = [];
-        
-        if (!songData.song?.notes) return;
-
-        songData.song.notes.forEach((section, index) => {
-            if (section.bpm && section.bpm !== this.currentBPM) {
-                this.bpmChangePoints.push({
-                    time: section.sectionBeats * (60000 / this.currentBPM) * index,
-                    bpm: section.bpm
+            // Verificar si hay más canciones en la playlist
+            if (this.dataManager.currentSongIndex < this.dataManager.storyPlaylist.length) {
+                console.log('Moving to next song:', this.dataManager.storyPlaylist[this.dataManager.currentSongIndex]);
+                
+                // Limpiar el estado actual
+                await this._cleanupBeforeRestart();
+                
+                // Reiniciar la escena con la siguiente canción
+                this.scene.restart({
+                    isStoryMode: true,
+                    storyPlaylist: this.dataManager.storyPlaylist,
+                    currentSongIndex: this.dataManager.currentSongIndex,
+                    selectedDifficulty: this.dataManager.storyDifficulty,
+                    campaignScore: this.dataManager.campaignScore,
+                    campaignMisses: this.dataManager.campaignMisses,
+                    weekName: this.dataManager.weekName,
+                    weekBackground: this.dataManager.weekBackground,
+                    weekCharacters: this.dataManager.weekCharacters,
+                    weekTracks: this.dataManager.weekTracks
                 });
+                return;
             }
-        });
-    }
-
-    handleNoteHit(direction) {
-        const animations = {
-            0: 'singLEFT',
-            1: 'singDOWN',
-            2: 'singUP',
-            3: 'singRIGHT'
-        };
+        }
         
-        this.characters?.playAnimation('bf', animations[direction]);
-    }
-
-    _safeDestroy(object) {
-        if (object && typeof object.destroy === 'function') {
-            try {
-                // Asegurarse de remover listeners primero
-                if (object.removeAllListeners) {
-                    object.removeAllListeners();
-                }
-                object.destroy();
-            } catch (e) {
-                console.warn('Error al destruir objeto:', object, e);
-            }
-        }
-    }
-
-    _safeStopAudio(audio) {
-        if (audio) {
-            try {
-                if (audio.stop) audio.stop();
-                if (audio.destroy) audio.destroy();
-            } catch (e) {
-                console.warn('Error al detener audio:', e);
-            }
-        }
+        // Si no hay más canciones o no estamos en modo historia
+        this.playFreakyMenuAndRedirect();
+    } catch (error) {
+        console.error('Error in _handleSongCompletion:', error);
+        this.playFreakyMenuAndRedirect();
     }
 }
 
-globalThis.PlayState = PlayState;
+playFreakyMenuAndRedirect() {
+    // Reproducir sonido del menú
+    if (this.cache.audio.exists('freakyMenu')) {
+        this.sound.play('freakyMenu');
+    }
+    
+    // Redirigir al menú principal
+    this.redirectToNextState();
+}
+
+redirectToNextState() {
+    try {
+        // Detener toda la música y sonidos
+        this.sound.stopAll();
+        
+        // Limpiar antes del cambio de escena
+        this._cleanupBeforeRestart();
+
+        // Determinar la siguiente escena y los datos a pasar
+        const nextScene = this.dataManager.isStoryMode ? 'StoryModeState' : 'FreeplayState';
+        const sceneData = this.dataManager.isStoryMode ? {
+            weekName: this.dataManager.weekName,
+            weekBackground: this.dataManager.weekBackground,
+            weekCharacters: this.dataManager.weekCharacters,
+            campaignScore: this.dataManager.campaignScore,
+            campaignMisses: this.dataManager.campaignMisses
+        } : {};
+
+        // Detener la escena actual y cambiar inmediatamente
+        this.scene.stop();
+        this.scene.start(nextScene, sceneData);
+
+    } catch (error) {
+        console.error('Error during scene transition:', error);
+        this.scene.start('MainMenuState');
+    }
+}
+
+  processBPMChanges(songData) {
+    if (!songData?.song) {
+      console.warn("No song data available for BPM changes processing");
+      return;
+    }
+
+    this.bpmChangePoints = [];
+    this.currentBPM = songData.song.bpm || 100;
+
+    // Check if there are any BPM changes in the song data
+    if (songData.song.notes) {
+      songData.song.notes.forEach(section => {
+        if (section.changeBPM && section.bpm !== this.currentBPM) {
+          this.bpmChangePoints.push({
+            time: section.startTime,
+            bpm: section.bpm
+          });
+        }
+      });
+    }
+  
+    // Sort BPM changes by time
+    this.bpmChangePoints.sort((a, b) => a.time - b.time);
+    
+    console.log("Initial BPM:", this.currentBPM);
+    console.log("BPM change points:", this.bpmChangePoints);
+  }
+
+  // Add this method to the PlayState class
+  _safeStopAudio(audioInstance) {
+    if (audioInstance && typeof audioInstance.stop === 'function') {
+        try {
+            audioInstance.stop();
+        } catch (e) {
+            console.warn('Error stopping audio instance:', e);
+        }
+    }
+}}

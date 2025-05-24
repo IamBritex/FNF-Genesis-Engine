@@ -196,6 +196,35 @@ export class StageManager {
         this.currentStage = null;
     }
 
+    cleanup() {
+        try {
+            // Clear all stage layers
+            this.clearCurrentStage();
+            
+            // Clear any additional references
+            this.characters = null;
+            this.currentStage = null;
+            
+            // If there's a container, destroy it
+            if (this.container) {
+                this.container.destroy();
+                this.container = null;
+            }
+            
+            // Remove any remaining textures
+            if (this.scene && this.scene.textures) {
+                const prefix = `stage_${this.currentStage}_layer_`;
+                this.scene.textures.getTextureKeys()
+                    .filter(key => key.startsWith(prefix))
+                    .forEach(key => this.scene.textures.remove(key));
+            }
+
+            console.log('StageManager cleanup complete');
+        } catch (error) {
+            console.error('Error during StageManager cleanup:', error);
+        }
+    }
+
     update(time, delta) {
         // Lógica de animación si es necesaria
     }

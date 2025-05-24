@@ -53,47 +53,84 @@ export class HealthBar {
   }
 
   init() {
+      // Crear el contenedor principal
       this.container = this.scene.add.container(this.config.position.x, this.config.position.y);
+      this.container.setName("HealthBar_container");
+      
+      // Crear elementos
       this._createBackground();
       this._createHealthBars();
       this._createIcons();
-      this._assembleContainer();
+      
+      // Configurar el contenedor
+      this.container.setDepth(100);
+      this.container.setScrollFactor(0);
+      this.container.setVisible(true);
+      
+      // Añadir explícitamente todos los elementos al contenedor
+      if (this.backgroundBar) {
+          this.container.add([
+              this.p1HealthBar,      // Primero las barras de color
+              this.p2HealthBar,
+              this.backgroundBar,    // Luego el fondo
+              this.p1Icon,           // Finalmente los iconos
+              this.p2Icon
+          ]);
+      }
+
+      // Asegurar que se añada a la capa UI
+      if (this.scene.cameraController) {
+          this.scene.cameraController.addToUILayer(this.container);
+      }
+
       this.updateBar();
   }
 
   _createBackground() {
+      // Verificar si la textura existe
+      if (!this.scene.textures.exists("healthBar")) {
+          console.error("Textura 'healthBar' no encontrada");
+          return;
+      }
+
       this.backgroundBar = this.scene.add.image(0, 0, "healthBar")
           .setScale(this.config.scale)
-          .setOrigin(0.5);
+          .setOrigin(0.5)
+          .setScrollFactor(0)
+          .setDepth(100); // Ajustado para estar en medio
   }
 
   _createHealthBars() {
       const width = this.backgroundBar.width * this.config.scale;
       const height = this.backgroundBar.height * this.config.scale;
 
+      // Las barras de salud van debajo del fondo
       this.p1HealthBar = this.scene.add.graphics()
-          .setPosition(-width / 2, -height / 2);
+          .setPosition(-width / 2, -height / 2)
+          .setDepth(99);
       
       this.p2HealthBar = this.scene.add.graphics()
-          .setPosition(-width / 2, -height / 2);
+          .setPosition(-width / 2, -height / 2)
+          .setDepth(99);
   }
 
   _createIcons() {
       const width = this.backgroundBar.width * this.config.scale;
       
+      // Los iconos van arriba del fondo
       this.p1Icon = this._createIcon(
           `icon-${this.config.icons.p1}`, 
           width / 4, 
           'p1', 
           true
-      );
+      ).setDepth(101);
       
       this.p2Icon = this._createIcon(
           `icon-${this.config.icons.p2}`, 
           -width / 4, 
           'p2', 
           false
-      );
+      ).setDepth(101);
   }
 
   _createIcon(iconKey, xPos, playerKey, flipX) {
@@ -124,11 +161,19 @@ export class HealthBar {
   }
 
   _assembleContainer() {
+      // Asegurarse de que todos los elementos tengan scrollFactor 0
+      [this.p1HealthBar, this.p2HealthBar, this.backgroundBar, this.p1Icon, this.p2Icon].forEach(element => {
+          if (element && typeof element.setScrollFactor === 'function') {
+              element.setScrollFactor(0);
+          }
+      });
+
+      // Añadir todos los elementos al contenedor
       this.container.add([
-          this.p1HealthBar, 
-          this.p2HealthBar, 
-          this.backgroundBar, 
-          this.p1Icon, 
+          this.p1HealthBar,
+          this.p2HealthBar,
+          this.backgroundBar,
+          this.p1Icon,
           this.p2Icon
       ]).setDepth(150);
   }
