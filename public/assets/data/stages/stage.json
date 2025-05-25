@@ -13,11 +13,11 @@
         {
             "priority": 1,
             "layer": 1,
-            "scale": 0.6,
+            "scale": 1,
             "path": "public/assets/data/stages/stage/stageback.png",
             "visible": true,
             "opacity": 1,
-            "position": [0, 0]
+            "position": [-400, -300]
         },
         {
             "player": 1,
@@ -32,7 +32,7 @@
             "layer": 3
         },
         {
-            "priority": 1,
+            "priority": 0,
             "layer": 6,
             "scale": 1,
             "path": "public/assets/data/stages/stage/stagecurtains.png",

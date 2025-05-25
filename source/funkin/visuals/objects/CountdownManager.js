@@ -1,7 +1,7 @@
 export class CountdownManager {
     constructor(scene) {
         this.scene = scene;
-        this.depth = 100; // Ajustado para estar por encima de personajes (50-70) pero debajo de UI (100+)
+        this.depth = 100; // Mantener el depth alto para la UI
         this.countdownData = [
             { sound: 'intro3', image: null },
             { sound: 'intro2', image: 'ready' },
@@ -26,46 +26,51 @@ export class CountdownManager {
         let step = 0;
         const songData = this.scene.songData;
         const bpm = songData?.song?.bpm || 100;
-        const crochet = (60 / bpm) * 1000; // Tiempo entre beats en milisegundos
-        const fadeDuration = crochet * 0.5; // Duración del fade out
+        const crochet = (60 / bpm) * 1000;
+        const fadeDuration = crochet * 0.5;
 
-        // Limpiar imágenes previas si las hay
         this.clearActiveImages();
 
-        // Crear un evento que se ejecute en cada beat
+        // Establecer posición inicial de la cámara antes del countdown
+        if (this.scene.cameraController) {
+            this.scene.cameraController.gameCamera.setScroll(
+                0,
+                0
+            );
+        }
+
         const beatEvent = this.scene.time.addEvent({
             delay: crochet,
             callback: () => {
                 if (step < this.countdownData.length) {
                     const { sound, image } = this.countdownData[step];
                     
-                    // Reproducir el sonido del countdown
                     const countdownSound = this.scene.sound.add(sound);
                     countdownSound.play();
 
-                    // Mostrar la imagen si existe
                     if (image) {
                         const countdownImage = this.scene.add.image(
                             this.scene.scale.width / 2,
                             this.scene.scale.height / 2,
                             image
                         )
-                        .setDepth(this.depth)
-                        .setAlpha(1); // Asegurar que empieza visible
+                        .setDepth(this.depth);
 
-                        // Añadir a la lista de imágenes activas
+                        // Añadir la imagen del countdown a la capa UI
+                        if (this.scene.cameraController) {
+                            this.scene.cameraController.addToUILayer(countdownImage);
+                        }
+
                         this.activeImages.push(countdownImage);
 
-                        // Efecto de fade out
                         this.scene.tweens.add({
                             targets: countdownImage,
                             alpha: 0,
                             duration: fadeDuration,
                             ease: 'Power1',
-                            delay: crochet * 0.5, // Comenzar fade out a la mitad del tiempo
+                            delay: crochet * 0.5,
                             onComplete: () => {
                                 countdownImage.destroy();
-                                // Remover de la lista de activas
                                 this.activeImages = this.activeImages.filter(img => img !== countdownImage);
                             }
                         });
@@ -73,8 +78,8 @@ export class CountdownManager {
 
                     step++;
                 } else {
-                    beatEvent.destroy(); // Detener el evento cuando termine el countdown
-                    callback(); // Llamar al callback cuando termine
+                    beatEvent.destroy();
+                    callback();
                 }
             },
             loop: true,

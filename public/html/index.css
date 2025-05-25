@@ -12,15 +12,17 @@
 
 * {
     box-sizing: border-box;
-    overflow: hidden;
-    background-color: black;
-    margin: 0%;
-    padding: 0%;
-}
-
-body html {
     margin: 0;
     padding: 0;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: black;
 }
 
 #game-container {
@@ -29,4 +31,9 @@ body html {
     height: 100%;
     padding: 0;
     margin: 0;
+    background-color: transparent;
+}
+
+canvas {
+    display: block;
 }

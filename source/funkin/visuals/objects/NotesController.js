@@ -1,4 +1,5 @@
 import { RatingManager } from './RatingManager.js'
+import { NoteSpawner } from './components/NoteSpawner.js';
 
 export class NotesController {
     constructor(scene) {
@@ -71,6 +72,17 @@ export class NotesController {
             holdGain: 0.023/10,  // Ganancia de salud por mantener (más pequeña que el hit)
             holdRate: 60         // Frecuencia de actualización para hold notes (ms)
         };
+
+        this.noteSpawner = new NoteSpawner(scene, this);
+
+        // Añadir lastSingTime al constructor
+        this.lastSingTime = {
+            player: 0,
+            enemy: 0
+        };
+
+        // Añadir Map para direcciones sostenidas
+        this.enemyHeldDirections = new Map();
     }
 
     // Input setup
@@ -216,41 +228,39 @@ export class NotesController {
                     const sustainLength = noteData[2] || 0;
                     
                     if (typeof noteDirection !== 'number') return;
-                    
-                    // Lógica corregida para determinar si es nota del jugador
+
+                    // Fix para notas duo y direcciones inválidas
                     let isPlayerNote;
                     if (section.mustHitSection) {
-                        // En secciones mustHitSection=true: 0-3 son del jugador, 4-7 del enemigo
+                        // Si es sección del jugador: 0-3 jugador, 4-7 enemigo
                         isPlayerNote = noteDirection < 4;
+                        noteDirection = noteDirection % 4; // Convertir 4-7 a 0-3
                     } else {
-                        // En secciones mustHitSection=false: 4-7 son del jugador, 0-3 del enemigo
+                        // Si es sección del enemigo: 0-3 enemigo, 4-7 jugador 
                         isPlayerNote = noteDirection >= 4;
-                        noteDirection = noteDirection % 4; // Convertir a 0-3
+                        noteDirection = noteDirection % 4; // Convertir 4-7 a 0-3
                     }
-                    
-                    // Validar dirección
-                    if (noteDirection < 0 || noteDirection > 3) {
-                        console.warn("Dirección de nota inválida:", noteData[1], "en sección:", sectionIndex);
-                        return;
+
+                    // Validar que la dirección esté en rango 0-3
+                    if (noteDirection >= 0 && noteDirection <= 3) {
+                        this.songNotes.push({
+                            strumTime,
+                            noteDirection,
+                            sustainLength,
+                            isPlayerNote,
+                            sectionIndex,
+                            wasHit: false,
+                            canBeHit: false,
+                            tooLate: false,
+                            spawned: false,
+                            isHoldNote: sustainLength > 0,
+                            isBeingHeld: false,
+                            holdReleased: false,
+                            holdScoreTime: 0,
+                            holdSegmentsDestroyed: 0,
+                            holdEndPassed: false
+                        });
                     }
-                    
-                    this.songNotes.push({
-                        strumTime,
-                        noteDirection,
-                        sustainLength,
-                        isPlayerNote,
-                        sectionIndex,
-                        wasHit: false,
-                        canBeHit: false,
-                        tooLate: false,
-                        spawned: false,
-                        isHoldNote: sustainLength > 0,
-                        isBeingHeld: false,
-                        holdReleased: false,
-                        holdScoreTime: 0,
-                        holdSegmentsDestroyed: 0,
-                        holdEndPassed: false
-                    });
                 });
             }
         });
@@ -526,6 +536,18 @@ export class NotesController {
             timeDiff: timeDiff,
             rating: rating
         });
+
+        // Actualizar tiempo de canto del jugador y posición de la cámara
+        if (this.scene.cameraController) {
+            this.lastSingTime.player = this.scene.time.now;
+            
+            if (this.scene.characters?.loadedCharacters) {
+                const player = this.scene.characters.loadedCharacters.get(this.scene.characters.currentPlayer);
+                if (player?.data) {
+                    this.scene.cameraController.updateCameraPosition(player.data);
+                }
+            }
+        }
     }
     
     missNote(note) {
@@ -558,9 +580,11 @@ export class NotesController {
             3: "singRIGHTmiss"
         };
 
-        // Emitir evento para reproducir la animación de fallo
-        this.events.emit('noteMiss', {
+        // Emitir evento strumlineStateChange para la animación de fallo
+        this.events.emit('strumlineStateChange', {
             direction: note.noteDirection,
+            isPlayerNote: true,
+            state: 'miss',
             animation: missAnims[note.noteDirection]
         });
         
@@ -575,114 +599,7 @@ export class NotesController {
     }
     
     spawnNote(note) {        
-        const isPlayer = note.isPlayerNote;
-        const directionIndex = note.noteDirection;
-        const direction = this.directions[directionIndex];
-        const holdColor = this.holdColors[directionIndex];
-        const pos = isPlayer ? 
-            this.arrowConfigs.playerNotes[directionIndex] : 
-            this.arrowConfigs.enemyNotes[directionIndex];
-        
-        if (!pos) {
-            console.error('Configuración de posición no válida:', {isPlayer, directionIndex});
-            return;
-        }
-        
-        const currentTime = this.scene.songPosition;
-        const timeDiff = note.strumTime - currentTime;
-        const targetY = isPlayer ? 
-            this.arrowConfigs.playerStatic[directionIndex].y : 
-            this.arrowConfigs.enemyStatic[directionIndex].y;
-        const scrollSpeed = 0.45 * this.speed;
-        const initialY = targetY + (timeDiff * scrollSpeed);
-        
-        // Cambiar el nombre del frame para que coincida con el XML
-        const frameKey = `note${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`;
-        
-        // Crear nota principal con el frame correcto
-        const noteSprite = this.scene.add.sprite(pos.x, initialY, 'notes', frameKey);
-        noteSprite.setScale(this.arrowConfigs.scale.notes);
-        noteSprite.setDepth(115);
-        noteSprite.setName(`Note_${direction}_${note.strumTime}`);
-        
-        // Debug para verificar la textura
-        console.log('Note sprite created:', {
-            texture: noteSprite.texture.key,
-            frame: noteSprite.frame.name,
-            visible: noteSprite.visible,
-            active: noteSprite.active
-        });
-        
-        // Asignar a la capa UI
-        if (this.scene.cameraController) {
-            this.scene.cameraController.addToUILayer(noteSprite);
-        }
-        
-        // HOLD NOTES
-        if (note.isHoldNote) {
-            if (!this.scene.textures.exists('NOTE_hold_assets')) {
-                console.error('ERROR: Textura de hold notes no encontrada!');
-                return;
-            }
-
-            const holdDuration = note.sustainLength;
-            const pixelsPerMs = 0.45 * this.speed;
-            const holdLength = holdDuration * pixelsPerMs;
-            const numPieces = Math.max(1, Math.ceil(holdLength / this.holdSegmentHeight));
-            
-            note.holdSprites = [];
-            
-            // Crear contenedor para hold notes y posicionarlo correctamente
-            const holdContainer = this.scene.add.container(pos.x, initialY);
-            holdContainer.setDepth(noteSprite.depth - 1);
-            holdContainer.setName(`HoldNote_${direction}_${note.strumTime}`);
-            
-            // Crear segmentos de hold note
-            for (let i = 0; i < numPieces; i++) {
-                const segmentY = i * this.holdSegmentHeight;
-                const pieceFrame = `${holdColor} hold piece0000`;
-
-                const holdPiece = this.scene.add.sprite(0, segmentY, 'NOTE_hold_assets', pieceFrame)
-                    .setOrigin(0.5, 0)
-                    .setScale(this.arrowConfigs.scale.holds);
-                
-                holdContainer.add(holdPiece);
-                note.holdSprites.push(holdPiece);
-            }
-            
-            // Añadir pieza final
-            const endY = numPieces * this.holdSegmentHeight;
-            const holdEnd = this.scene.add.sprite(0, endY, 'NOTE_hold_assets', `${holdColor} hold end0000`)
-                .setOrigin(0.5, 0)
-                .setScale(this.arrowConfigs.scale.holds);
-            
-            holdContainer.add(holdEnd);
-            note.holdSprites.push(holdEnd);
-            
-            note.holdContainer = holdContainer;
-            
-            // Ajustar la posición Y inicial del contenedor para que se alinee con el strumline
-            const strumlineY = isPlayer ? 
-                this.arrowConfigs.playerStatic[directionIndex].y : 
-                this.arrowConfigs.enemyStatic[directionIndex].y;
-            
-            holdContainer.y = initialY;
-            
-            // Asegurar que los segmentos se destruyan al llegar al strumline
-            if (this.scene.cameraController) {
-                holdContainer.setScrollFactor(0);
-                this.scene.cameraController.addToUILayer(holdContainer);
-                
-                holdContainer.each(sprite => {
-                    if (sprite.setScrollFactor) {
-                        sprite.setScrollFactor(0);
-                    }
-                });
-            }
-        }
-
-        note.sprite = noteSprite;
-        note.spawned = true;
+        this.noteSpawner.spawnNote(note);
     }
 
     getAllNotes() {
@@ -857,6 +774,12 @@ export class NotesController {
                         note.lastHoldHealthTime = currentTime;
                     }
                 }
+
+                // Mientras la nota está siendo presionada, mantener idleTimer en 0
+                const character = this.scene.characters?.loadedCharacters.get(this.scene.characters?.currentPlayer);
+                if (character) {
+                    character.idleTimer = 0;
+                }
             } else {
                 // Si no está siendo presionada, solo actualizar posición y seguir subiendo
                 if (!note.holdReleased && currentTime < holdEndTime - this.safeZoneOffset) {
@@ -918,6 +841,22 @@ export class NotesController {
                     isHolding: true,
                     direction: note.direction,
                     animation: note.animation
+                });
+
+                const character = this.scene.characters?.loadedCharacters.get(this.scene.characters?.currentEnemy);
+                if (character) {
+                    character.idleTimer = 0;
+                }
+
+                // Para notas sostenidas del enemigo, mantener el idleTimer en 0
+                this.scene.time.addEvent({
+                    delay: 16,
+                    repeat: Math.floor(note.sustainLength / 16),
+                    callback: () => {
+                        if (character && note.enemyHoldActive) {
+                            character.idleTimer = 0;
+                        }
+                    }
                 });
             } else {
                 // Si no está activa, solo seguir subiendo
@@ -1051,193 +990,219 @@ export class NotesController {
     }
 
     updateEnemyNotes(songPosition) {
-        this.enemyNotes.forEach(note => {
-            if (!note.wasHit && !note.tooLate && songPosition >= note.strumTime) {
-                this.playEnemyNote(note);
+        const currentTime = songPosition;
+        
+        this.songNotes.forEach(note => {
+            // Cambiamos la condición para que procese las notas del enemigo
+            if (!note.isPlayerNote && !note.wasHit && note.spawned) {
+                // Reducimos la ventana de tiempo para que golpee las notas más precisamente
+                if (Math.abs(currentTime - note.strumTime) <= 10) {
+                    this.playEnemyNote(note);
+                }
             }
         });
     }
 
+    // En el método playEnemyNote, simplificar y asegurar que siempre golpee las notas
     playEnemyNote(note) {
         note.wasHit = true;
         const direction = this.directions[note.noteDirection];
         const arrow = this.enemyArrows[note.noteDirection];
         const confirmPos = this.arrowConfigs.enemyConfirm[note.noteDirection];
 
+        // Destruir sprite de la nota inmediatamente
+        if (note.sprite?.active) {
+            note.sprite.destroy();
+            note.sprite = null;
+        }
+
+        // Obtener el personaje enemigo
+        const enemy = this.scene.characters?.loadedCharacters.get(this.scene.characters.currentEnemy);
+
+        // Emitir evento de animación de canto
+        const singAnims = {
+            0: "singLEFT",
+            1: "singDOWN",
+            2: "singUP",
+            3: "singRIGHT"
+        };
+
+        // Emitir strumlineStateChange con la animación correspondiente
+        this.events.emit('strumlineStateChange', {
+            direction: note.noteDirection,
+            isPlayerNote: false,
+            state: 'confirm',
+            sustainNote: note.isHoldNote,
+            perfect: true,
+            animation: singAnims[note.noteDirection]
+        });
+
         if (arrow) {
+            // Animar la flecha
             arrow.x = confirmPos.x;
             arrow.y = confirmPos.y;
             arrow.setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
             arrow.setScale(this.arrowConfigs.scale.confirm);
 
-            // Asegurarse de que la animación de confirmación se restablezca
+            // Volver a estado normal después de la animación
             this.scene.time.delayedCall(this.arrowConfigs.confirmHoldTime, () => {
-                if (arrow.active) {
-                    arrow.x = arrow.originalX;
-                    arrow.y = arrow.originalY;
+                if (arrow.active && !note.enemyHoldActive) {
+                    arrow.x = this.arrowConfigs.enemyStatic[note.noteDirection].x;
+                    arrow.y = this.arrowConfigs.enemyStatic[note.noteDirection].y;
                     arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
                     arrow.setScale(this.arrowConfigs.scale.static);
                 }
             });
         }
 
-        if (note.sprite?.active) {
-            note.sprite.destroy();
-            note.sprite = null;
-        }
+        if (enemy) {
+            // Resetear cualquier timer de idle existente
+            if (enemy.idleTimer !== undefined) {
+                enemy.idleTimer = 0;
+            }
 
-        if (note.isHoldNote) {
-            note.enemyHoldActive = true;
-        }
+            // Calcular el tiempo de retorno a idle basado en el BPM
+            const bpm = this.scene.songData?.song?.bpm || 100;
+            const beatTime = (60 / bpm) * 1000;
 
-        // Emitir evento para la animación del enemigo
-        this.events.emit('cpuNoteHit', {
-            direction: note.noteDirection,
-            isPlayerNote: false,
-            strumTime: note.strumTime
-        });
-    }
+            if (note.isHoldNote) {
+                note.enemyHoldActive = true;
+                note.holdReleased = false;
 
-    handleNoteRelease(noteData) {
-        const arrow = this.playerArrows[noteData];
-        const direction = this.directions[noteData];
-        const activeSustainNote = this.activeHoldNotes[noteData];
+                // Para notas sostenidas, mantener la animación hasta que termine
+                this.scene.time.delayedCall(note.sustainLength, () => {
+                    note.enemyHoldActive = false;
+                    this.cleanUpNote(note);
+                    
+                    if (arrow && arrow.active) {
+                        arrow.x = this.arrowConfigs.enemyStatic[note.noteDirection].x;
+                        arrow.y = this.arrowConfigs.enemyStatic[note.noteDirection].y;
+                        arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                        arrow.setScale(this.arrowConfigs.scale.static);
+                    }
 
-        this.keysHeld[direction] = false;
-
-        if (arrow) {
-            arrow.x = arrow.originalX;
-            arrow.y = arrow.originalY;
-            arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-            arrow.setScale(this.arrowConfigs.scale.static);
-        }
-
-        if (activeSustainNote) {
-            activeSustainNote.isBeingHeld = false;
-            const currentTime = this.scene.songPosition;
-            const holdEndTime = activeSustainNote.strumTime + activeSustainNote.sustainLength;
-
-            if (currentTime < holdEndTime - this.safeZoneOffset && !activeSustainNote.holdReleased) {
-                activeSustainNote.holdReleased = true;
-                this.ratingManager.recordMiss();
+                    // Programar el retorno a idle después de la nota sostenida
+                    if (enemy && enemy.idleTimer !== undefined) {
+                        enemy.idleTimer = 0;
+                        this.scene.time.delayedCall(beatTime, () => {
+                            this.events.emit('strumlineStateChange', {
+                                direction: note.noteDirection,
+                                isPlayerNote: false,
+                                state: 'static'
+                            });
+                        });
+                    }
+                });
+            } else {
+                // Para notas normales
+                this.scene.time.delayedCall(beatTime, () => {
+                    if (enemy && enemy.idleTimer !== undefined) {
+                        enemy.idleTimer = 0;
+                        this.events.emit('strumlineStateChange', {
+                            direction: note.noteDirection,
+                            isPlayerNote: false,
+                            state: 'static'
+                        });
+                    }
+                });
+                
+                this.cleanUpNote(note);
             }
         }
+
+        // Actualizar posición de la cámara
+        if (this.scene.cameraController && enemy?.data) {
+            this.scene.cameraController.updateCameraPosition(enemy.data);
+        }
     }
 
-    updateScrollSpeed(bpm) {
-        this.currentBPM = bpm;
-        this.speed = this.currentBPM / 100; // Base speed normalized to 100 BPM
-    }
+    // En el método hitNote, añadir después de registrar el hit:
+    // hitNote(note, timeDiff) {
+    //     // ... código existente ...
 
-    // Método helper para suscribirse a eventos
-    on(event, fn) {
-        this.events.on(event, fn);
-    }
+    //     // Actualizar posición de la cámara cuando el jugador canta
+    //     if (this.scene.characters?.loadedCharacters) {
+    //         const player = this.scene.characters.loadedCharacters.get(this.scene.characters.currentPlayer);
+    //         if (player?.data) {
+    //             this.scene.cameraController?.updateCameraPosition(player.data);
+    //         }
+    //     }
 
-    // Add this method to handle note release
-    onNoteRelease(note) {
-        this.events.emit('noteRelease', {
-            direction: note.noteDirection,
-            isPlayerNote: note.isPlayerNote
-        });
-    }
+    //     // ... resto del código existente ...
+    // }
 
-    handleCPUNote(note) {
-        // Emit cpuNoteHit event
-        this.events.emit('cpuNoteHit', {
-            direction: note.direction,
-            isPlayerNote: false,
-            strumTime: note.strumTime
-        });
-    }
+    // En el método playEnemyNote, añadir después de registrar el hit:
+    // playEnemyNote(note) {
+    //     // ... código existente ...
 
+    //     // Actualizar posición de la cámara cuando el enemigo canta
+    //     if (this.scene.characters?.loadedCharacters) {
+    //         const enemy = this.scene.characters.loadedCharacters.get(this.scene.characters.currentEnemy);
+    //         if (enemy?.data) {
+    //             this.scene.cameraController?.updateCameraPosition(enemy.data);
+    //         }
+    //     }
+
+    //     // ... resto del código existente ...
+    // }
+
+    // Añadir después del constructor
     async init() {
-        try {
-            // Limpiar handlers previos si existen
-            if (this.keyPressCallbacks) {
-                this.keyPressCallbacks.forEach(({ key, callback }) => {
-                    key.off('down', callback);
-                });
-            }
-            if (this.keyReleaseCallbacks) {
-                this.keyReleaseCallbacks.forEach(({ key, callback }) => {
-                    key.off('up', callback);
-                });
-            }
+        if (this.initialized) {
+            console.warn('NotesController already initialized');
+            return;
+        }
 
-            // Reset arrays
-            this.keyPressCallbacks = [];
-            this.keyReleaseCallbacks = [];
-            
-            // Crear las flechas
+        try {
+            // Crear flechas del jugador y enemigo
             await this.createPlayerArrows();
-            await this.createEnemyArrows();
+            this.createEnemyArrows();
             
-            // Marcar como inicializado
+            // Configurar manejadores de entrada
+            this.setupInputHandlers();
+            
             this.initialized = true;
-            
             console.log('NotesController initialized successfully');
-            return true;
         } catch (error) {
             console.error('Error initializing NotesController:', error);
-            return false;
+            throw error;
         }
     }
 
     // Add this method to the NotesController class
     cleanUpNote(note) {
-        // Clean up note sprite
+        // Clean up main sprite
         if (note.sprite?.active) {
             note.sprite.destroy();
             note.sprite = null;
         }
-
-        // Clean up hold note sprites and container
-        if (note.isHoldNote) {
-            if (note.holdSprites) {
-                note.holdSprites.forEach(sprite => {
-                    if (sprite?.active) {
-                        sprite.destroy();
-                    }
-                });
-                note.holdSprites = [];
-            }
-
-            if (note.holdContainer?.active) {
-                note.holdContainer.destroy();
-                note.holdContainer = null;
-            }
+        
+        // Clean up hold sprites
+        if (note.holdSprites) {
+            note.holdSprites.forEach(sprite => {
+                if (sprite?.active) {
+                    sprite.destroy();
+                }
+            });
+            note.holdSprites = [];
         }
-
-        // Reset note state
+        
+        // Clean up hold container
+        if (note.holdContainer?.active) {
+            note.holdContainer.destroy();
+            note.holdContainer = null;
+        }
+        
+        // Reset hold state
+        if (note.isHoldNote) {
+            note.isBeingHeld = false;
+            note.enemyHoldActive = false;
+            note.holdReleased = true;
+            note.holdEndPassed = true;
+        }
+        
+        // Mark note as completely processed
         note.wasHit = true;
         note.tooLate = true;
-        note.spawned = false;
-        note.isBeingHeld = false;
-
-        // Clear from active hold notes if present
-        const directionIndex = note.noteDirection;
-        if (this.activeHoldNotes[directionIndex] === note) {
-            this.activeHoldNotes[directionIndex] = null;
-        }
-
-        // Reset arrow state if needed
-        if (note.isPlayerNote) {
-            const arrow = this.playerArrows[directionIndex];
-            if (arrow) {
-                arrow.x = arrow.originalX;
-                arrow.y = arrow.originalY;
-                arrow.setTexture('noteStrumline', 
-                    `static${this.directions[directionIndex].charAt(0).toUpperCase() + 
-                    this.directions[directionIndex].slice(1)}0001`);
-                arrow.setScale(this.arrowConfigs.scale.static);
-            }
-        }
-
-        // Emit cleanup event
-        this.events.emit('noteCleanup', {
-            direction: note.noteDirection,
-            isPlayerNote: note.isPlayerNote
-        });
     }
 }

@@ -4,10 +4,15 @@ import { CrashHandler } from './CrashHandler.js';
 
 class VolumeUIScene extends Phaser.Scene {
     constructor() {
-        super({ key: 'VolumeUIScene', active: true });  // Hacemos la escena siempre activa
+        super({ key: 'VolumeUIScene', active: true });
     }
 
     preload() {
+        // Cargar fuentes
+        this.load.binary('fnf_font', 'public/assets/fonts/FridayNightFunkin-Regular.ttf');
+        this.load.binary('vcr_font', 'public/assets/fonts/vcr.ttf');
+        
+        // Cargar imágenes y sonidos existentes
         this.load.image('volumeBox', 'public/assets/images/UI/soundtray/volumebox.png');
         for (let i = 1; i <= 10; i++) {
             this.load.image(`volumeBar${i}`, `public/assets/images/UI/soundtray/bars_${i}.png`);}
@@ -17,6 +22,20 @@ class VolumeUIScene extends Phaser.Scene {
     }
 
     create() {
+        // Cargar fuentes usando WebFontLoader
+        const WebFontConfig = {
+            custom: {
+                families: ['FNF', 'VCR'],
+                urls: ['public/html/index.css']
+            },
+            active: () => {
+                console.log('Fuentes cargadas correctamente');
+            }
+        };
+
+        // @ts-ignore - Ignorar error de tipado de WebFont
+        WebFont.load(WebFontConfig);
+
         // Posiciones iniciales ajustadas
         const initialY = -70;
         const showY = 80; // Bajamos la posición de la caja en la ventana
@@ -100,6 +119,7 @@ class VolumeUIScene extends Phaser.Scene {
     }
 }
 
+// Modificar la configuración para incluir las fuentes globalmente
 let config = {
     autoFocus: true,
     type: Phaser.AUTO,
@@ -107,12 +127,19 @@ let config = {
     height: 720,
     parent: 'game-container',
     scene: [MainScene, VolumeUIScene],
-    backgrounColor: '#000000',
+    backgroundColor: '#000000', // Corregido el typo de 'backgrounColor'
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         expandParent: true,
         fullscreenTarget: 'game-container',
+    },
+    dom: {
+        createContainer: true
+    },
+    render: {
+        pixelArt: false,
+        antialias: true
     },
 };
 

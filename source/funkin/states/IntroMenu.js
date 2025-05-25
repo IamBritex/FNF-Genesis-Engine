@@ -40,8 +40,8 @@ class IntroMenu extends Phaser.Scene {
 
         // Pasos con textos en mayúsculas
         const steps = [
-            { text: "FUNKIN' CREW", wait: 1 },
-            { text: "PRESENTS", wait: 1.5 },
+            { text: "GENESIS ENGINE MADE", wait: 1 },
+            { text: "BY BRITEX", wait: 1.5 },
             { clear: true, wait: 1.6 },
             { text: "NOT ASSOCIATED WITH ", wait: 1.3 },
             { text: "NEWGROUNDS", image: "newgrounds", wait: 1.3 },
