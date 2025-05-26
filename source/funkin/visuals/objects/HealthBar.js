@@ -7,16 +7,16 @@ export class HealthBar {
   }
 
   _initProperties(options) {
-      // Configuración básica
+      // Configuración básica con más rango de salud
       this.health = 1; // Valor inicial (50%)
       this.curHealth = 1;
-      this.minHealth = 0;
-      this.maxHealth = 2;
+      this.minHealth = 0; // Más bajo que antes (-0.5 -> -1.0)
+      this.maxHealth = 2; // Más alto que antes (2.5 -> 3.0)
       
-      // Escalado de iconos
-      this.minIconScale = 0.7;
-      this.curIconScale = 0.7;
-      this.maxIconScale = 0.9;
+      // Ajustar escalas de iconos para reflejar estados más extremos
+      this.minIconScale = 0.65;
+      this.maxIconScale = 0.95;
+      this.curIconScale = this.minIconScale;
       
       // Configuración visual
       this.config = {
@@ -183,7 +183,9 @@ export class HealthBar {
       const height = this.backgroundBar.height * this.config.scale;
       const totalWidth = width;
       const halfWidth = totalWidth / 2;
-      const healthPercent = Phaser.Math.Clamp(this.health, 0, 2);
+      
+      // Ajustar el rango de clamp para permitir más valores
+      const healthPercent = Phaser.Math.Clamp(this.health, this.minHealth, this.maxHealth);
 
       this._animateHealthBars(width, height, totalWidth, halfWidth, healthPercent);
       this._animateIcons(halfWidth, healthPercent, totalWidth);
@@ -236,9 +238,10 @@ export class HealthBar {
       this.p1Icon.setFrame(0);
       this.p2Icon.setFrame(0);
 
-      if (healthPercent < 0.2 && this.iconFrames.p1 > 1) {
+      // Ajustar los umbrales para los cambios de frame
+      if (healthPercent < 0.25 && this.iconFrames.p1 > 1) { // Cambiar de 0.3 a 0.25
           this.p1Icon.setFrame(1);
-      } else if (healthPercent > 1.8 && this.iconFrames.p2 > 1) {
+      } else if (healthPercent > 1.75 && this.iconFrames.p2 > 1) { // Cambiar de 1.7 a 1.75
           this.p2Icon.setFrame(1);
       }
   }
@@ -277,16 +280,21 @@ export class HealthBar {
   }
 
   setHealth(value) {
-      this.curHealth = Phaser.Math.Clamp(value, 0, 2);
+      // Usar los nuevos límites
+      this.curHealth = Phaser.Math.Clamp(value, this.minHealth, this.maxHealth);
       this.updateBar();
   }
 
   damage(amount) {
-      this.setHealth(this.curHealth - amount);
+      // Aumentar el daño base en un 100%
+      const scaledAmount = amount * 2.0; // Cambiar de 1.5 a 2.0
+      this.setHealth(this.curHealth - scaledAmount);
   }
 
   heal(amount) {
-      this.setHealth(this.curHealth + amount);
+      // Aumentar la curación base en un 100%
+      const scaledAmount = amount * 2.0; // Cambiar de 1.5 a 2.0
+      this.setHealth(this.curHealth + scaledAmount);
   }
 
   destroy() {
