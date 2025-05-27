@@ -163,22 +163,39 @@ export class PlayState extends Phaser.Scene {
   }
 
   async _loadSongChart(currentSong) {
-    const difficulty = this.dataManager.storyDifficulty || "normal"
-
     try {
-      const response = await fetch(Paths.getSongChart(currentSong, difficulty))
-      if (!response.ok) throw new Error(`HTTP ${response.status} para ${Paths.getSongChart(currentSong, difficulty)}`)
-      this.songData = await response.json()
+      const difficulty = this.dataManager.storyDifficulty;
+      let chartPath = '';
+      
+      // Construir la ruta del chart basada en la dificultad
+      if (difficulty === 'normal') {
+        // Para dificultad normal, usar el nombre base de la canción sin sufijo
+        chartPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}.json`;
+      } else {
+        // Para easy y hard, añadir el sufijo de dificultad
+        chartPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}-${difficulty}.json`;
+      }
+
+      console.log('Intentando cargar chart:', chartPath);
+      
+      const response = await fetch(chartPath);
+      if (!response.ok) throw new Error(`HTTP ${response.status} para ${chartPath}`);
+      this.songData = await response.json();
+      
     } catch (e) {
-      console.warn(`Usando chart por defecto para ${currentSong} debido a:`, e.message)
+      console.warn(`Usando chart por defecto para ${currentSong} debido a:`, e.message);
       try {
-        const response = await fetch(Paths.getDefaultSongChart(currentSong))
+        // Intentar cargar el chart por defecto (sin sufijo de dificultad)
+        const defaultPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}.json`;
+        console.log('Intentando cargar chart por defecto:', defaultPath);
+        
+        const response = await fetch(defaultPath);
         if (!response.ok)
-          throw new Error(`HTTP ${response.status} para chart por defecto ${Paths.getDefaultSongChart(currentSong)}`)
-        this.songData = await response.json()
+          throw new Error(`HTTP ${response.status} para chart por defecto ${defaultPath}`);
+        this.songData = await response.json();
       } catch (defaultError) {
-        console.error(`Error cargando chart por defecto para ${currentSong}:`, defaultError.message)
-        throw defaultError // Re-lanzar el error si el chart por defecto también falla
+        console.error(`Error cargando chart para ${currentSong}:`, defaultError.message);
+        throw defaultError;
       }
     }
 
@@ -784,24 +801,14 @@ async _handleSongCompletion() {
 }
 
 playFreakyMenuAndRedirect() {
-    // Reproducir sonido del menú
-    if (this.cache.audio.exists('freakyMenu')) {
-        this.sound.play('freakyMenu');
-    }
-    
-    // Redirigir al menú principal
-    this.redirectToNextState();
-}
-
-redirectToNextState() {
     try {
-        // Detener toda la música y sonidos
+        // Detener todos los sonidos primero
         this.sound.stopAll();
         
-        // Limpiar antes del cambio de escena
+        // Limpiar la escena actual
         this._cleanupBeforeRestart();
 
-        // Determinar la siguiente escena y los datos a pasar
+        // Determinar la siguiente escena y los datos
         const nextScene = this.dataManager.isStoryMode ? 'StoryModeState' : 'FreeplayState';
         const sceneData = this.dataManager.isStoryMode ? {
             weekName: this.dataManager.weekName,
@@ -811,10 +818,30 @@ redirectToNextState() {
             campaignMisses: this.dataManager.campaignMisses
         } : {};
 
-        // Detener la escena actual y cambiar inmediatamente
+        // Primero detener la escena actual
         this.scene.stop();
-        this.scene.start(nextScene, sceneData);
 
+        // Iniciar la reproducción de la música y luego cambiar de escena
+        const freakyMusic = this.sound.add('freakyMenu', {
+            volume: 0.7,
+            loop: true
+        });
+
+        freakyMusic.play();
+
+        // Cambiar de escena
+        this.scene.start(nextScene, sceneData);
+    } catch (error) {
+        console.error('Error during scene transition:', error);
+        // Fallback en caso de error
+        this.scene.start('MainMenuState');
+    }
+}
+
+// Modificar redirectToNextState para que use la misma lógica
+redirectToNextState() {
+    try {
+        this.playFreakyMenuAndRedirect();
     } catch (error) {
         console.error('Error during scene transition:', error);
         this.scene.start('MainMenuState');

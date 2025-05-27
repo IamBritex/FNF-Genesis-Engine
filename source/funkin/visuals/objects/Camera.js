@@ -26,7 +26,7 @@ export class CameraController {
 
   _initProperties() {
     this.defaultZoom = 1;
-    this.gameZoom = 1.2;
+    this.gameZoom = 1.1;
     this.currentGameZoom = this.gameZoom;
     this.currentUIZoom = this.defaultZoom;
     this.bopZoom = 0.1;

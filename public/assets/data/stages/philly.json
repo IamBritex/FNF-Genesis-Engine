@@ -1,5 +1,17 @@
 {
     "stage":[
+                {
+            "player": 1,
+            "layer": 6
+        },
+        {
+            "player": 2,
+            "layer": 6
+        },
+        {
+            "player": "gf",
+            "layer": 5
+        },
         {
             "priority": 1,
             "layer": 1,

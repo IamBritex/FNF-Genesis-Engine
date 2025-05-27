@@ -330,7 +330,7 @@ export class NotesController {
     
     setupInputHandlers() {
         if (!this.initialized) {
-            console.warn('NotesController not initialized yet');
+            console.log('NotesController initialized');
             return;
         }
 

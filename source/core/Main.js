@@ -109,6 +109,22 @@ class VolumeUIScene extends Phaser.Scene {
         // Asignar los sonidos globalmente
         setVolumeSounds(this.volumeSounds);
 
+        // Añadir el texto de versión
+        const versionText = this.add.text(10, this.scale.height - 50, 'v0.1 Indev:\nFriday Night Funkin\': Genesis Engine', {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#FFFFFF',
+            align: 'left',
+            lineSpacing: 5,
+            stroke: '#000000',        // Color del borde
+            strokeThickness: 2      // Grosor del borde
+        });
+
+        
+        // Asegurar que el texto siempre esté visible
+        versionText.setDepth(9000);
+        versionText.setScrollFactor(0);
+
         // Hacer que esta escena persista
         this.scene.get('VolumeUIScene').scene.bringToTop();
     }
