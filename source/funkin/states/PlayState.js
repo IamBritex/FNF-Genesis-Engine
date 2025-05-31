@@ -11,6 +11,7 @@ import { HealthBar } from "../visuals/objects/HealthBar.js"
 import { StageManager } from "../visuals/objects/StageManager.js"
 import { TimeBar } from "../visuals/objects/TimeBar.js"
 import { Paths } from "../../utils/Paths.js"
+import { PauseMenu } from "../visuals/objects/components/Pause.js"
 
 export class PlayState extends Phaser.Scene {
   constructor() {
@@ -41,16 +42,17 @@ export class PlayState extends Phaser.Scene {
     this.currentVoices = null
 
     // Componentes del juego
-    this.audioManager = null
-    this.dataManager = null
-    this.arrowsManager = null
-    this.countdownManager = null
-    this.ratingManager = null
-    this.characters = null
-    this.stageManager = null
-    this.cameraController = null
-    this.ratingText = null
-    this.healthBar = null
+    this.audioManager = null;
+    this.dataManager = null;
+    this.arrowsManager = null;
+    this.countdownManager = null;
+    this.ratingManager = null;
+    this.characters = null;
+    this.stageManager = null;
+    this.cameraController = null;
+    this.ratingText = null;
+    this.healthBar = null;
+    this.pauseMenu = null;  // Asegurarse de que esto esté inicializado como null
 
     // UI y assets
     this.healthBarIcons = {}
@@ -127,6 +129,8 @@ export class PlayState extends Phaser.Scene {
     this.load.audio("missnote2", Paths.MISS_NOTE_2)
     this.load.audio("missnote3", Paths.MISS_NOTE_3)
     this.load.audio("freakyMenu", Paths.FREAKY_MENU)
+    this.load.audio('breakfast', 'public/assets/audio/sounds/breakfast.ogg')
+    this.load.audio('scrollMenu', 'public/assets/audio/sounds/scrollMenu.ogg') // Add this line
 
     // Assets de notas
     this.load.atlasXML("notes", Paths.NOTES.TEXTURE, Paths.NOTES.ATLAS)
@@ -481,6 +485,19 @@ export class PlayState extends Phaser.Scene {
     if (this.cameraController && this.ratingText?.container) {
       this.cameraController.addToUILayer(this.ratingText.container)
     }
+
+    // Crear el menú de pausa y asegurarse de que esté oculto
+    this.pauseMenu = new PauseMenu(this);
+    if (this.cameraController) {
+        this.cameraController.addToUILayer(this.pauseMenu);
+    }
+    
+    // Triple verificación de invisibilidad
+    this.pauseMenu.alpha = 0;
+    this.pauseMenu.visible = false;
+    this.pauseMenu.setVisible(false);
+    this.pauseMenu.setActive(false);
+    this.pauseMenu.isActive = false;
   }
 
   _setupGameElements() {
@@ -588,6 +605,23 @@ export class PlayState extends Phaser.Scene {
         this.cameraController.debugCameras()
       }
     })
+
+    // Manejador de pausa simplificado
+    this.input.keyboard.on('keydown-ESC', () => {
+        if (this.pauseMenu?.isActive) {
+            this._resumeGame();
+        } else {
+            this._pauseGame();
+        }
+    });
+
+    this.input.keyboard.on('keydown-ENTER', () => {
+        if (this.pauseMenu?.isActive) {
+            this._resumeGame();
+        } else {
+            this._pauseGame();
+        }
+    });
   }
 
   _startCountdown() {
@@ -595,7 +629,13 @@ export class PlayState extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (!this.isMusicPlaying || !this.currentInst || !this.songData) return
+    // Siempre actualizar el menú de pausa, independientemente del estado del juego
+    if (this.pauseMenu?.isActive) {
+        this.pauseMenu.update(time, delta);
+        return; // No actualizar nada más si estamos pausados
+    }
+
+    if (!this.isMusicPlaying || !this.currentInst || !this.songData) return;
 
     // Actualizar posición de la canción
     // Usar el seek del audio es más preciso que acumular delta.
@@ -885,4 +925,61 @@ redirectToNextState() {
             console.warn('Error stopping audio instance:', e);
         }
     }
-}}
+  }
+
+  isPaused() {
+      return this.pauseMenu?.isActive || false;
+  }
+
+  _pauseGame() {
+    if (!this.pauseMenu?.isActive) {
+        // Pausar la música
+        this.currentInst?.pause();
+        this.currentVoices?.pause();
+        
+        // Pausar animaciones y tweens
+        this.anims.pauseAll();
+        this.tweens.pauseAll();
+        
+        // Mostrar menú de pausa
+        this.pauseMenu.alpha = 1;
+        this.pauseMenu.visible = true;
+        this.pauseMenu.setVisible(true);
+        this.pauseMenu.isActive = true;
+        
+        // Desactivar inputs del juego
+        if (this.arrowsManager) {
+            this.arrowsManager.disableInputs();
+        }
+
+        // Detener el tiempo del juego pero mantener los inputs activos
+        this.time.paused = true;
+    }
+}
+
+_resumeGame() {
+    if (this.pauseMenu?.isActive) {
+        // Reanudar la música
+        this.currentInst?.resume();
+        this.currentVoices?.resume();
+        
+        // Reanudar animaciones y tweens
+        this.anims.resumeAll();
+        this.tweens.resumeAll();
+        
+        // Ocultar menú de pausa completamente
+        this.pauseMenu.alpha = 0;
+        this.pauseMenu.visible = false;
+        this.pauseMenu.setVisible(false);
+        this.pauseMenu.isActive = false;
+        
+        // Reactivar inputs del juego
+        if (this.arrowsManager) {
+            this.arrowsManager.enableInputs();
+        }
+
+        // Reanudar el tiempo del juego
+        this.time.paused = false;
+    }
+}
+}

@@ -612,4 +612,6 @@ export class Characters {
         this.handleGFComboReactions(newCombo);
     });
   }
+
+
 }

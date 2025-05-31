@@ -1462,6 +1462,8 @@
 		"stage": "philly",
 		"needsVoices": true,
 		"bpm": 165,
-		"speed": 1.2
+		"speed": 1.2,
+		"Artis": "Kawai Sprite",
+  		"Charter": "fabs + Spazkid"
 	}
 }

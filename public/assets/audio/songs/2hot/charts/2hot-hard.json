@@ -5736,6 +5736,8 @@
 		"needsVoices": true,
 		"stage": "Dbackground",
 		"bpm": 182,
-		"speed": 2.8
+		"speed": 2.8,
+		"Artis": "KawaiSprite",
+		"Charter": "ninjamuffin99 + MtH"
 	}
 }

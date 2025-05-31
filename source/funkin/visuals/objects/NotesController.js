@@ -353,7 +353,9 @@ export class NotesController {
             const keys = this.keyBindings[direction];
             
             const pressHandler = () => {
-                if (!this.initialized || !this.playerArrows[index]) return;
+                // Verificar si el juego está pausado
+                if (!this.initialized || !this.playerArrows[index] || this.scene.isPaused()) return;
+                
                 if (!this.keysHeld[direction]) {
                     this.keysHeld[direction] = true;
                     const arrow = this.playerArrows[index];
@@ -395,7 +397,9 @@ export class NotesController {
             };
             
             const releaseHandler = () => {
-                if (!this.initialized || !this.playerArrows[index]) return;
+                // Verificar si el juego está pausado
+                if (!this.initialized || !this.playerArrows[index] || this.scene.isPaused()) return;
+                
                 this.keysHeld[direction] = false;
                 const arrow = this.playerArrows[index];
                 
@@ -610,6 +614,9 @@ export class NotesController {
     }
     
     update(songPosition) {
+        // No actualizar si el juego está pausado
+        if (this.scene.isPaused()) return;
+        
         const currentTime = songPosition;
         const spawnTime = 2000 * this.speed;
         
@@ -1205,4 +1212,16 @@ export class NotesController {
         note.wasHit = true;
         note.tooLate = true;
     }
+
+    disableInputs() {
+        // Deshabilitar los inputs
+        this.inputEnabled = false;
+    }
+
+    enableInputs() {
+        // Habilitar los inputs
+        this.inputEnabled = true;
+    }
+
+
 }

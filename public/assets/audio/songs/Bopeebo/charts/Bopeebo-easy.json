@@ -808,6 +808,8 @@
 		"needsVoices": true,
 		"validScore": true,
 		"speed": 1,
-		"bpm": 100
+		"bpm": 100,
+  		"Artis": "ThatAndyGuy (feat. Saruky)",
+  		"Charter": "Fabs + Spazkid"
 	}
 }
