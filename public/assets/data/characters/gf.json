@@ -137,8 +137,8 @@
     {
       "loop": true,
       "offsets": [
-        45,
-        -8
+        -8,
+        -11
       ],
       "fps": 24,
       "anim": "hairBlow",

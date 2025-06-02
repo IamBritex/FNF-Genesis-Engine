@@ -2,12 +2,24 @@
     "stage":[
         {
             "priority": 1,
-            "layer": 2,
+            "layer": 1,
             "scale": 1.0,
-            "path": "public/assets/data/stages/spooky/halloween_bg_low.png",
+            "path": "public/assets/data/stages/spooky/halloween_bg.png",
             "visible": true,
             "opacity": 1.0,
             "position": [-300, -200]
+        },
+        {
+            "player": 1,
+            "layer": 3
+        },
+        {
+            "player": 2,
+            "layer": 3
+        },
+        {
+            "player": "gf",
+            "layer": 2
         }
     ]
 }

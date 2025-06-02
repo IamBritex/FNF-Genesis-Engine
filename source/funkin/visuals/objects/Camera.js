@@ -26,10 +26,10 @@ export class CameraController {
 
   _initProperties() {
     this.defaultZoom = 1;
-    this.gameZoom = 1.1;
+    this.gameZoom = 1;
     this.currentGameZoom = this.gameZoom;
     this.currentUIZoom = this.defaultZoom;
-    this.bopZoom = 0.1;
+    this.bopZoom = 0.050;
 
     this.currentBPM = 100;
     this.beatInterval = 60000 / this.currentBPM;
@@ -217,18 +217,34 @@ export class CameraController {
   }
 
   updateCameraPosition(characterData) {
-    if (!characterData?.camera_position) {
-      this.targetCameraPos = {
-        x: this.defaultCameraPos.x - (this.gameCamera.width * 0.5),
-        y: this.defaultCameraPos.y - (this.gameCamera.height * 0.5)
-      };
-      return;
+    if (!characterData) {
+        this.targetCameraPos = {
+            x: this.defaultCameraPos.x - (this.gameCamera.width * 0.5),
+            y: this.defaultCameraPos.y - (this.gameCamera.height * 0.5)
+        };
+        return;
     }
 
-    this.targetCameraPos = {
-      x: characterData.camera_position[0] - (this.gameCamera.width * 0.5),
-      y: characterData.camera_position[1] - (this.gameCamera.height * 0.5)
-    };
+    if (characterData.camera_position) {
+        const [camX, camY] = characterData.camera_position;
+        this.targetCameraPos = {
+            x: camX - (this.gameCamera.width * 0.5),
+            y: camY - (this.gameCamera.height * 0.5)
+        };
+    } else if (characterData.position) {
+        // Si no hay camera_position, usar la posición del personaje
+        const [posX, posY] = characterData.position;
+        this.targetCameraPos = {
+            x: posX - (this.gameCamera.width * 0.5),
+            y: posY - (this.gameCamera.height * 0.5)
+        };
+    } else {
+        // Si no hay ninguna posición, usar la posición por defecto
+        this.targetCameraPos = {
+            x: this.defaultCameraPos.x - (this.gameCamera.width * 0.5),
+            y: this.defaultCameraPos.y - (this.gameCamera.height * 0.5)
+        };
+    }
   }
 
   triggerBop() {

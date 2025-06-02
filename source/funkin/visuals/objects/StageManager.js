@@ -5,10 +5,17 @@ export class StageManager {
         this.currentStage = null;
         this.defaultStage = 'stage';
         this.characters = null;
+        this.parallaxFactor = 0.1; // Factor base de parallax
+        this.maxLayer = 6; // El número más alto de layer en tu stage.json
     }
 
     setCharacters(charactersInstance) {
+        if (!charactersInstance || typeof charactersInstance.updateCharacterDepths !== 'function') {
+            console.error('Invalid characters instance provided to StageManager');
+            return false;
+        }
         this.characters = charactersInstance;
+        return true;
     }
 
     async loadStage(stageName) {
@@ -20,11 +27,9 @@ export class StageManager {
             
             if (!this._isValidStageData(stageData)) {
                 console.warn(`Stage "${stageToLoad}" data is invalid`);
-                
                 if (stageToLoad !== this.defaultStage) {
                     return this.loadStage(this.defaultStage);
                 }
-                
                 throw new Error('Invalid default stage data');
             }
             
@@ -32,14 +37,20 @@ export class StageManager {
             await this._loadStageAssets(stageData);
             this._createStageLayers(stageData);
             
+            // Procesar las capas de personajes solo si hay characters disponible
+            if (this.characters) {
+                const characterLayers = stageData.stage.filter(layer => 
+                    layer.player && (layer.player === 1 || layer.player === 2 || layer.player === 'gf')
+                );
+                this._processCharacterLayers(characterLayers);
+            }
+            
             return true;
         } catch (error) {
             console.warn(`Error loading stage "${stageToLoad}":`, error);
-            
             if (stageToLoad !== this.defaultStage) {
                 return this.loadStage(this.defaultStage);
             }
-            
             return false;
         }
     }
@@ -124,16 +135,15 @@ export class StageManager {
     }
 
     _processCharacterLayers(characterLayers) {
-        // Verificación más robusta
-        if (!this.characters || typeof this.characters.updateCharacterDepths !== 'function') {
-            console.warn('Characters instance not properly set in StageManager');
+        if (!this.characters) {
+            console.warn('No characters instance available');
             return;
         }
-    
+
         const depthsConfig = {
-            player1: null,
-            player2: null,
-            gf: null
+            player1: 0,  // Default values
+            player2: 0,
+            gf: 0
         };
     
         characterLayers.forEach(layerConfig => {
@@ -151,18 +161,20 @@ export class StageManager {
             }
         });
     
-        // Llamada segura a updateCharacterDepths
         try {
             this.characters.updateCharacterDepths(depthsConfig);
         } catch (error) {
-            console.error('Error updating character depths:', error);
+            console.error('Error updating character depths:', error, depthsConfig);
         }
     }
 
     _createLayer(layer, textureKey) {
         const [x = 0, y = 0] = Array.isArray(layer.position) ? layer.position : [];
         const layerDepth = layer.layer ?? 0;
-
+        
+        // Calcula el factor de parallax basado en la profundidad de la capa
+        const parallaxMultiplier = (layerDepth / this.maxLayer) * this.parallaxFactor;
+        
         const bgImage = this.scene.add.image(x, y, textureKey)
             .setOrigin(0, 0)
             .setDepth(layerDepth)
@@ -170,9 +182,15 @@ export class StageManager {
             .setAlpha(layer.opacity ?? 1.0)
             .setFlipX(layer.flipx === true);
 
+        // Configura el scroll factor basado en la profundidad
+        // Las capas más altas se moverán más
+        const scrollFactor = 1 + parallaxMultiplier;
+        bgImage.setScrollFactor(scrollFactor);
+
         this.layers.push({
             image: bgImage,
-            layerData: layer
+            layerData: layer,
+            parallaxFactor: scrollFactor
         });
     }
 
@@ -226,6 +244,20 @@ export class StageManager {
     }
 
     update(time, delta) {
-        // Lógica de animación si es necesaria
+        if (!this.scene.cameraController?.gameCamera) return;
+    
+        const camera = this.scene.cameraController.gameCamera;
+    
+        this.layers.forEach(layer => {
+            if (layer.image && layer.parallaxFactor) {
+                // Ajusta la posición base según el movimiento de la cámara
+                const baseX = layer.layerData.position[0] || 0;
+                const baseY = layer.layerData.position[1] || 0;
+                
+                // Aplica el efecto parallax
+                layer.image.x = baseX - (camera.scrollX * (layer.parallaxFactor - 1));
+                layer.image.y = baseY - (camera.scrollY * (layer.parallaxFactor - 1));
+            }
+        });
     }
 }

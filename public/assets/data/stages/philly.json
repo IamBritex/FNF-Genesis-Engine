@@ -19,7 +19,7 @@
             "path": "public/assets/data/stages/philly/sky.png",
             "visible": true,
             "opacity": 1.0,
-            "position": [-240, -70]
+            "position": [-180, -10]
         },
         {
             "priority": 1,
@@ -28,11 +28,20 @@
             "path": "public/assets/data/stages/philly/city.png",
             "visible": true,
             "opacity": 1.0,
-            "position": [-200, -80]
+            "position": [-170, -20]
         },
         {
             "priority": 1,
             "layer": 3,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/win0.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-170, -20]
+        },
+        {
+            "priority": 1,
+            "layer": 4,
             "scale": 1.0,
             "path": "public/assets/data/stages/philly/behindTrain.png",
             "visible": true,
@@ -41,12 +50,51 @@
         },
         {
             "priority": 1,
-            "layer": 4,
+            "layer": 5,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/train.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [3100, 190]
+        },
+        {
+            "priority": 1,
+            "layer": 5,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/train.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [6100, 190]
+        },
+        {
+            "priority": 1,
+            "layer": 5,
+            "scale": 1.0,
+            "path": "public/assets/data/stages/philly/train.png",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [6100, 190]
+        },
+        {
+            "priority": 1,
+            "layer": 6,
             "scale": 1.0,
             "path": "public/assets/data/stages/philly/street.png",
             "visible": true,
             "opacity": 1.0,
             "position": [-100, -50]
+        },
+                {
+            "player": 1,
+            "layer": 8
+        },
+        {
+            "player": 2,
+            "layer": 8
+        },
+        {
+            "player": "gf",
+            "layer": 7
         }
     ]
 }

@@ -12,6 +12,7 @@ import { StageManager } from "../visuals/objects/StageManager.js"
 import { TimeBar } from "../visuals/objects/TimeBar.js"
 import { Paths } from "../../utils/Paths.js"
 import { PauseMenu } from "../visuals/objects/components/Pause.js"
+import { ScriptHandler } from '../visuals/objects/components/ScriptHandler.js';
 
 export class PlayState extends Phaser.Scene {
   constructor() {
@@ -53,6 +54,7 @@ export class PlayState extends Phaser.Scene {
     this.ratingText = null;
     this.healthBar = null;
     this.pauseMenu = null;  // Asegurarse de que esto esté inicializado como null
+    this.scriptHandler = null;
 
     // UI y assets
     this.healthBarIcons = {}
@@ -449,30 +451,51 @@ export class PlayState extends Phaser.Scene {
 
   async _initializeGameComponents() {
     if (!this.songData?.song) {
-      throw new Error("Datos de canción no disponibles en _initializeGameComponents")
+        throw new Error("Datos de canción no disponibles en _initializeGameComponents")
     }
 
     this._initializeSongComponents()
 
-    // Primero inicializar el stage y los personajes (capa de juego)
-    if (this.songData.song.stage) {
-      await this.stageManager.loadStage(this.songData.song.stage)
+    // 1. Primero crear las instancias
+    if (!this.characters) {
+        this.characters = new Characters(this)
     }
+    
+    if (!this.stageManager) {
+        this.stageManager = new StageManager(this)
+    }
+
+    // 2. Cargar personajes primero
     await this.characters.loadCharacterFromSong(this.songData)
 
-    // Luego inicializar los elementos UI
+    // 3. Configurar el StageManager con los personajes
+    this.stageManager.setCharacters(this.characters)
+
+    // 4. Cargar el stage después de que los personajes estén listos
+    if (this.songData.song.stage) {
+        await this.stageManager.loadStage(this.songData.song.stage)
+    } else {
+        await this.stageManager.loadStage('stage') // Stage por defecto
+    }
+
+    // Inicializar ScriptHandler y cargar eventos del chart
+    this.scriptHandler = new ScriptHandler(this);
+    await this.scriptHandler.loadEventsFromChart(this.songData);
+    this.scriptHandler.cameraController = this.cameraController; // Asegurar que tenga referencia
+
+    // El resto de la inicialización...
     await this.ratingManager.create()
     await this._createHealthBar()
     await this.arrowsManager.init()
 
     // Asegurar que los elementos UI estén en la capa correcta
     if (this.cameraController) {
-      if (this.ratingManager?.container) {
-        this.cameraController.addToUILayer(this.ratingManager.container)
-      }
-      if (this.healthBar?.container) {
-        this.cameraController.addToUILayer(this.healthBar.container)
-      }
+        if (this.ratingManager?.container) {
+            this.cameraController.addToUILayer(this.ratingManager.container)
+        }
+        if (this.healthBar?.container) {
+            this.cameraController.addToUILayer(this.healthBar.container)
+        }
     }
 
     // Crear nuevo RatingText para cada canción
@@ -638,16 +661,18 @@ export class PlayState extends Phaser.Scene {
     if (!this.isMusicPlaying || !this.currentInst || !this.songData) return;
 
     // Actualizar posición de la canción
-    // Usar el seek del audio es más preciso que acumular delta.
     this.songPosition = this.currentInst.seek * 1000
     if (this.timeBar) {
-      this.timeBar.update(this.songPosition)
+        this.timeBar.update(this.songPosition)
     }
 
-    this._updateGameComponents(time, delta) // Pasa songPosition si es necesario
-    this._updateBeatDetection() // Usa this.songPosition actualizado
-    this._updateBPMChanges() // Usa this.songPosition actualizado
-    this._updateUI(time, delta) // Actualizaciones de UI que dependen de time/delta
+    this._updateGameComponents(time, delta)
+    this._updateBeatDetection()
+    this._updateBPMChanges()
+    this._updateUI(time, delta)
+
+    // Actualizar el ScriptHandler
+    this.scriptHandler?.update(time, delta);
   }
 
   _updateSongPosition(delta) {
@@ -767,55 +792,83 @@ export class PlayState extends Phaser.Scene {
   }
 
   async _cleanupBeforeRestart() {
-    // Limpiar componentes actuales
-    this.arrowsManager?.cleanup();
-    this.ratingManager?.reset();
-    this.characters?.cleanup();
-    this.stageManager?.cleanup();
-    this.healthBar?.destroy();
-    this.ratingText?.destroy();
-    this.timeBar?.destroy();
+    console.log("Cleaning up before restart...");
     
-    // Limpiar audio
-    this._safeStopAudio(this.currentVoices);
-    this._safeStopAudio(this.currentInst);
-    
-    // Resetear estado
-    this.songPosition = 0;
-    this.isMusicPlaying = false;
-    this.lastBeat = -1;
-    
-    // Limpiar datos de canción
-    this.songData = null;
-    
-    // Resetear cámaras
-    this.cameraController?.reset();
+    try {
+        // First cleanup scripts
+        if (this.scriptHandler) {
+            console.log("Cleaning up scripts...");
+            await this.scriptHandler.cleanup();
+            this.scriptHandler = null;
+        }
+        
+        // Then cleanup other components
+        await Promise.all([
+            this.arrowsManager?.cleanup(),
+            this.ratingManager?.reset(),
+            this.characters?.cleanup(),
+            this.stageManager?.cleanup(),
+        ]);
+        
+        // Destroy UI elements
+        this.healthBar?.destroy();
+        this.ratingText?.destroy();
+        this.timeBar?.destroy();
+        
+        // Clear audio
+        this._safeStopAudio(this.currentVoices);
+        this._safeStopAudio(this.currentInst);
+        
+        // Reset state
+        this.songPosition = 0;
+        this.isMusicPlaying = false;
+        this.lastBeat = -1;
+        this.songData = null;
+        
+        // Reset cameras
+        this.cameraController?.reset();
+        
+        console.log("Cleanup completed successfully");
+    } catch (error) {
+        console.error("Error during cleanup:", error);
+    }
 }
 
 async _handleSongCompletion() {
     try {
         this.isMusicPlaying = false;
         
-        // Detener audio actual
+        // Hacer cleanup antes de cualquier otra cosa
+        await this._cleanupBeforeRestart();
+        
+        // Stop current audio
         this._safeStopAudio(this.currentVoices);
         this._safeStopAudio(this.currentInst);
         
         this.currentInst = null;
         this.currentVoices = null;
 
-        // Verificar si estamos en modo historia
         if (this.dataManager.isStoryMode) {
-            // Incrementar el índice de la canción actual
             this.dataManager.currentSongIndex++;
             
-            // Verificar si hay más canciones en la playlist
             if (this.dataManager.currentSongIndex < this.dataManager.storyPlaylist.length) {
                 console.log('Moving to next song:', this.dataManager.storyPlaylist[this.dataManager.currentSongIndex]);
                 
-                // Limpiar el estado actual
-                await this._cleanupBeforeRestart();
+                // Asegurar que el ScriptHandler esté completamente limpio
+                if (this.scriptHandler) {
+                    await this.scriptHandler.cleanup();
+                    this.scriptHandler.destroy();
+                    this.scriptHandler = null;
+                }
                 
-                // Reiniciar la escena con la siguiente canción
+                // Limpiar caché de scripts
+                Object.keys(this.cache.custom).forEach(key => {
+                    if (key.includes('script')) {
+                        this.cache.custom.remove(key);
+                    }
+                });
+                
+                // Reiniciar la escena con datos limpios
                 this.scene.restart({
                     isStoryMode: true,
                     storyPlaylist: this.dataManager.storyPlaylist,
@@ -832,10 +885,15 @@ async _handleSongCompletion() {
             }
         }
         
-        // Si no hay más canciones o no estamos en modo historia
         this.playFreakyMenuAndRedirect();
     } catch (error) {
         console.error('Error in _handleSongCompletion:', error);
+        // En caso de error, forzar limpieza y redirección
+        if (this.scriptHandler) {
+            await this.scriptHandler.cleanup();
+            this.scriptHandler.destroy();
+            this.scriptHandler = null;
+        }
         this.playFreakyMenuAndRedirect();
     }
 }
