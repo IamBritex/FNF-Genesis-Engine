@@ -1,111 +1,103 @@
-# Genesis Engine
-
-Estoy harto de compilar esta mierda, tanto la original, el PsychEngine y etc solo para terminar viendo un error de paquetes por que los desarrolladores no se atrevieron a poner los paquetes exactos para descargar y ahi tengo que estar investignado cual descargar... si, este engine es un desquito de eso y un poco más, aqui te presentare el metodo de compilacion (no descargaras 30GB de nada y no tardaras mil y un horas).
+# Friday Night Funkin': Genesis Engine
 
 [![Made with Phaser](https://img.shields.io/badge/Made%20With-Phaser-red.svg?style=for-the-badge&logo=phaser)](https://phaser.io)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=JavaScript&logoColor=black)](https://developer.mozilla.org/es/docs/Web/JavaScript)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/IamBritex/FNF-Genesis-Engine)
 
+> Adios a la compilacion (lime test {windows, linux, html} ; )
 
-![WTF](https://i.pinimg.com/originals/45/0a/50/450a50d67cc1585977586d1380d51332.gif)
+## ¿Que es Genesis Engine?
 
-## Características
+Genesis Engine es un motor revolucionario de Friday Night Funkin'  que funciona **100% con el navegador**. Olvidate de descargar mierda y media de dependencias, configuracion de Haxe, o esperar horas de compilación.
 
-- ![icon](https://iambritex.github.io/FNF-Genesis-Engine/public/html/icon16.png)**Sin compilación (por lo menos no como haxe)** - Ejecuta el juego directamente en tu navegador
-- ![icon](https://iambritex.github.io/FNF-Genesis-Engine/public/html/icon16.png) **Motor modular** - Personaliza y extiende fácilmente tus scripts
-- ![icon](https://iambritex.github.io/FNF-Genesis-Engine/public/html/icon16.png) **Multiplataforma** - Funciona en cualquier navegador y dispostivo que lo soporte
+<img src="https://i.pinimg.com/originals/be/3c/cf/be3ccf09b438e59daba7795673839ac6.gif" width="250" alt="huh?">
 
-## Inicio Rápido
-![:000](https://i.pinimg.com/originals/ec/ec/33/ecec330a1bb6b15b03ebd93c63f29d6c.gif)
+## Ventajas Clave
+
+| Caracteristica | Genesis Engine | Engines tradicionales |
+|----------------|----------------|-----------------------|
+|**Compilación** |No la necesitas | Requrida (Haxe) |
+|**Tiempo de setup**| 2 minutos | horas (dependiendo de tu dispositivo y wifi)|
+|**Tamaño de descarga**|+200mb|+10 GB|
+|**Plataforma**| Navegador | Ejecutable nativo|
+
+## Características Principales
+
+- **Sin compilación**: Ejecuta directamente en tu navegador
+- **Motor modular**: Personaliza y extiende facilmente tus scripts
+- **Multiplataforma**: Funciona en cualquier dispositivo que soporte un navegaddor moderno
+
+## Stack Tecnológico
+
+- **Phaser.js**: Motor de juego 2D potente y optimizado.
+- **JavaScript**: Lenguaje Principal, fácil de aprender.
+- **Node.js**: Para dedsarrollo y herramientas.
+
+## Instalacion Ultra-Rápida
+
+<img src="https://i.pinimg.com/originals/65/39/5e/65395e7d4d8ea15941c538b54e293f60.gif" width="250" alt="huuuhahuhauhau">
 
 ### Prerrequisitos
 
-- [Node.js](https://nodejs.org/) (v14 o superior)
-- Un navegador moderno
-- [Visual Studio Code](https://code.visualstudio.com/) (recomendado)
+- Node.js v14+
+- Navegador moderno
 
-### Instalación
-
-1. Clona el repositorio:
+### 3 comandos y listo
 ```bash
 git clone https://github.com/IamBritex/FNF-Genesis-Engine
-cd FNF-Genesis-Engine
+cd FNF-Genesis-Engine-Main
 ```
-
-2. Instala las dependencias:
+y si quieres hacer que tu Motor/mod sea un ejecutable solo ejecuta:
 ```bash
-npm install
+npm install nodejs
+npm install -y
+node start
 ```
+¡Y en menos de 5 minutos tendrás FNF corriendo!
 
-### Ejecutar el juego
+## Modding Súper Fácil
 
-#### 🔹 VS Code (Recomendado)
+Crear mods nunca fue tan fácil.
 
-1. Instala la extensión [Five Server](https://marketplace.visualstudio.com/items?itemName=yandeu.five-server)
-2. Presiona `Ctrl + Shift + P`
-3. Busca y ejecuta "Five-Server: Start"
+1. Descomprimir layout para tu mod.
+2. Agrega tus assets.
+3. Registra en modList.txt.
+4. Ya esta en el juego.
 
-#### 🔹 Terminal
-
+## Estructura de Mod
 ```bash
-npx five-server
+public/mods/mi-mod/  
+├── characters/    # Personajes custom  
+├── songs/         # Música y charts  
+├── sprites/       # Gráficos  
+└── scripts/       # Lógica custom
 ```
 
-Visita `http://localhost:5555` en tu navegador.
+## Casos de Uso
 
-### Scripts Disponibles
+- **Desarrolladores**: Prototipado rápido de mods
+- **Modders**: Creación de contenido son barreras tecnicas
+- **Jugadores**: Acceso instantáneo desde cualquier dispositivo
+- **Educadores**: Enseñanza de desarrollo de videojuegos
 
-- `npm start`: Inicia el servidor de desarrollo
-- `npm test`: Ejecuta las pruebas
-- `npm run build`: Construye para producción
+## Enlaces Útiles
+- [Demo en vivo]()
+- [Documentacion Completa]()
+- [Canal de YouTube del Creador]()
 
-## Modding
-![uuuh](https://i.pinimg.com/originals/63/f9/52/63f952e836e2a95b8ce3ccfea410dd6d.gif)
+## Comunidad
 
-¿Quieres agregar tu propio contenido? ¡Es fácil!
+<img src="https://i.pinimg.com/736x/6f/b3/4f/6fb34fdedecabe84396618286e0bb7f2.jpg" width="250" alt="GRRR">
 
-1. Crea una nueva carpeta en `public/mods/tu-mod/`
-2. Añade tus recursos (sprites, música, etc.)
-3. Define tu mod en `modsList.txt`
-4. Y ya, a la mierda, aparece tu mod en la lista de mods
-
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detalles. (nada interesante, lo de siempre)
-
-## Contribuir
-> SI CONTRUBYES TE LO AGRADECERIA DEMASIADO y te ganarias una galleta de mi parte
-
-![yeiii](https://i.pinimg.com/originals/0b/6a/3a/0b6a3a24b13dc400863f2ff129086be0.gif)
-
-1. Fork el proyecto
-2. Crea tu rama (`git checkout -b feature/tralaleroTralala`)
-3. Commit tus cambios (`git commit -m 'Add: tralaleroTralala'`)
-4. Push a la rama (`git push origin feature/tralaleroTralala`)
-5. Abre un Pull Request
-
-## Agradecimientos
-![pupapa](https://i.pinimg.com/originals/0e/9d/82/0e9d828e88b41dd819d9575b4a6a0f27.gif)
-
-- Al equipo original de Friday Night Funkin' 
-
-[![FNF](https://avatars.githubusercontent.com/u/117059284?s=200&v=4)](https://github.com/FunkinCrew)
-
-
-- A la comunidad de Phaser.js 
-
-[![PHASER](https://avatars.githubusercontent.com/u/54856938?s=200&v=4)](https://github.com/phaserjs)
-
-
-- A toda mi comunidad de YouTube que siempre me ve quitandome la cabeza en este proyecto en directo <3
-
-[![:3](https://yt3.googleusercontent.com/ukK2-jZQ_APyd21GcdFnbZfNDbOKJxurxxMk7Sit9gmZO8a7RjZkIwrIvEF7h_J1ItM2v1LPb5Q=s160-c-k-c0x00ffffff-no-rj)](https://www.youtube.com/@ImBritex)
+¿Necesitas ayuda? La comunidad esta aquí
+- Discord [Próximamente]
+- Issues: GitHub Issues
+- COntribuciones: !Siempre bienvenidas¡
 
 ---
 
-<
- **Genesis Engine** - El futuro es ahora, o algo así. Y no, ya no necesitaras 
- ```bash
-lime test windows
-```
+Genesis Engine - El futuro es ahora sin el `lime test windows`
+
+Wiki pages you might want to explore:  
+- [FNF Genesis Engine Overview (IamBritex/FNF-Genesis-Engine)](/wiki/IamBritex/FNF-Genesis-Engine#1)
