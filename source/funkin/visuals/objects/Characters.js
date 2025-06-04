@@ -613,5 +613,116 @@ export class Characters {
     });
   }
 
+  async loadDeathCharacter(characterId) {
+    try {
+        const characterPath = `public/assets/data/characters/${characterId}.json`;
+        const response = await fetch(characterPath);
+        const characterData = await response.json();
 
+        const textureKey = `character_${characterId}`;
+
+        // Cargar el sprite sheet de muerte si no está cargado
+        if (!this.scene.textures.exists(textureKey)) {
+            console.log('Loading death character textures...');
+            await new Promise((resolve, reject) => {
+                this.scene.load.atlasXML(
+                    textureKey,
+                    `public/assets/images/${characterData.image}.png`,
+                    `public/assets/images/${characterData.image}.xml`
+                );
+                this.scene.load.once('complete', resolve);
+                this.scene.load.once('loaderror', reject);
+                this.scene.load.start();
+            });
+        }
+
+        // Reemplazar el sprite del player1 con el de muerte
+        const player = this.loadedCharacters.get(this.currentPlayer);
+        if (player && player.sprite) {
+            const oldPosition = {
+                x: player.sprite.x,
+                y: player.sprite.y
+            };
+            
+            player.sprite.destroy();
+            
+            const deathSprite = this.scene.add.sprite(oldPosition.x, oldPosition.y, textureKey);
+            deathSprite.setOrigin(0, 0);
+            deathSprite.setDepth(this.characterDepths.player1);
+            deathSprite.setFlipX(characterData.flip_x === false);
+            
+            player.sprite = deathSprite;
+            player.data = characterData;
+            player.textureKey = textureKey;
+            
+            // Configurar las animaciones de muerte
+            await this.setupDeathAnimations(player);
+            
+            return player;
+        }
+    } catch (error) {
+        console.error('Error loading death character:', error);
+        return null;
+    }
+}
+
+async setupDeathAnimations(character) {
+    const animations = [
+        { name: "BF dies", anim: "firstDeath" },
+        { name: "BF Dead Loop", anim: "deathLoop" },
+        { name: "BF Dead confirm", anim: "deathConfirm" }
+    ];
+
+    for (const animation of animations) {
+        const frames = this.scene.textures.get(character.textureKey)
+            .getFrameNames()
+            .filter(frame => frame.startsWith(animation.name))
+            .sort();
+
+        if (frames.length > 0) {
+            const animKey = `${character.textureKey}_${animation.anim}`;
+            
+            if (!this.scene.anims.exists(animKey)) {
+                this.scene.anims.create({
+                    key: animKey,
+                    frames: frames.map(frame => ({
+                        key: character.textureKey,
+                        frame: frame
+                    })),
+                    frameRate: 24,
+                    repeat: animation.anim === "deathLoop" ? -1 : 0
+                });
+            }
+        }
+    }
+}
+
+async playDeathAnimation() {
+    const player = this.loadedCharacters.get(this.currentPlayer);
+    if (!player?.sprite) return;
+
+    return new Promise(resolve => {
+        // Primera animación de muerte
+        const firstDeathAnim = `${player.textureKey}_firstDeath`;
+        player.sprite.play(firstDeathAnim);
+        
+        player.sprite.once('animationcomplete', () => {
+            resolve();
+        });
+    });
+}
+
+confirmDeath() {
+    const player = this.loadedCharacters.get(this.currentPlayer);
+    if (!player?.sprite) return;
+
+    return new Promise(resolve => {
+        const confirmAnim = `${player.textureKey}_deathConfirm`;
+        player.sprite.play(confirmAnim);
+        
+        player.sprite.once('animationcomplete', () => {
+            resolve();
+        });
+    });
+}
 }

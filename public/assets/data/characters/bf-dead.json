@@ -47,10 +47,10 @@
 		176,
 		209
 	],
-	"camera_position": [
-		0,
-		0
-	],
+  "camera_position": [
+    790,
+    400
+  ],
 	"sing_duration": 4,
 	"scale": 1
 }

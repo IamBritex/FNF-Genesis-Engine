@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Estoy harto de compilar esta mierda...",
   "type": "module",
-  "main": "source/core/main.js",
+  "main": "source/core/app.js",
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"

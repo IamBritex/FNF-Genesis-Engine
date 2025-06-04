@@ -110,7 +110,7 @@ class VolumeUIScene extends Phaser.Scene {
         setVolumeSounds(this.volumeSounds);
 
         // Añadir el texto de versión
-        const versionText = this.add.text(10, this.scale.height - 50, 'v0.54 Indev:\nFriday Night Funkin\': Genesis Engine', {
+        const versionText = this.add.text(10, this.scale.height - 50, 'v0.56 Indev:\nFriday Night Funkin\': Genesis Engine', {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#FFFFFF',

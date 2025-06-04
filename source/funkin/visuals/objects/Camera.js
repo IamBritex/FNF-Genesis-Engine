@@ -166,6 +166,17 @@ export class CameraController {
     this.gameCamera?.setZoom(this.defaultZoom);
   }
 
+  stopAll() {
+    // Detener cualquier movimiento de cámara actual
+    if (this.currentTween) {
+        this.currentTween.stop();
+        this.currentTween = null;
+    }
+    
+    // Detener el boping si está activo
+    this.isBoping = false;
+}
+
   updateBPM(newBPM) {
     this.currentBPM = newBPM;
     this.beatInterval = 60000 / this.currentBPM;
@@ -294,4 +305,15 @@ export class CameraController {
     this.addToUILayer(bounds);
     return bounds;
   }
-}
+
+  panToPosition(x, y, duration = 1000) {
+    if (this.gameCamera) {
+        this.currentTween = this.scene.tweens.add({
+            targets: this.gameCamera,
+            scrollX: x - this.gameCamera.width / 2,
+            scrollY: y - this.gameCamera.height / 2,
+            duration: duration,
+            ease: 'Power2'
+        });
+    }
+}}

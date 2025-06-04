@@ -4,14 +4,19 @@ export class HealthBar {
       this._initProperties(options);
       this._setupBPM();
       this.init();
+      this._setupKeyboardInput();
   }
 
   _initProperties(options) {
       // Configuración básica con más rango de salud
-      this.health = 1; // Valor inicial (50%)
-      this.curHealth = 1;
-      this.minHealth = 0; // Más bajo que antes (-0.5 -> -1.0)
-      this.maxHealth = 2; // Más alto que antes (2.5 -> 3.0)
+      this.health = 1.0;      // Valor inicial (50%)
+      this.curHealth = 1.0;
+      this.minHealth = 0.0;   // Valor mínimo exacto
+      this.maxHealth = 2.0;   // Valor máximo exacto
+      
+      // Factores de daño y curación
+      this.damageMultiplier = 3.0;  // Aumentado de 2.0 a 3.0
+      this.healMultiplier = 2.5;    // Aumentado de 2.0 a 2.5
       
       // Ajustar escalas de iconos para reflejar estados más extremos
       this.minIconScale = 0.65;
@@ -178,6 +183,21 @@ export class HealthBar {
       ]).setDepth(150);
   }
 
+  _setupKeyboardInput() {
+    if (!this.scene.input.keyboard) {
+        this.scene.input.keyboard = this.scene.input.keyboard.addKey(); 
+    }
+
+    // Escuchar la tecla R
+    this.keyR = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+
+    // Configurar el evento
+    this.keyR.on('down', () => {
+        this.setHealth(this.minHealth); // Establecer salud al mínimo
+        console.log('Tecla R presionada - Salud establecida al minimo')
+    });
+  }
+
   updateBar() {
       const width = this.backgroundBar.width * this.config.scale;
       const height = this.backgroundBar.height * this.config.scale;
@@ -192,6 +212,30 @@ export class HealthBar {
   }
 
   _animateHealthBars(width, height, totalWidth, halfWidth, healthPercent) {
+
+    // Añadir logs de debug
+      console.log('Current health:', healthPercent);
+      console.log('Min health:', this.minHealth);
+      console.log('Is game over active:', this.scene.gameOver?.isActive);
+
+      // Verificar si la salud llegó al mínimo
+      if (healthPercent <= 0.001) {
+          console.log('CRITICAL: Health reached minimum threshold!');
+          
+          if (!this.scene.gameOver?.isActive) {
+              console.log('Triggering game over event...');
+              this.scene.events.emit('gameOver', 'player1');
+              
+              // Verificar si el evento fue emitido
+              if (this.scene.events.listenerCount('gameOver') > 0) {
+                  console.log('Game over event listeners found:', this.scene.events.listenerCount('gameOver'));
+              } else {
+                  console.warn('No game over event listeners found!');
+              }
+          }
+          return;
+      }
+      
       const greenWidth = halfWidth * healthPercent;
       const redWidth = totalWidth - greenWidth;
 
@@ -271,30 +315,62 @@ export class HealthBar {
   }
 
   updateHealth(elapsed) {
-      this.curHealth = Phaser.Math.Linear(
-          this.health, 
-          this.curHealth, 
+      const newHealth = Phaser.Math.Linear(
+          this.health,
+          this.curHealth,
           Math.exp(-elapsed * 9)
       );
-      this.health = this.curHealth;
+      
+      // Redondear a 4 decimales
+      this.health = Math.round(newHealth * 10000) / 10000;
+      
+      // Si la salud es muy cercana a 0, forzarla a 0
+      if (this.health < 0.001) {
+          this.health = 0;
+      }
   }
 
   setHealth(value) {
-      // Usar los nuevos límites
-      this.curHealth = Phaser.Math.Clamp(value, this.minHealth, this.maxHealth);
+      // Redondear a 4 decimales para evitar números muy pequeños
+      const roundedValue = Math.round(value * 10000) / 10000;
+      this.curHealth = Phaser.Math.Clamp(roundedValue, this.minHealth, this.maxHealth);
+      
+      // Si el valor es muy cercano a 0, forzarlo a 0
+      if (this.curHealth < 0.001) {
+          this.curHealth = 0;
+      }
+      
       this.updateBar();
   }
 
   damage(amount) {
-      // Aumentar el daño base en un 100%
-      const scaledAmount = amount * 2.0; // Cambiar de 1.5 a 2.0
-      this.setHealth(this.curHealth - scaledAmount);
+      const scaledAmount = amount * this.damageMultiplier;
+      console.log('Damage received:', scaledAmount);
+      console.log('Current health before damage:', this.curHealth);
+      
+      // Aplicar el daño con un mínimo garantizado
+      const newHealth = Math.max(0, this.curHealth - scaledAmount);
+      
+      // Si la salud es muy cercana a 0, forzarla a 0
+      if (newHealth < 0.001) {
+          this.setHealth(0);
+      } else {
+          this.setHealth(newHealth);
+      }
+      
+      console.log('Health after damage:', this.curHealth);
   }
 
   heal(amount) {
-      // Aumentar la curación base en un 100%
-      const scaledAmount = amount * 2.0; // Cambiar de 1.5 a 2.0
-      this.setHealth(this.curHealth + scaledAmount);
+      // Aumentar la curación base
+      const scaledAmount = amount * this.healMultiplier;
+      console.log('Heal amount:', scaledAmount);
+      console.log('Current health before healing:', this.curHealth);
+      
+      const newHealth = Math.min(this.maxHealth, this.curHealth + scaledAmount);
+      this.setHealth(newHealth);
+      
+      console.log('Health after healing:', this.curHealth);
   }
 
   destroy() {

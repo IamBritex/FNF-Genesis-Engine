@@ -13,6 +13,7 @@ import { TimeBar } from "../visuals/objects/TimeBar.js"
 import { Paths } from "../../utils/Paths.js"
 import { PauseMenu } from "../visuals/objects/components/Pause.js"
 import { ScriptHandler } from '../visuals/objects/components/ScriptHandler.js';
+import { GameOver } from '../visuals/objects/components/GameOver.js';
 
 export class PlayState extends Phaser.Scene {
   constructor() {
@@ -55,6 +56,7 @@ export class PlayState extends Phaser.Scene {
     this.healthBar = null;
     this.pauseMenu = null;  // Asegurarse de que esto esté inicializado como null
     this.scriptHandler = null;
+    this.gameOver = null;
 
     // UI y assets
     this.healthBarIcons = {}
@@ -454,6 +456,12 @@ export class PlayState extends Phaser.Scene {
         throw new Error("Datos de canción no disponibles en _initializeGameComponents")
     }
 
+    // Inicializar GameOver primero para asegurar que esté listo para eventos
+    if (!this.gameOver) {
+        console.log('Initializing GameOver component...');
+        this.gameOver = new GameOver(this);
+    }
+
     this._initializeSongComponents()
 
     // 1. Primero crear las instancias
@@ -483,6 +491,9 @@ export class PlayState extends Phaser.Scene {
     await this.scriptHandler.loadEventsFromChart(this.songData);
     this.scriptHandler.cameraController = this.cameraController; // Asegurar que tenga referencia
 
+    // Inicializar GameOver
+    this.gameOver = new GameOver(this);
+    
     // El resto de la inicialización...
     await this.ratingManager.create()
     await this._createHealthBar()
@@ -629,20 +640,26 @@ export class PlayState extends Phaser.Scene {
       }
     })
 
-    // Manejador de pausa simplificado
+    // Manejador de pausa modificado
     this.input.keyboard.on('keydown-ESC', () => {
-        if (this.pauseMenu?.isActive) {
-            this._resumeGame();
-        } else {
-            this._pauseGame();
+        // No pausar si el jugador está muerto
+        if (!this.gameOver?.isActive) {
+            if (this.pauseMenu?.isActive) {
+                this._resumeGame();
+            } else {
+                this._pauseGame();
+            }
         }
     });
 
     this.input.keyboard.on('keydown-ENTER', () => {
-        if (this.pauseMenu?.isActive) {
-            this._resumeGame();
-        } else {
-            this._pauseGame();
+        // No pausar si el jugador está muerto
+        if (!this.gameOver?.isActive) {
+            if (this.pauseMenu?.isActive) {
+                this._resumeGame();
+            } else {
+                this._pauseGame();
+            }
         }
     });
   }
@@ -990,6 +1007,11 @@ redirectToNextState() {
   }
 
   _pauseGame() {
+    // No pausar si el jugador está muerto
+    if (this.gameOver?.isActive) {
+        return;
+    }
+
     if (!this.pauseMenu?.isActive) {
         // Pausar la música
         this.currentInst?.pause();

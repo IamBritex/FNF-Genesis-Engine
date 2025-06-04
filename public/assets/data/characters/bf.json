@@ -185,5 +185,6 @@
   ],
   "sing_duration": 4,
   "scale": 1,
-  "_editor_isPlayer": true
+  "_editor_isPlayer": true,
+  "dead": "bf-dead"
 }
