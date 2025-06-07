@@ -13,10 +13,9 @@ export class ScriptHandler {
     _getBasePath() {
         // Check if we're in GitHub Pages
         if (window.location.hostname.includes('github.io')) {
-            return '/FNF-Genesis-Engine/'; // Your repo name
+            return '/FNF-Genesis-Engine'; // Remove trailing slash
         }
-        // For local development and Electron
-        return '/public';
+        return ''; // Return empty string for local development
     }
 
     destroy() {
@@ -47,11 +46,15 @@ export class ScriptHandler {
             // Construir la ruta del chart de eventos
             let chartPath;
             if (isMod) {
-                const cleanModPath = modPath.replace('/public/', '');
-                chartPath = `${this.basePath}${cleanModPath}/audio/songs/${songName}/charts/Events.json`;
+                // Remove any 'public/' prefix and leading slashes
+                const cleanModPath = modPath.replace('public/', '').replace(/^\//, '');
+                chartPath = `${this.basePath}/public/${cleanModPath}/audio/songs/${songName}/charts/Events.json`;
             } else {
                 chartPath = `${this.basePath}/assets/audio/songs/${songName}/charts/Events.json`;
             }
+            
+            // Normalize path to remove any double slashes
+            chartPath = chartPath.replace(/\/+/g, '/');
             
             console.log(`Attempting to load events from: ${chartPath} (${isMod ? 'MOD' : 'BASE GAME'})`);
             
@@ -100,14 +103,18 @@ export class ScriptHandler {
 
             let scriptPath;
             if (isMod && modPath) {
-                // Asegurar que la ruta del mod use el base path correcto y limpiar dobles slashes
-                const cleanModPath = modPath.replace('/public/', '').replace(/^\//, '');
-                scriptPath = `${this.basePath}${cleanModPath}/data/scripts/${scriptName}.js`;
+                // Remove any 'public/' prefix, leading slashes, and ensure no duplicate 'mods'
+                const cleanModPath = modPath
+                    .replace(/^public\//, '')  // Remove leading 'public/'
+                    .replace(/^\/+/, '')       // Remove leading slashes
+                    .replace(/^mods\//, '');   // Remove leading 'mods/'
+
+                scriptPath = `${this.basePath}/public/mods/${cleanModPath}/data/scripts/${scriptName}.js`;
             } else {
-                scriptPath = `${this.basePath}${this.scriptsBasePath.replace(/^\//, '')}${scriptName}.js`;
+                scriptPath = `${this.basePath}/assets/data/scripts/${scriptName}.js`;
             }
 
-            // Limpiar dobles slashes en la ruta final
+            // Normalize path to remove any double slashes
             scriptPath = scriptPath.replace(/\/+/g, '/');
 
             console.log(`Loading script from: ${scriptPath}`);
