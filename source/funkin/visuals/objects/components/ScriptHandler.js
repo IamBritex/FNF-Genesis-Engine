@@ -100,7 +100,9 @@ export class ScriptHandler {
 
             let scriptPath;
             if (isMod && modPath) {
-                scriptPath = `/${modPath}/data/scripts/${scriptName}.js`;
+                // Asegurar que la ruta del mod use el base path correcto
+                const cleanModPath = modPath.replace('/public/', '');
+                scriptPath = `${this.basePath}${cleanModPath}/data/scripts/${scriptName}.js`;
             } else {
                 scriptPath = `${this.basePath}${this.scriptsBasePath}${scriptName}.js`;
             }
