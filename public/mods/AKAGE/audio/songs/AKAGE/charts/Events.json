@@ -1,0 +1,1018 @@
+{
+    "events": [
+        {
+            "time": 10,
+            "script": "cinematics",
+            "type": "define",
+            "inputs": [0.5, 100]
+        },
+        {
+            "time": 5,
+            "script": "ShadowSprites",
+            "type": "define",
+            "inputs": ["#000000"] 
+        },
+        {
+            "time": 11076.9230769231,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [1]
+        },
+        {
+            "time": 11076.9230769231,
+            "script": "ShadowSprites",
+            "type": "define",
+            "inputs": []  
+        },
+        {
+            "time": 55846.1538461539,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [0.5]
+        },
+        {
+            "time": 30769.2307692308,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": ["reed", 2.5, -1, 2]
+        },
+        {
+            "time": 60230.7692307693,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": [["off", "reed"]]
+        },
+        {
+            "time": 30769.2307692308,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#FFFFFF"]
+        },
+        {
+            "time": 30769.2307692308,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [1]
+        },
+        {
+            "time": 80000.0000000001,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [1]
+        },
+        {
+            "time": 113230.769230769,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [0.01]
+        },
+        {
+            "time": 113384.615384616,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [0.01]
+        },
+        {
+            "time": 113538.461538462,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [0.01]
+        },
+        {
+            "time": 113615.384615385,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [0.01]
+        },
+        {
+            "time": 113692.307692308,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [0.01]
+        },
+        {
+            "time": 114153.846153846,
+            "script": "flashCameraBlack",
+            "type": "define",
+            "inputs": [1]
+        },
+        {
+            "time": 125076.923076923,
+            "script": "ShadowSprites",
+            "type": "define",
+            "inputs": ["#FFFFFF"]  
+        },
+        {
+            "time":125076.923076923,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#000000"]
+        },
+        {
+            "time": 125076.923076923,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 125230.769230769,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 125384.615384616,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 125538.461538462,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 125692.307692308,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 125846.153846154,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 126000,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 126153.846153846,
+            "script": "cicada",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 307.692307692308,
+            "script": "hudhide",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 69846.1538461539,
+            "script": "hudhide",
+            "type": "define",
+            "inputs": ["healthBar", "iconP1", "iconP2"]
+        },
+        {
+            "time": 133538.461538462,
+            "script": "hudhide",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 135692.307692308,
+            "script": "hudhide",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time":80000.0000000001,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#50c6e2"]
+        },
+        {
+            "time": 80000.0000000001,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1, 2]
+        },
+        {
+            "time": 80000.0000000001,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love", 32, "#FFFFFF"]
+        },
+        {
+            "time": 80923.076923077,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me", 32, "#FF0000"]
+        },
+        {
+            "time": 81846.153846154,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me. Love", 40, "#FFFFFF"]
+        },
+        {
+            "time": 82769.2307692309,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me. Love me", 40, "#FF0000"]
+        },
+        {
+            "time": 83692.3076923078,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me. Love me. Love", 40, "#FFFFFF"]
+        },
+        {
+            "time": 84615.3846153847,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me. Love me. Love me,", 40, "#FF0000"]
+        },
+        {
+            "time": 85538.4615384617,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["more", 40, "#FF0000"]
+        },
+        {
+            "time": 86126.9230769232,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["more and", 40, "#FFFFFF"]
+        },
+        {
+            "time":86461.5384615386,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["more and more", 40, "#FF0000"]
+        },
+        {
+            "time": 87384.6153846155,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love", 40, "#FFFFFF"]
+        },
+        {
+            "time": 88307.6923076924,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me.", 40, "#FF0000"]
+        },
+        {
+            "time": 89230.7692307694,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me. Love", 40, "#FFFFFF"]
+        },
+        {
+            "time": 90153.8461538463,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Love me. Love me", 40, "#FF0000"]
+        },
+        {
+            "time": 91076.9230769232,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["so", 40, "#FF0000"]
+        },
+        {
+            "time": 91589.7435897437,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["so much", 40, "#FF0000"]
+        },
+        {
+            "time": 92000.0000000001,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["so much that", 40, "#FF0000"]
+        },
+        {
+            "time": 92512.8205128207,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["so much that it's", 40, "#FF0000"]
+        },
+        {
+            "time": 92923.0769230771,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["so much that it's mad", 40, "#FF0000"]
+        },
+        {
+            "time": 93538.4615384617,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["so much that it's madden", 40, "#FF0000"]
+        },
+        {
+            "time": 93846.153846154,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["so much that it's maddening.", 40, "#FF0000"]
+        },
+        {
+            "time": 94769.2307692309,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["It's", 40, "#FFFFFF"]
+        },
+        {
+            "time":95692.3076923078,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["It's paintful,", 40, "#FFFFFF"]
+        },
+        {
+            "time":96615.3846153848,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["It's paintful, it", 40, "#FFFFFF"]
+        },
+        {
+            "time":97538.4615384617,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["It's paintful, it hurts", 40, "#FFFFFF"]
+        },
+        {
+            "time":98461.5384615386,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break", 40, "#FF0000"]
+        },
+        {
+            "time":99384.6153846156,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break, break", 40, "#FF0000"]
+        },
+        {
+            "time":100307.692307692,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break, break this", 40, "#FFFFFF"]
+        },
+        {
+            "time":100615.384615385,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break, break this bind", 40, "#FFFFFF"]
+        },
+        {
+            "time":100923.076923077,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break, break this binding", 40, "#FFFFFF"]
+        },
+        {
+            "time":101230.769230769,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break, break this binding s", 40, "#FFFFFF"]
+        },
+        {
+            "time":101538.461538462,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break, break this binding spe", 40, "#FFFFFF"]
+        },
+        {
+            "time":101846.153846154,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["Break, break this binding spell", 40, "#FFFFFF"]
+        },
+        {
+            "time":102153.846153846,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["o", 40, "#FF0000"]
+        },
+        {
+            "time":103794.871794872,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["ok", 40, "#FF0000"]
+        },
+        {
+            "time":104000,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["okay?", 40, "#FF0000"]
+        },
+        {
+            "time":105846.153846154,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["it", 40, "#FFFFFF"]
+        },
+        {
+            "time":106461.538461539,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["it can", 40, "#FFFFFF"]
+        },
+        {
+            "time":107076.923076923,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["it can't", 40, "#FFFFFF"]
+        },
+        {
+            "time":107692.307692308,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["it can't be", 40, "#FFFFFF"]
+        },
+        {
+            "time":108307.692307693,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["it can't be sto", 40, "#FFFFFF"]
+        },
+        {
+            "time":108923.076923077,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["it can't be stopped", 40, "#FFFFFF"]
+        },
+        {
+            "time":109538.461538462,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["ahh ...", 40, "#FF0000"]
+        },
+        {
+            "time":112000,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["ahh ... !", 40, "#FF0000"]
+        },
+        {
+            "time":113128.205128205,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["* mikued *", 40, "#FFFFFF"]
+        },
+        {
+            "time":113128.505128205,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#be2a45"]
+        },
+        {
+            "time":114153.846153846,
+            "script": "Lyrics",
+            "type": "define",
+            "inputs": ["stop"]
+        },
+        {
+            "time": 60230.7692307693,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#000000"]
+        },
+        {
+            "time": 60230.7692307693,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, "Chimera"]
+        },
+        {
+            "time": 60230.7692307693,
+            "script": "cinematics",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 60230.7692307693,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, null] 
+        },
+        {
+            "time": 69846.1538461539,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, "teteto"]
+        },
+        {
+            "time": 69846.1538461539,
+            "script": "cinematics",
+            "type": "define",
+            "inputs": [0.5, 100]
+        },
+        {
+            "time": 69846.1538461539,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, "bef"] 
+        },
+        {
+            "time": 69846.1538461539,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#be2a45"]
+        },
+        {
+            "time": 80000.0000000001,
+            "script": "ChangeCharacter",
+            "type": "define", 
+            "inputs": [2, "mikumiku"]
+        },
+        {
+            "time": 80000.0000000001,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, null] 
+        },
+        {
+            "time": 114153.846153846,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, "teteto"]
+        },
+        {
+            "time": 114153.846153846,
+            "script": "ChangeCharacter", 
+            "type": "define",
+            "inputs": [1, "bef"]
+        },
+        {
+            "time": 114153.846153846,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1, null]
+        },
+        {
+            "time": 4923.07692307692,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 5230.76923076923,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.0, null]
+        },
+        {
+            "time": 5538.46153846154,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 11076.9230769231,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.1, null]
+        },
+        {
+            "time": 15076.9230769231,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 15384.6153846154,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 16000,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.7, null]
+        },
+        {
+            "time": 18615.3846153846,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 20923.0769230769,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 22769.2307692308,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.0, null]
+        },
+        {
+            "time": 23076.9230769231,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.1, null]
+        },
+        {
+            "time": 23384.6153846154,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 24000,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 24307.6923076923,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.0, null]
+        },
+        {
+            "time": 24615.3846153846,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 25230.7692307692,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 25538.4615384615,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.7, null]
+        },
+        {
+            "time": 26461.5384615385,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 26769.2307692308,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 28307.6923076923,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 30153.8461538462,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.6, null]
+        },
+        {
+            "time": 31384.6153846154,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.7, null]
+        },
+        {
+            "time": 32615.3846153846,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 33846.1538461538,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 35076.9230769231,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 35384.6153846154,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 35692.3076923077,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 36307.6923076923,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.7, null]
+        },
+        {
+            "time": 37538.4615384615,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 38769.2307692308,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 39230.7692307692,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.0, null]
+        },
+        {
+            "time": 39384.6153846154,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 40307.6923076923,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 42769.2307692308,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.7, null]
+        },
+        {
+            "time": 45538.4615384616,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 46769.2307692308,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 48000,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.0, null]
+        },
+        {
+            "time": 49230.7692307693,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 49692.3076923077,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 49978.8461538462,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.7, null]
+        },
+        {
+            "time": 52615.3846153847,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 54153.8461538462,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 54461.5384615385,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.7, null]
+        },
+        {
+            "time": 54769.2307692308,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 55538.4615384616,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 1.0, 0.01]
+        },
+        {
+            "time": 56615.3846153847,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.9, null]
+        },
+        {
+            "time": 57846.1538461539,
+            "script": "CameraScript",
+            "type": "define",
+            "inputs": ["gameCamera", 0.8, null]
+        },
+        {
+            "time": 29200,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": ["ahhh"]
+        },
+        {
+            "time": 30800,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": [["off", "ahhh"]]
+        },
+        {
+            "time": 29200,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, null] 
+        },
+        {
+            "time": 29200,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, null] 
+        },
+        {
+            "time":31200,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, "bef"] 
+        },
+        {
+            "time": 31200,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, "teteto"] 
+        },
+        {
+            "time": 135600,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": ["text", "AKAGE"]
+        },
+        {
+            "time": 135600,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, null] 
+        },
+        {
+            "time": 135600,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, null] 
+        },
+        {
+            "time": 135600,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#FFFFFF"]
+        },
+        {
+            "time": 55000,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": ["pearto"]
+        },
+        {
+            "time": 55000,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, null] 
+        },
+        {
+            "time": 55000,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, null] 
+        },
+        {
+            "time": 55350,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": [["off", "pearto"]]
+        },
+        {
+            "time": 55350,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, "teteto"] 
+        },
+        {
+            "time": 55350,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, "bef"] 
+        },
+        {
+            "time":  50000,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, null] 
+        },
+        {
+            "time":  50000,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, null] 
+        },
+        {
+            "time": 50000,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": ["yu"]
+        },
+        {
+            "time": 50000,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": [["off", "reed"]]
+        },
+        {
+            "time": 50000,
+            "script": "cinematics",
+            "type": "define",
+            "inputs": []
+        },
+        {
+            "time": 50000,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#13ff05"]
+        },
+        {
+            "time":  50800,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [1, "bef"] 
+        },
+        {
+            "time":  50800,
+            "script": "ChangeCharacter",
+            "type": "define",
+            "inputs": [2, "teteto"] 
+        },
+        {
+            "time": 50800,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": [["off", "yu"]]
+        },
+        {
+            "time": 50800,
+            "script": "cinematics",
+            "type": "define",
+            "inputs": [0.5, 100]
+        },
+        {
+            "time": 50800,
+            "script": "ChangeStage",
+            "type": "define",
+            "inputs": [0, "#be2a45"]
+        },
+        {
+            "time": 40000,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": ["dropit"]
+        },
+        {
+            "time": 42230,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": [["off", "dropit"]]
+        },
+        {
+            "time": 65000,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": ["getdown", 1, 0, 2]
+        },
+        {
+            "time": 67000,
+            "script": "titleUiGroup",
+            "type": "define",
+            "inputs": [["off", "getdown"]]
+        }
+    ]
+}

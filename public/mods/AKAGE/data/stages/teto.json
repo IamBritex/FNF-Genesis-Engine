@@ -1,0 +1,16 @@
+{
+    "stage":[
+        {
+            "color": "#be2a45",
+            "layer": 0
+        },
+        {
+            "player": 1,
+            "layer": 3
+        },
+        {
+            "player": 2,
+            "layer": 3
+        }
+    ]
+}

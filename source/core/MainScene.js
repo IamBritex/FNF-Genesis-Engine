@@ -31,6 +31,36 @@ export class MainScene extends Phaser.Scene {
             startButton.setScale(0.5);
             this.input.manager.canvas.style.cursor = 'default';
         });
+
+        // Add keyboard listener for optimization toggle (using 'O' key)
+        this.input.keyboard.on('keydown-O', () => {
+            // Get current mode and toggle it
+            const currentMode = localStorage.getItem('ultraLowPerformanceMode') === 'true';
+            const newMode = !currentMode;
+            
+            // Save to localStorage
+            localStorage.setItem('ultraLowPerformanceMode', newMode);
+            
+            // Show message before reload
+            console.log(`Switching to ${newMode ? 'Ultra Low' : 'High'} Performance Mode...`);
+            
+            // Reload the page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        });
+
+        // Add visual indicator for the current mode
+        const modeText = this.add.text(10, 10, 
+            `Press O to toggle optimization mode\nCurrent Mode: ${localStorage.getItem('ultraLowPerformanceMode') === 'true' ? 'Ultra Low' : 'High Performance'}`, 
+            {
+                fontFamily: 'Arial',
+                fontSize: '16px',
+                color: '#FFFFFF',
+                align: 'left'
+            }
+        );
+        modeText.setDepth(9999);
     }
 
     // Método para limpiar la escena

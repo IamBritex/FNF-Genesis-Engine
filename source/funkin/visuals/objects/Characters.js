@@ -79,113 +79,172 @@ export class Characters {
 
   async createCharacter(characterId, isPlayer) {
     try {
-      const textureKey = `character_${characterId}`;
-      const characterPath = `public/assets/data/characters/${characterId}.json`;
-      const response = await fetch(characterPath);
-      const characterData = await response.json();
+        const textureKey = `character_${characterId}`;
+        let characterPath;
+        let characterData;
 
-      if (!this.scene.textures.exists(textureKey)) {
-        throw new Error(`Texture ${textureKey} not found!`);
-      }
+        // Check if we're in a mod context
+        if (this.scene.songData?.isMod) {
+            // Try loading from mod first
+            characterPath = `${this.scene.songData.modPath}/data/characters/${characterId}.json`;
+            try {
+                const modResponse = await fetch(characterPath);
+                if (modResponse.ok) {
+                    characterData = await modResponse.json();
+                } else {
+                    // Fallback to base game if not found in mod
+                    characterPath = `public/assets/data/characters/${characterId}.json`;
+                    const baseResponse = await fetch(characterPath);
+                    if (!baseResponse.ok) throw new Error('Character not found in mod or base game');
+                    characterData = await baseResponse.json();
+                }
+            } catch (modError) {
+                // Try base game as fallback
+                characterPath = `public/assets/data/characters/${characterId}.json`;
+                const baseResponse = await fetch(characterPath);
+                if (!baseResponse.ok) throw new Error('Character not found in mod or base game');
+                characterData = await baseResponse.json();
+            }
+        } else {
+            // Base game path
+            characterPath = `public/assets/data/characters/${characterId}.json`;
+            const response = await fetch(characterPath);
+            if (!response.ok) throw new Error(`Character ${characterId} not found`);
+            characterData = await response.json();
+        }
 
-      let sprite = this.scene.add.sprite(0, 0, textureKey);
-      sprite.setOrigin(0, 0);
-      
-      // Asignar depth basado en el tipo de personaje
-      const depthKey = isPlayer ? 'player1' : 
-                      (characterId === this.currentGF ? 'gf' : 'player2');
-      sprite.setDepth(this.characterDepths[depthKey]);
+        // Mark if this is a mod character
+        const isModCharacter = characterPath.includes('/mods/');
 
-      const texture = this.scene.textures.get(textureKey);
-      
-      if (isPlayer) {
-        this.flipPlayerFrames(texture);
-        sprite.setFlipX(characterData.flip_x === false);
-      } else {
-        sprite.setFlipX(characterData.flip_x === true);
-      }
+        await this._loadCharacterTextures(characterId, characterData, this.scene.songData?.isMod);
 
-      sprite.setScale(characterData.scale || 1);
+        let sprite = this.scene.add.sprite(0, 0, textureKey);
+        sprite.setOrigin(0, 0);
+        
+        // Asignar depth basado en el tipo de personaje
+        const depthKey = isPlayer ? 'player1' : 
+                        (characterId === this.currentGF ? 'gf' : 'player2');
+        sprite.setDepth(this.characterDepths[depthKey]);
 
-      const characterInfo = {
-        data: characterData,
-        sprite: sprite,
-        textureKey: textureKey,
-        currentAnimation: null,
-        isReady: false,
-        basePosition: {
+        const texture = this.scene.textures.get(textureKey);
+        
+        if (isPlayer) {
+          this.flipPlayerFrames(texture);
+          sprite.setFlipX(characterData.flip_x === false);
+        } else {
+          sprite.setFlipX(characterData.flip_x === true);
+        }
+
+        sprite.setScale(characterData.scale || 1);
+
+        const characterInfo = {
+          data: characterData,
+          sprite: sprite,
+          textureKey: textureKey,
+          currentAnimation: null,
+          isReady: false,
+          basePosition: {
+            x: characterData.position[0],
+            y: characterData.position[1],
+          },
+          idleTimer: 0,
+          animationsInitialized: false,
+          isPlayer: isPlayer
+        };
+
+        gsap.set(sprite, {
           x: characterData.position[0],
           y: characterData.position[1],
-        },
-        idleTimer: 0,
-        animationsInitialized: false,
-        isPlayer: isPlayer
-      };
+        });
 
-      gsap.set(sprite, {
-        x: characterData.position[0],
-        y: characterData.position[1],
-      });
+        await this.setupAnimations(characterInfo);
+        await new Promise(resolve => this.scene.time.delayedCall(16, resolve));
+        
+        characterInfo.animationsInitialized = true;
+        characterInfo.isReady = true;
+        this.loadedCharacters.set(characterId, characterInfo);
+        
+        await this.ensureIdleAnimation(characterId);
+        this.subscribeToNoteEvents(characterId);
 
-      await this.setupAnimations(characterInfo);
-      await new Promise(resolve => this.scene.time.delayedCall(16, resolve));
-      
-      characterInfo.animationsInitialized = true;
-      characterInfo.isReady = true;
-      this.loadedCharacters.set(characterId, characterInfo);
-      
-      await this.ensureIdleAnimation(characterId);
-      this.subscribeToNoteEvents(characterId);
-
-      return characterInfo;
+        return characterInfo;
     } catch (error) {
-      console.error(`Error loading character ${characterId}:`, error);
-      return null;
+        console.error(`Error loading character ${characterId}:`, error);
+        return null;
     }
-  }
+}
 
   async createGFCharacter(characterId) {
     try {
-      const textureKey = `character_${characterId}`;
-      const characterPath = `public/assets/data/characters/${characterId}.json`;
-      const response = await fetch(characterPath);
-      const characterData = await response.json();
+        const textureKey = `character_${characterId}`;
+        let characterPath;
+        let characterData;
 
-      const sprite = this.scene.add.sprite(0, 0, textureKey);
-      sprite.setOrigin(0, 0);
-      sprite.setDepth(this.characterDepths.gf);
-      sprite.setFlipX(characterData.flip_x === true);
-      sprite.setScale(characterData.scale || 1);
+        // Check if we're in a mod context
+        if (this.scene.songData?.isMod) {
+            // Try loading from mod first
+            characterPath = `${this.scene.songData.modPath}/data/characters/${characterId}.json`;
+            try {
+                const modResponse = await fetch(characterPath);
+                if (modResponse.ok) {
+                    characterData = await modResponse.json();
+                } else {
+                    // Fallback to base game if not found in mod
+                    characterPath = `public/assets/data/characters/${characterId}.json`;
+                    const baseResponse = await fetch(characterPath);
+                    if (!baseResponse.ok) throw new Error('Character not found in mod or base game');
+                    characterData = await baseResponse.json();
+                }
+            } catch (modError) {
+                // Try base game as fallback
+                characterPath = `public/assets/data/characters/${characterId}.json`;
+                const baseResponse = await fetch(characterPath);
+                if (!baseResponse.ok) throw new Error('Character not found in mod or base game');
+                characterData = await baseResponse.json();
+            }
+        } else {
+            // Base game path
+            characterPath = `public/assets/data/characters/${characterId}.json`;
+            const response = await fetch(characterPath);
+            if (!response.ok) throw new Error(`Character ${characterId} not found`);
+            characterData = await response.json();
+        }
 
-      const characterInfo = {
-        data: characterData,
-        sprite: sprite,
-        textureKey: textureKey,
-        isPlayer: false,
-        currentAnimation: null,
-        isGF: true,
-        animationsInitialized: false,
-        isReady: false,
-        basePosition: {
+        const sprite = this.scene.add.sprite(0, 0, textureKey);
+        sprite.setOrigin(0, 0);
+        sprite.setDepth(this.characterDepths.gf);
+        sprite.setFlipX(characterData.flip_x === true);
+        sprite.setScale(characterData.scale || 1);
+
+        const characterInfo = {
+          data: characterData,
+          sprite: sprite,
+          textureKey: textureKey,
+          isPlayer: false,
+          currentAnimation: null,
+          isGF: true,
+          animationsInitialized: false,
+          isReady: false,
+          basePosition: {
+            x: characterData.position[0],
+            y: characterData.position[1],
+          },
+          idleTimer: 0
+        };
+
+        gsap.set(sprite, {
           x: characterData.position[0],
           y: characterData.position[1],
-        },
-        idleTimer: 0
-      };
+        });
 
-      gsap.set(sprite, {
-        x: characterData.position[0],
-        y: characterData.position[1],
-      });
+        await this.setupGFAnimation(characterInfo);
+        characterInfo.animationsInitialized = true;
+        characterInfo.isReady = true;
+        
+        this.loadedCharacters.set(characterId, characterInfo);
+        this.playGFIdleAnimation(characterId);
 
-      await this.setupGFAnimation(characterInfo);
-      characterInfo.animationsInitialized = true;
-      characterInfo.isReady = true;
-      
-      this.loadedCharacters.set(characterId, characterInfo);
-      this.playGFIdleAnimation(characterId);
-
-      return characterInfo;
+        return characterInfo;
     } catch (error) {
       console.error(`Error creating GF character ${characterId}:`, error);
       return null;
@@ -613,56 +672,48 @@ export class Characters {
     });
   }
 
-  async loadDeathCharacter(characterId) {
+  async loadDeathCharacter(characterId, forcedPath = null) {
     try {
-        const characterPath = `public/assets/data/characters/${characterId}.json`;
-        const response = await fetch(characterPath);
-        const characterData = await response.json();
+        let characterData;
+        const isModCharacter = this.scene.songData?.isMod && !forcedPath;
 
-        const textureKey = `character_${characterId}`;
-
-        // Cargar el sprite sheet de muerte si no está cargado
-        if (!this.scene.textures.exists(textureKey)) {
-            console.log('Loading death character textures...');
-            await new Promise((resolve, reject) => {
-                this.scene.load.atlasXML(
-                    textureKey,
-                    `public/assets/images/${characterData.image}.png`,
-                    `public/assets/images/${characterData.image}.xml`
-                );
-                this.scene.load.once('complete', resolve);
-                this.scene.load.once('loaderror', reject);
-                this.scene.load.start();
-            });
+        // Si se proporciona una ruta forzada (caso del default bf-dead), usar esa
+        if (forcedPath) {
+            const response = await fetch(forcedPath);
+            if (!response.ok) throw new Error(`Failed to load character from ${forcedPath}`);
+            characterData = await response.json();
+        } 
+        // Si no hay ruta forzada, intentar cargar según la lógica normal
+        else if (isModCharacter) {
+            try {
+                const modPath = `${this.scene.songData.modPath}/data/characters/${characterId}.json`;
+                const response = await fetch(modPath);
+                if (response.ok) {
+                    characterData = await response.json();
+                } else {
+                    // Si falla la carga del mod, usar bf-dead por defecto
+                    const defaultResponse = await fetch('public/assets/data/characters/bf-dead.json');
+                    if (!defaultResponse.ok) throw new Error('Failed to load default death character');
+                    characterData = await defaultResponse.json();
+                }
+            } catch (error) {
+                // Si algo falla, intentar cargar bf-dead
+                const defaultResponse = await fetch('public/assets/data/characters/bf-dead.json');
+                if (!defaultResponse.ok) throw new Error('Failed to load default death character');
+                characterData = await defaultResponse.json();
+            }
         }
 
-        // Reemplazar el sprite del player1 con el de muerte
-        const player = this.loadedCharacters.get(this.currentPlayer);
-        if (player && player.sprite) {
-            const oldPosition = {
-                x: player.sprite.x,
-                y: player.sprite.y
-            };
-            
-            player.sprite.destroy();
-            
-            const deathSprite = this.scene.add.sprite(oldPosition.x, oldPosition.y, textureKey);
-            deathSprite.setOrigin(0, 0);
-            deathSprite.setDepth(this.characterDepths.player1);
-            deathSprite.setFlipX(characterData.flip_x === false);
-            
-            player.sprite = deathSprite;
-            player.data = characterData;
-            player.textureKey = textureKey;
-            
-            // Configurar las animaciones de muerte
-            await this.setupDeathAnimations(player);
-            
-            return player;
+        if (!characterData) {
+            throw new Error('No character data loaded');
         }
+
+        // Configurar las animaciones de muerte
+        await this.setupDeathAnimations(characterData);
+        return true;
     } catch (error) {
-        console.error('Error loading death character:', error);
-        return null;
+        console.error('Error in loadDeathCharacter:', error);
+        return false;
     }
 }
 
@@ -723,6 +774,28 @@ confirmDeath() {
         player.sprite.once('animationcomplete', () => {
             resolve();
         });
+    });
+}
+
+async _loadCharacterTextures(characterId, characterData, isModSong) {
+    const textureKey = `character_${characterId}`;
+    if (this.scene.textures.exists(textureKey)) return;
+
+    const spritesPath = Paths.getCharacterSpritePath(
+        characterData.image, 
+        isModSong ? this.scene.songData.modPath : null
+    );
+
+    console.log(`Loading character texture for ${characterId} from:`, spritesPath);
+
+    await new Promise((resolve, reject) => {
+        this.scene.load.atlasXML(textureKey, spritesPath.TEXTURE, spritesPath.ATLAS);
+        this.scene.load.once('complete', resolve);
+        this.scene.load.once('loaderror', (error) => {
+            console.error(`Error loading character texture:`, error);
+            reject(error);
+        });
+        this.scene.load.start();
     });
 }
 }

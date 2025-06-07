@@ -18,17 +18,30 @@ export class AudioManager {
     async loadSongAudio(currentSong) {
         console.log("Cargando datos de la canción:", currentSong);
 
+        // Determinar si es un mod
+        const isModSong = this.scene.songData?.isMod;
+        const basePath = isModSong 
+            ? `${this.scene.songData.modPath}/audio/songs/${currentSong}/song`
+            : `public/assets/audio/songs/${currentSong}/song`;
+
         // Cargar Inst.ogg
-        this.scene.load.audio(`inst_${currentSong}`, `public/assets/audio/songs/${currentSong}/song/Inst.ogg`);
-        console.log(`Cargando Inst.ogg para ${currentSong}`);
+        const instUrl = `${basePath}/Inst.ogg`;
+        const instExists = await this.checkAudioFileExists(instUrl);
+        
+        if (!instExists) {
+            throw new Error(`No se encontró Inst.ogg para ${currentSong} en ${instUrl}`);
+        }
+
+        this.scene.load.audio(`inst_${currentSong}`, instUrl);
+        console.log(`Cargando Inst.ogg para ${currentSong} desde ${instUrl}`);
 
         // Verificar y cargar Voices.ogg si existe
-        const voicesUrl = `public/assets/audio/songs/${currentSong}/song/Voices.ogg`;
+        const voicesUrl = `${basePath}/Voices.ogg`;
         const voicesExists = await this.checkAudioFileExists(voicesUrl);
 
         if (voicesExists) {
             this.scene.load.audio(`voices_${currentSong}`, voicesUrl);
-            console.log(`Cargando Voices.ogg para ${currentSong}`);
+            console.log(`Cargando Voices.ogg para ${currentSong} desde ${voicesUrl}`);
         } else {
             console.warn(`No se encontró Voices.ogg para ${currentSong}, solo se usará Inst.ogg.`);
         }

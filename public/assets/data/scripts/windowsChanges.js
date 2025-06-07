@@ -30,7 +30,7 @@ export default class WindowsChangesScript {
         if (this.scene.textures.exists(textureKey)) {
             this.windowLayer.image.setTexture(textureKey);
         } else {
-            this.scene.load.image(textureKey, `public/assets/data/stages/philly/win${windowIndex}.png`);
+            this.scene.load.image(textureKey, `public/assets/images/stages/philly/win${windowIndex}.png`);
             this.scene.load.once('complete', () => {
                 this.windowLayer.image.setTexture(textureKey);
             });

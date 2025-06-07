@@ -1,3 +1,6 @@
+import { ModManager } from '../../utils/ModDetect.js';
+import { NumberAnimation } from '../../utils/NumberAnimation.js';
+
 class FreeplayState extends Phaser.Scene {
     constructor() {
         super({ key: 'FreeplayState' });
@@ -83,42 +86,65 @@ class FreeplayState extends Phaser.Scene {
 
     async loadWeekData() {
         try {
+            // Load base game weeks first
             const weekListText = this.cache.text.get('weekList');
             if (!weekListText) throw new Error("weekList no cargado");
             
-            const weeks = weekListText.split('\n').filter(week => week.trim());
+            const baseWeeks = weekListText.split('\n').filter(week => week.trim());
             
-            // Cargar semanas faltantes
-            const weeksToLoad = weeks.filter(week => !this.cache.json.exists(week));
-            if (weeksToLoad.length > 0) {
-                await Promise.all(weeksToLoad.map(week => 
-                    new Promise(resolve => {
-                        this.load.json(week, `public/assets/data/weekList/${week}.json`);
-                        this.load.once(`filecomplete-json-${week}`, resolve);
-                        if (!this.load.isLoading()) this.load.start();
-                    })
-                ));
+            // Load base game weeks
+            await this._loadWeeks(baseWeeks, false);
+
+            // Load mod weeks if any mods are active
+            if (ModManager.isModActive()) {
+                const currentMod = ModManager.getCurrentMod();
+                if (currentMod?.weekList?.length > 0) {
+                    console.log('Loading mod weeks from:', currentMod.path);
+                    await this._loadWeeks(currentMod.weekList, true, currentMod);
+                }
             }
 
-            // Procesar canciones solo si no hay
-            if (this.songList.length === 0) {
-                weeks.forEach(week => {
-                    const weekData = this.cache.json.get(week);
-                    if (weekData?.tracks) {
-                        weekData.tracks.flat().forEach(song => {
-                            this.songList.push({
-                                name: song,
-                                weekName: weekData.weekName,
-                                color: weekData.color || '#FFFFFF'
-                            });
-                        });
-                    }
-                });
-            }
         } catch (error) {
             console.error("Error cargando weekData:", error);
             throw error;
         }
+    }
+
+    async _loadWeeks(weeks, isMod = false, modData = null) {
+        // Load week JSONs that aren't already loaded
+        const weeksToLoad = weeks.filter(week => !this.cache.json.exists(week));
+        
+        if (weeksToLoad.length > 0) {
+            await Promise.all(weeksToLoad.map(week => 
+                new Promise(resolve => {
+                    const weekPath = isMod 
+                        ? `${modData.path}/data/weekList/${week}.json`
+                        : `public/assets/data/weekList/${week}.json`;
+
+                    this.load.json(week, weekPath);
+                    this.load.once(`filecomplete-json-${week}`, resolve);
+                    if (!this.load.isLoading()) this.load.start();
+                })
+            ));
+        }
+
+        // Process songs from loaded weeks (incluir todas las canciones sin importar StoryVisible)
+        weeks.forEach(week => {
+            const weekData = this.cache.json.get(week);
+            if (weekData?.tracks) {
+                weekData.tracks.flat().forEach(song => {
+                    this.songList.push({
+                        name: song,
+                        weekName: weekData.weekName,
+                        color: weekData.color || '#FFFFFF',
+                        isMod: isMod,
+                        modPath: isMod ? modData.path : null,
+                        // Añadir StoryVisible para referencia
+                        StoryVisible: weekData.StoryVisible
+                    });
+                });
+            }
+        });
     }
 
     setupUI(width, height) {
@@ -131,6 +157,7 @@ class FreeplayState extends Phaser.Scene {
         
         this.songTexts = this.songList.map((song, index) => {
             const songContainer = this.add.container(0, index * 80);
+            
             const songText = this.createText(0, 0, song.name.toUpperCase(), {
                 fontSize: '32px',
                 color: '#FFFFFF'
@@ -141,7 +168,7 @@ class FreeplayState extends Phaser.Scene {
             return songContainer;
         });
         
-        this.difficultyContainer = this.add.container(width - 150, 100);
+        this.difficultyContainer = this.add.container(width - 250, 170);
         this.updateDifficultyText();
     }
 
@@ -154,26 +181,68 @@ class FreeplayState extends Phaser.Scene {
         });
     }
 
-    updateDifficultyText() {
+    updateDifficultyText(forceUpdate = false) {
         if (!this.difficultyContainer) return;
         this.difficultyContainer.removeAll(true);
         
-        // Verificación segura de difficulties
-        const difficulty = this.difficulties[this.selectedDifficulty] || this.difficulties[0];
-        const diffText = this.createText(0, 0, `DIFICULTY: \n ${difficulty.toUpperCase()}`)
+        const difficulty = this.difficulties[this.selectedDifficulty];
+        const selectedSong = this.songList[this.selectedIndex];
+        
+        // Cargar puntuación guardada
+        const savedData = this.loadSongScore(selectedSong.name, difficulty);
+        
+        const diffText = this.createText(0, 0, 
+            `DIFFICULTY: \n${difficulty.toUpperCase()}`)
             .setOrigin(0.5);
         
-        const leftArrow = this.createText(-100, 0, '<')
-            .setOrigin(0.5)
-            .setInteractive()
-            .on('pointerdown', () => this.changeDifficulty(-1));
-        
-        const rightArrow = this.createText(100, 0, '>')
-            .setOrigin(0.5)
-            .setInteractive()
-            .on('pointerdown', () => this.changeDifficulty(1));
-        
-        this.difficultyContainer.add([diffText, leftArrow, rightArrow]);
+        if (savedData) {
+            // Crear contenedor para los números animados
+            const scoreContainer = this.add.container(-100, 50); // Moved 100px to the left
+            
+            const scoreLabel = this.createText(0, 0, 'SCORE: ').setOrigin(0, 0.5);
+            const scoreValue = this.createText(scoreLabel.width, 0, '0').setOrigin(0, 0.5);
+            
+            const accuracyLabel = this.createText(0, 30, 'ACCURACY: ').setOrigin(0, 0.5);
+            const accuracyValue = this.createText(accuracyLabel.width, 30, '0%').setOrigin(0, 0.5);
+            
+            const missesLabel = this.createText(0, 60, 'MISSES: ').setOrigin(0, 0.5);
+            const missesValue = this.createText(missesLabel.width, 60, '0').setOrigin(0, 0.5);
+            
+            scoreContainer.add([
+                scoreLabel, scoreValue,
+                accuracyLabel, accuracyValue,
+                missesLabel, missesValue
+            ]);
+            
+            // Destruir animadores anteriores si existen
+            if (this.scoreAnimator) this.scoreAnimator.destroy();
+            if (this.accuracyAnimator) this.accuracyAnimator.destroy();
+            if (this.missesAnimator) this.missesAnimator.destroy();
+
+            // Crear nuevos animadores
+            this.scoreAnimator = new NumberAnimation(this, scoreValue);
+            this.accuracyAnimator = new NumberAnimation(this, accuracyValue);
+            this.missesAnimator = new NumberAnimation(this, missesValue);
+
+            // Iniciar animaciones
+            try {
+                this.scoreAnimator.animateNumber(0, savedData.score);
+                this.accuracyAnimator.animateNumber(0, savedData.accuracy * 100, '', '%', 800);
+                this.missesAnimator.animateNumber(0, savedData.misses, '', '', 600);
+            } catch (error) {
+                console.warn('Error starting number animations:', error);
+            }
+
+            this.difficultyContainer.add([diffText, scoreContainer]);
+        } else {
+            this.difficultyContainer.add(diffText);
+        }
+    }
+
+    loadSongScore(songName, difficulty) {
+        const songKey = `score_${songName}_${difficulty}`;
+        const savedData = localStorage.getItem(songKey);
+        return savedData ? JSON.parse(savedData) : null;
     }
 
     setupInputs() {
@@ -218,7 +287,8 @@ class FreeplayState extends Phaser.Scene {
             0, 
             this.difficulties.length
         );
-        this.updateDifficultyText();
+        // Forzar actualización de los datos con la nueva dificultad
+        this.updateDifficultyText(true);
     }
 
     changeSelection(change) {
@@ -233,8 +303,12 @@ class FreeplayState extends Phaser.Scene {
             0,
             this.songList.length
         );
+
+        // Forzar actualización de la UI
         this.updateSelection();
         this.updateScroll();
+        // Forzar actualización de los datos de puntuación con la nueva canción
+        this.updateDifficultyText(true);
     }
 
     updateScroll(immediate = false) {
@@ -275,12 +349,15 @@ class FreeplayState extends Phaser.Scene {
 
         const songData = {
             storyPlaylist: [selectedSong.name],
-            songList: [selectedSong.name], // Añadir esto
+            songList: [selectedSong.name],
             currentSongIndex: 0,
             storyDifficulty: this.difficulties[this.selectedDifficulty],
             isStoryMode: false,
             weekName: selectedSong.weekName,
-            selectedDifficulty: this.difficulties[this.selectedDifficulty]
+            selectedDifficulty: this.difficulties[this.selectedDifficulty],
+            // Add mod data
+            isMod: selectedSong.isMod,
+            modPath: selectedSong.modPath
         };
 
         console.log("Enviando datos a PlayState:", songData);
@@ -288,6 +365,20 @@ class FreeplayState extends Phaser.Scene {
     }
 
     shutdown() {
+        // Detener y destruir los animadores de números
+        if (this.scoreAnimator) {
+            this.scoreAnimator.destroy();
+            this.scoreAnimator = null;
+        }
+        if (this.accuracyAnimator) {
+            this.accuracyAnimator.destroy();
+            this.accuracyAnimator = null;
+        }
+        if (this.missesAnimator) {
+            this.missesAnimator.destroy();
+            this.missesAnimator = null;
+        }
+
         // Limpieza al salir de la escena
         if (this.textContainer) {
             this.textContainer.destroy(true);

@@ -7,6 +7,7 @@ export class StageManager {
         this.characters = null;
         this.parallaxFactor = 0.1; // Factor base de parallax
         this.maxLayer = 6; // El número más alto de layer en tu stage.json
+        this.stageAssetsPath = 'public/assets/images/stages'; // Nueva constante para la ruta base
     }
 
     setCharacters(charactersInstance) {
@@ -64,6 +65,16 @@ export class StageManager {
 
     async _fetchStageData(stageName) {
         try {
+            // Primero intentar cargar desde el mod si hay uno activo
+            if (this.scene.songData?.isMod) {
+                const modPath = this.scene.songData.modPath;
+                const modResponse = await fetch(`${modPath}/data/stages/${stageName}.json`);
+                if (modResponse.ok) {
+                    return await modResponse.json();
+                }
+            }
+
+            // Si no hay mod o falló la carga del mod, intentar desde el juego base
             const response = await fetch(`public/assets/data/stages/${stageName}.json`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.json();
@@ -78,15 +89,18 @@ export class StageManager {
             throw new Error('Invalid stage data');
         }
 
+        // Filter out color-only layers and player layers
         const normalLayers = stageData.stage.filter(layer => 
-            layer.visible !== false && !layer.player
+            layer.visible !== false && 
+            !layer.player && 
+            layer.path // Only include layers with a path
         );
 
-        const loadPromises = normalLayers.map(layer => 
-            this._loadLayerTexture(layer)
-        );
-
-        await Promise.all(loadPromises);
+        // Only try to load if there are layers with paths
+        if (normalLayers.length > 0) {
+            const loadPromises = normalLayers.map(layer => this._loadLayerTexture(layer));
+            await Promise.all(loadPromises);
+        }
     }
 
     async _loadLayerTexture(layer) {
@@ -96,42 +110,125 @@ export class StageManager {
             return;
         }
 
+        // Construir la ruta completa de la imagen
+        const imagePath = this._getFullImagePath(layer.path);
+
         return new Promise((resolve) => {
-            this.scene.load.image(textureKey, layer.path);
+            this.scene.load.image(textureKey, imagePath);
             this.scene.load.once(`filecomplete-image-${textureKey}`, resolve);
             this.scene.load.once(`loaderror-image-${textureKey}`, () => {
-                console.warn(`Texture not found: ${layer.path}`);
+                console.warn(`Texture not found: ${imagePath}`);
                 resolve();
             });
             this.scene.load.start();
         });
     }
 
+    // También actualizar _getFullImagePath para soportar mods
+    _getFullImagePath(imageName) {
+        // Asegurarse de que el nombre de la imagen no incluya la extensión
+        const cleanImageName = imageName.replace(/\.[^/.]+$/, "");
+        
+        // Si es un mod, usar la ruta del mod
+        if (this.scene.songData?.isMod) {
+            return `${this.scene.songData.modPath}/images/stages/${this.currentStage}/${cleanImageName}.png`;
+        }
+        
+        // Si no es mod, usar la ruta base
+        return `${this.stageAssetsPath}/${this.currentStage}/${cleanImageName}.png`;
+    }
+
     _createStageLayers(stageData) {
         if (!this._isValidStageData(stageData)) return;
 
+        // Crear fondo con color
+        const bgColorLayer = stageData.stage.find(layer => layer.color);
+        if (bgColorLayer?.color) {
+            try {
+                const colorHex = bgColorLayer.color.replace('#', '');
+                const colorInt = parseInt(colorHex, 16);
+                
+                console.log('Creating background rectangle with color:', {
+                    original: bgColorLayer.color,
+                    hex: `0x${colorHex}`,
+                    int: colorInt,
+                    layer: bgColorLayer.layer || 0
+                });
+
+                // Crear un rectángulo que cubra toda la pantalla
+                const screenWidth = this.scene.game.config.width * 4; // Hacerlo más grande
+                const screenHeight = this.scene.game.config.height * 4;
+                
+                const bgRect = this.scene.add.rectangle(
+                    -screenWidth/4, // Centrar
+                    -screenHeight/4,
+                    screenWidth,
+                    screenHeight,
+                    colorInt
+                );
+                
+                // Configurar el rectángulo
+                bgRect.setOrigin(0, 0);
+                bgRect.setDepth(bgColorLayer.layer || 0);
+                bgRect.setScrollFactor(0); // No se mueve con la cámara
+                
+                // Añadir a las capas para poder limpiarlo después
+                this.layers.push({
+                    image: bgRect,
+                    layerData: bgColorLayer,
+                    parallaxFactor: 0
+                });
+            } catch (error) {
+                console.error('Error creating background rectangle:', error);
+            }
+        }
+
+        // Procesar capas normales (no jugadores)
         const normalLayers = stageData.stage.filter(layer => 
-            layer.visible !== false && !layer.player
+            layer.visible !== false && 
+            !layer.player && 
+            layer.path
         );
+
+        if (normalLayers.length > 0) {
+            const sortedLayers = [...normalLayers].sort((a, b) => 
+                (a.priority || 0) - (b.priority || 0)
+            );
+
+            sortedLayers.forEach(layer => {
+                const textureKey = this._getTextureKey(layer);
+                if (this.scene.textures.exists(textureKey)) {
+                    this._createLayer(layer, textureKey);
+                }
+            });
+        }
+
+        // Procesar capas de personajes
         const characterLayers = stageData.stage.filter(layer => 
             layer.player && (layer.player === 1 || layer.player === 2 || layer.player === 'gf')
         );
 
-        const sortedLayers = [...normalLayers]
-            .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+        if (characterLayers.length > 0 && this.characters) {
+            // Asegurarse de que los personajes estén por encima del fondo
+            const depthsConfig = {
+                player1: 10, // Aumentar las profundidades
+                player2: 10,
+                gf: 9
+            };
 
-        sortedLayers.forEach(layer => {
-            const textureKey = this._getTextureKey(layer);
-            
-            if (!this.scene.textures.exists(textureKey)) {
-                console.warn(`Texture not loaded: ${textureKey}`);
-                return;
-            }
+            // Actualizar profundidades desde la configuración del stage
+            characterLayers.forEach(layer => {
+                const playerType = layer.player;
+                const depth = layer.layer || (playerType === 'gf' ? 9 : 10);
+                
+                if (playerType === 1) depthsConfig.player1 = depth;
+                else if (playerType === 2) depthsConfig.player2 = depth;
+                else if (playerType === 'gf') depthsConfig.gf = depth;
+            });
 
-            this._createLayer(layer, textureKey);
-        });
-
-        this._processCharacterLayers(characterLayers);
+            console.log('Setting character depths:', depthsConfig);
+            this.characters.updateCharacterDepths(depthsConfig);
+        }
     }
 
     _processCharacterLayers(characterLayers) {
@@ -140,15 +237,17 @@ export class StageManager {
             return;
         }
 
+        // Configurar profundidades para cada personaje
         const depthsConfig = {
-            player1: 0,  // Default values
-            player2: 0,
-            gf: 0
+            player1: 3,  // Valores por defecto más altos para asegurar visibilidad
+            player2: 3,
+            gf: 2
         };
-    
+
+        // Actualizar configuración con valores del stage
         characterLayers.forEach(layerConfig => {
             const playerType = layerConfig.player;
-            const depth = layerConfig.layer ?? 0;
+            const depth = layerConfig.layer || 3; // Valor por defecto si no se especifica
             
             if (playerType === 1) {
                 depthsConfig.player1 = depth;
@@ -160,12 +259,9 @@ export class StageManager {
                 depthsConfig.gf = depth;
             }
         });
-    
-        try {
-            this.characters.updateCharacterDepths(depthsConfig);
-        } catch (error) {
-            console.error('Error updating character depths:', error, depthsConfig);
-        }
+
+        console.log('Updating character depths:', depthsConfig);
+        this.characters.updateCharacterDepths(depthsConfig);
     }
 
     _createLayer(layer, textureKey) {
@@ -195,6 +291,7 @@ export class StageManager {
     }
 
     _getTextureKey(layer) {
+        if (!layer.path) return null;
         return `stage_${this.currentStage}_layer_${layer.layer}`;
     }
 

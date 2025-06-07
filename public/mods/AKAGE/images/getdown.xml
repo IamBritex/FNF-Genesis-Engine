@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="getdown.png">
+	<!-- Created with Adobe Animate version 24.0.7.61 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="get0000" x="40" y="40" width="433" height="530" pivotX="165.5" pivotY="114.45"/>
+	<SubTexture name="getdown0000" x="493" y="40" width="1129" height="530" pivotX="165.5" pivotY="114.45"/>
+</TextureAtlas>

@@ -12,8 +12,9 @@ import { StageManager } from "../visuals/objects/StageManager.js"
 import { TimeBar } from "../visuals/objects/TimeBar.js"
 import { Paths } from "../../utils/Paths.js"
 import { PauseMenu } from "../visuals/objects/components/Pause.js"
-import { ScriptHandler } from '../visuals/objects/components/ScriptHandler.js';
-import { GameOver } from '../visuals/objects/components/GameOver.js';
+import { ScriptHandler } from '../visuals/objects/components/ScriptHandler.js'
+import { GameOver } from '../visuals/objects/components/GameOver.js'
+import { ModManager } from '../../utils/ModDetect.js'  // Añadir esta importación
 
 export class PlayState extends Phaser.Scene {
   constructor() {
@@ -172,42 +173,73 @@ export class PlayState extends Phaser.Scene {
 
   async _loadSongChart(currentSong) {
     try {
-      const difficulty = this.dataManager.storyDifficulty;
-      let chartPath = '';
-      
-      // Construir la ruta del chart basada en la dificultad
-      if (difficulty === 'normal') {
-        // Para dificultad normal, usar el nombre base de la canción sin sufijo
-        chartPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}.json`;
-      } else {
-        // Para easy y hard, añadir el sufijo de dificultad
-        chartPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}-${difficulty}.json`;
-      }
-
-      console.log('Intentando cargar chart:', chartPath);
-      
-      const response = await fetch(chartPath);
-      if (!response.ok) throw new Error(`HTTP ${response.status} para ${chartPath}`);
-      this.songData = await response.json();
-      
-    } catch (e) {
-      console.warn(`Usando chart por defecto para ${currentSong} debido a:`, e.message);
-      try {
-        // Intentar cargar el chart por defecto (sin sufijo de dificultad)
-        const defaultPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}.json`;
-        console.log('Intentando cargar chart por defecto:', defaultPath);
+        const difficulty = this.dataManager.storyDifficulty;
+        let chartPath = '';
+        let isModSong = false; // Definir la variable aquí
         
-        const response = await fetch(defaultPath);
-        if (!response.ok)
-          throw new Error(`HTTP ${response.status} para chart por defecto ${defaultPath}`);
+        // Verificar si es un mod usando ModManager
+        if (ModManager.isModActive()) {
+            const currentMod = ModManager.getCurrentMod();
+            isModSong = currentMod.weekList.includes(currentSong);
+        }
+        
+        if (isModSong) {
+            const modPath = ModManager.getCurrentMod().path;
+            // Construir la ruta del chart para mods
+            if (difficulty === 'normal') {
+                chartPath = `${modPath}/audio/songs/${currentSong}/charts/${currentSong}.json`;
+            } else {
+                chartPath = `${modPath}/audio/songs/${currentSong}/charts/${currentSong}-${difficulty}.json`;
+            }
+        } else {
+            // Ruta para el juego base
+            if (difficulty === 'normal') {
+                chartPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}.json`;
+            } else {
+                chartPath = `public/assets/audio/songs/${currentSong}/charts/${currentSong}-${difficulty}.json`;
+            }
+        }
+
+        console.log(`Intentando cargar chart${isModSong ? ' (MOD)' : ''}: ${chartPath}`);
+        
+        const response = await fetch(chartPath);
+        if (!response.ok) throw new Error(`HTTP ${response.status} para ${chartPath}`);
+        
         this.songData = await response.json();
-      } catch (defaultError) {
-        console.error(`Error cargando chart para ${currentSong}:`, defaultError.message);
-        throw defaultError;
-      }
+        
+        // Añadir información de mod si es necesario
+        if (isModSong) {
+            this.songData.isMod = true;
+            this.songData.modPath = ModManager.getCurrentMod().path;
+        }
+        
+    } catch (e) {
+        console.warn(`Usando chart por defecto para ${currentSong} debido a:`, e.message);
+        try {
+            // Intentar cargar el chart por defecto, considerando si es mod o no
+            const defaultPath = isModSong 
+                ? `${ModManager.getCurrentMod().path}/audio/songs/${currentSong}/charts/${currentSong}.json`
+                : `public/assets/audio/songs/${currentSong}/charts/${currentSong}.json`;
+            
+            console.log('Intentando cargar chart por defecto:', defaultPath);
+            
+            const response = await fetch(defaultPath);
+            if (!response.ok)
+                throw new Error(`HTTP ${response.status} para chart por defecto ${defaultPath}`);
+            
+            this.songData = await response.json();
+            
+            if (isModSong) {
+                this.songData.isMod = true;
+                this.songData.modPath = ModManager.getCurrentMod().path;
+            }
+        } catch (defaultError) {
+            console.error(`Error cargando chart para ${currentSong}:`, defaultError.message);
+            throw defaultError;
+        }
     }
 
-    if (!this.songData?.song) throw new Error("Datos de canción inválidos o no cargados.")
+    if (!this.songData?.song) throw new Error("Datos de canción inválidos o no cargados.");
   }
 
   async _loadSongAssets(currentSong) {
@@ -266,84 +298,163 @@ export class PlayState extends Phaser.Scene {
     await Promise.all(loadPromises)
   }
 
-  async _loadSingleCharacter(characterId) {
+  async _loadSingleCharacter(characterId, characterData) {
     try {
-      // Evitar recargar si ya tenemos los datos y assets (esto es una optimización, revisar si aplica siempre)
-      // if (this.healthBarColors[characterId] && this.healthBarIcons[characterId] && this.textures.exists(`character_${characterId}`)) {
-      //     return;
-      // }
+        // Check if we're in a mod context
+        const isModSong = this.songData?.isMod;
+        let characterData;
+        let characterPath;
 
-      const response = await fetch(Paths.getCharacterData(characterId))
-      if (!response.ok) throw new Error(`HTTP ${response.status} para ${Paths.getCharacterData(characterId)}`)
-      const characterData = await response.json()
+        if (isModSong) {
+            // Try loading from mod first
+            characterPath = `${this.songData.modPath}/data/characters/${characterId}.json`;
+            try {
+                const modResponse = await fetch(characterPath);
+                if (modResponse.ok) {
+                    characterData = await modResponse.json();
+                } else {
+                    // If not found in mod, fallback to base game
+                    console.log(`Character ${characterId} not found in mod, trying base game...`);
+                    characterPath = `public/assets/data/characters/${characterId}.json`;
+                    const baseResponse = await fetch(characterPath);
+                    if (!baseResponse.ok) throw new Error(`Character not found in base game either`);
+                    characterData = await baseResponse.json();
+                }
+            } catch (modError) {
+                // Try base game as fallback
+                characterPath = `public/assets/data/characters/${characterId}.json`;
+                const baseResponse = await fetch(characterPath);
+                if (!baseResponse.ok) throw new Error(`Character not found in mod or base game`);
+                characterData = await baseResponse.json();
+            }
+        } else {
+            // Base game path
+            characterPath = `public/assets/data/characters/${characterId}.json`;
+            const response = await fetch(characterPath);
+            if (!response.ok) throw new Error(`HTTP ${response.status} for ${characterPath}`);
+            characterData = await response.json();
+        }
 
-      this._processCharacterHealthData(characterId, characterData)
-      await this._loadCharacterTextures(characterId, characterData)
+        // Load character textures
+        await this._loadCharacterTextures(characterId, characterData, isModSong);
+        
+        // Usar el healthicon del JSON del personaje si existe
+        if (characterData.healthicon) {
+            this.healthBarIcons[characterId] = characterData.healthicon;
+        }
+        
+        // Procesar los colores de la healthbar si existen
+        if (characterData.healthbar_colors) {
+            const [r, g, b] = characterData.healthbar_colors;
+            // Convertir RGB a hexadecimal para Phaser
+            this.healthBarColors[characterId] = Phaser.Display.Color.GetColor(r, g, b);
+        }
+
+        return characterData;
     } catch (error) {
-      console.error(`Error cargando personaje ${characterId}:`, error.message)
-      // Decidir si re-lanzar el error o continuar sin el personaje
-      // throw error; // Si es crítico
+        console.error(`Error loading character ${characterId}:`, error.message);
+        return null;
     }
-  }
+}
 
-  _processCharacterHealthData(characterId, characterData) {
-    if (
-      characterData.healthbar_colors &&
-      Array.isArray(characterData.healthbar_colors) &&
-      characterData.healthbar_colors.length === 3
-    ) {
-      const [r, g, b] = characterData.healthbar_colors
-      const color =
-        (Math.min(255, Math.max(0, Math.floor(r))) << 16) |
-        (Math.min(255, Math.max(0, Math.floor(g))) << 8) |
-        Math.min(255, Math.max(0, Math.floor(b)))
-      this.healthBarColors[characterId] = color
+async _loadCharacterTextures(characterId, characterData, isModSong) {
+    const textureKey = `character_${characterId}`;
+    if (this.textures.exists(textureKey)) return;
+
+    // Clean image path - remove any 'characters/' prefix
+    const imagePath = characterData.image.replace('characters/', '');
+    
+    // Get sprites paths
+    let spritesPath;
+    if (isModSong) {
+        // Try mod path first
+        spritesPath = {
+            TEXTURE: `${this.songData.modPath}/images/characters/${imagePath}.png`,
+            ATLAS: `${this.songData.modPath}/images/characters/${imagePath}.xml`
+        };
+
+        // Check if mod sprites exist
+        try {
+            const textureResponse = await fetch(spritesPath.TEXTURE);
+            const atlasResponse = await fetch(spritesPath.ATLAS);
+            
+            if (!textureResponse.ok || !atlasResponse.ok) {
+                console.log(`Character assets not found in mod, trying base game for ${characterId}`);
+                // Fallback to base game paths
+                spritesPath = {
+                    TEXTURE: `public/assets/images/characters/${imagePath}.png`,
+                    ATLAS: `public/assets/images/characters/${imagePath}.xml`
+                };
+            }
+        } catch (error) {
+            console.log(`Error loading mod character assets, falling back to base game for ${characterId}`);
+            // Fallback to base game paths
+            spritesPath = {
+                TEXTURE: `public/assets/images/characters/${imagePath}.png`,
+                ATLAS: `public/assets/images/characters/${imagePath}.xml`
+            };
+        }
+    } else {
+        // Use base game paths
+        spritesPath = {
+            TEXTURE: `public/assets/images/characters/${imagePath}.png`,
+            ATLAS: `public/assets/images/characters/${imagePath}.xml`
+        };
     }
 
-    if (characterData.healthicon) {
-      this.healthBarIcons[characterId] = characterData.healthicon
+    console.log(`Loading character ${characterId} textures from:`, spritesPath);
+
+    try {
+        // Load atlas XML
+        this.load.atlasXML(textureKey, spritesPath.TEXTURE, spritesPath.ATLAS);
+        
+        // Wait for loading to complete
+        await new Promise((resolve, reject) => {
+            this.load.once('complete', resolve);
+            this.load.once('loaderror', (file) => {
+                console.error(`Error loading character texture for ${characterId}:`, file);
+                reject(new Error(`Failed to load character texture: ${file.src}`));
+            });
+            this.load.start();
+        });
+    } catch (error) {
+        console.error(`Failed to load character ${characterId}:`, error);
+        throw error;
     }
-  }
-
-  async _loadCharacterTextures(characterId, characterData) {
-    const textureKey = `character_${characterId}`
-    if (this.textures.exists(textureKey)) return
-
-    const sprites = Paths.getCharacterSprites(characterData) // Asume que esto devuelve { TEXTURE: 'path', ATLAS: 'path' }
-    if (!sprites || !sprites.TEXTURE || !sprites.ATLAS) {
-      console.warn(`No se encontraron rutas de sprites para el personaje ${characterId}`)
-      return
-    }
-
-    // Cargar atlas XML
-    this.load.atlasXML(textureKey, sprites.TEXTURE, sprites.ATLAS)
-    // No se necesita Promise aquí si se maneja con el 'complete' global de Phaser o se carga en preload.
-    // Si se necesita esperar específicamente, la gestión de promesas con this.load.start() es más compleja.
-    // Normalmente, se deja que el loader de Phaser maneje la cola y se espera al evento 'complete' de la escena.
-  }
-
-  async preloadHealthIcons() {
+}
+  async _loadHealthIcons() {
     if (!this.healthBarIcons || !this.songData?.song) {
-      console.error("No hay datos de iconos de salud o de canción para cargar.")
-      return
+        console.error("No hay datos de iconos de salud o de canción para cargar.");
+        return;
     }
 
-    const { player1, player2 } = this.songData.song
-    const characterIdsWithIcons = [player1, player2].filter((id) => this.healthBarIcons[id])
+    const { player1, player2 } = this.songData.song;
+    const characterIdsWithIcons = [player1, player2].filter((id) => this.healthBarIcons[id]);
+    
+    if (characterIdsWithIcons.length === 0) return;
 
-    if (characterIdsWithIcons.length === 0) return
+    for (const characterId of characterIdsWithIcons) {
+        const iconName = this.healthBarIcons[characterId];
+        const iconKey = `icon-${iconName}`;
 
-    characterIdsWithIcons.forEach((characterId) => {
-      const iconName = this.healthBarIcons[characterId]
-      const iconKey = `icon-${iconName}`
+        if (this.textures.exists(iconKey)) continue;
 
-      // No es necesario remover y recargar si ya existe, a menos que el asset pueda cambiar dinámicamente.
-      if (!this.textures.exists(iconKey)) {
-        this.load.image(iconKey, Paths.getCharacterIcon(iconName))
-      }
-    })
-    // Dejar que el loader de Phaser maneje la carga. Si se necesita esperar, usar this.load.start() y eventos.
-  }
+        const iconPath = Paths.getIconPath(
+            iconName, 
+            this.songData?.isMod ? this.songData.modPath : null
+        );
+
+        console.log(`Loading icon for ${characterId} from:`, iconPath);
+        this.load.image(iconKey, iconPath);
+    }
+
+    if (this.load.totalToLoad > 0) {
+        await new Promise((resolve) => {
+            this.load.once('complete', resolve);
+            this.load.start();
+        });
+    }
+}
 
   async _createHealthBar() {
     if (!this.songData?.song) {
@@ -360,9 +471,13 @@ export class PlayState extends Phaser.Scene {
       return
     }
 
+    // Obtener colores de la healthbar o usar valores por defecto
+    const p1Color = this.healthBarColors[player1] || 0x31B0D1; // Color azul por defecto para BF
+    const p2Color = this.healthBarColors[player2] || 0xF5FF31; // Color amarillo por defecto para Dad
+
     this.healthBar = new HealthBar(this, {
-      p1Color: this.healthBarColors[player1] !== undefined ? this.healthBarColors[player1] : 0xffffff,
-      p2Color: this.healthBarColors[player2] !== undefined ? this.healthBarColors[player2] : 0xffffff,
+      p1Color: p1Color,
+      p2Color: p2Color,
       p1Icon: p1IconName,
       p2Icon: p2IconName,
       position: {
@@ -374,7 +489,10 @@ export class PlayState extends Phaser.Scene {
     // Forzar la adición a la capa UI
     if (this.healthBar.container) {
       this.cameraController.addToUILayer(this.healthBar.container)
-      console.log("HealthBar añadido a la capa UI")
+      console.log("HealthBar añadido a la capa UI con colores:", {
+        p1Color: `0x${p1Color.toString(16)}`,
+        p2Color: `0x${p2Color.toString(16)}`
+      });
     }
   }
 
@@ -393,7 +511,7 @@ export class PlayState extends Phaser.Scene {
 
       await this._loadSongChart(currentSong) // Carga el JSON de la canción
       await this._loadSongAssets(currentSong) // Carga audio y assets de personajes (texturas)
-      await this.preloadHealthIcons() // Carga texturas de iconos de vida
+      await this._loadHealthIcons() // Carga texturas de iconos de vida
 
       // Iniciar la carga de assets en Phaser si hay algo en la cola
       if (this.load.totalToLoad > 0) {
@@ -775,7 +893,6 @@ export class PlayState extends Phaser.Scene {
     // Crear y configurar TimeBar
     this.timeBar = new TimeBar(this)
     this.timeBar.create() // Asumiendo que create es async o devuelve una promesa
- // Asumiendo que create es async o devuelve una promesa
 
     // Asignar nombre al contenedor de TimeBar
     if (this.timeBar.container) {
@@ -812,29 +929,67 @@ export class PlayState extends Phaser.Scene {
     console.log("Cleaning up before restart...");
     
     try {
+        // Detener todos los sonidos primero
+        this.sound.stopAll();
+
         // First cleanup scripts
         if (this.scriptHandler) {
             console.log("Cleaning up scripts...");
-            await this.scriptHandler.cleanup();
+            try {
+                await this.scriptHandler.cleanup();
+            } catch (error) {
+                console.warn("Error cleaning up scripts:", error);
+            }
             this.scriptHandler = null;
         }
         
         // Then cleanup other components
-        await Promise.all([
+        const cleanupPromises = [
             this.arrowsManager?.cleanup(),
             this.ratingManager?.reset(),
             this.characters?.cleanup(),
             this.stageManager?.cleanup(),
-        ]);
+        ].filter(Boolean);
+
+        if (cleanupPromises.length > 0) {
+            await Promise.allSettled(cleanupPromises);
+        }
         
-        // Destroy UI elements
-        this.healthBar?.destroy();
-        this.ratingText?.destroy();
-        this.timeBar?.destroy();
+        // Destroy UI elements de forma segura
+        const uiElements = [
+            this.healthBar,
+            this.ratingText,
+            this.timeBar
+        ];
+
+        uiElements.forEach(element => {
+            try {
+                if (element?.destroy) {
+                    element.destroy();
+                }
+            } catch (error) {
+                console.warn('Error destroying UI element:', error);
+            }
+        });
+
+        // Null out references
+        this.healthBar = null;
+        this.ratingText = null;
+        this.timeBar = null;
         
-        // Clear audio
-        this._safeStopAudio(this.currentVoices);
-        this._safeStopAudio(this.currentInst);
+        // Clear audio de forma segura
+        [this.currentVoices, this.currentInst].forEach(audio => {
+            if (audio) {
+                try {
+                    this._safeStopAudio(audio);
+                } catch (error) {
+                    console.warn('Error stopping audio:', error);
+                }
+            }
+        });
+        
+        this.currentVoices = null;
+        this.currentInst = null;
         
         // Reset state
         this.songPosition = 0;
@@ -842,8 +997,14 @@ export class PlayState extends Phaser.Scene {
         this.lastBeat = -1;
         this.songData = null;
         
-        // Reset cameras
-        this.cameraController?.reset();
+        // Reset cameras de forma segura
+        if (this.cameraController) {
+            try {
+                await this.cameraController.reset();
+            } catch (error) {
+                console.warn("Error resetting cameras:", error);
+            }
+        }
         
         console.log("Cleanup completed successfully");
     } catch (error) {
@@ -855,63 +1016,44 @@ async _handleSongCompletion() {
     try {
         this.isMusicPlaying = false;
         
-        // Hacer cleanup antes de cualquier otra cosa
-        await this._cleanupBeforeRestart();
-        
-        // Stop current audio
-        this._safeStopAudio(this.currentVoices);
-        this._safeStopAudio(this.currentInst);
-        
-        this.currentInst = null;
-        this.currentVoices = null;
+        // Guardar puntuación
+        const currentSong = this.dataManager.songList[this.dataManager.currentSongIndex];
+        const difficulty = this.dataManager.storyDifficulty || 'normal';
+        const scoreData = this.ratingManager.saveScoreData(currentSong, difficulty);
 
         if (this.dataManager.isStoryMode) {
-            this.dataManager.currentSongIndex++;
-            
-            if (this.dataManager.currentSongIndex < this.dataManager.storyPlaylist.length) {
-                console.log('Moving to next song:', this.dataManager.storyPlaylist[this.dataManager.currentSongIndex]);
+            // Actualizar puntuación de campaña
+            this.dataManager.campaignScore += scoreData.score;
+            this.dataManager.campaignMisses += scoreData.misses;
+
+            // Si es la última canción de la semana
+            if (this.dataManager.currentSongIndex >= this.dataManager.storyPlaylist.length - 1) {
+                const weekKey = `weekScore_${this.dataManager.weekName}_${difficulty}`;
+                const totalScore = this.dataManager.campaignScore;
                 
-                // Asegurar que el ScriptHandler esté completamente limpio
-                if (this.scriptHandler) {
-                    await this.scriptHandler.cleanup();
-                    this.scriptHandler.destroy();
-                    this.scriptHandler = null;
+                // Guardar solo si es mejor que el puntaje anterior
+                const existingScore = localStorage.getItem(weekKey);
+                if (!existingScore || totalScore > parseInt(existingScore)) {
+                    localStorage.setItem(weekKey, totalScore.toString());
                 }
                 
-                // Limpiar caché de scripts
-                Object.keys(this.cache.custom).forEach(key => {
-                    if (key.includes('script')) {
-                        this.cache.custom.remove(key);
-                    }
-                });
-                
-                // Reiniciar la escena con datos limpios
+                // Redirigir a StoryMode
+                this.playFreakyMenuAndRedirect();
+            } else {
+                // Pasar a la siguiente canción
+                this.dataManager.currentSongIndex++;
                 this.scene.restart({
-                    isStoryMode: true,
-                    storyPlaylist: this.dataManager.storyPlaylist,
-                    currentSongIndex: this.dataManager.currentSongIndex,
-                    selectedDifficulty: this.dataManager.storyDifficulty,
-                    campaignScore: this.dataManager.campaignScore,
-                    campaignMisses: this.dataManager.campaignMisses,
-                    weekName: this.dataManager.weekName,
-                    weekBackground: this.dataManager.weekBackground,
-                    weekCharacters: this.dataManager.weekCharacters,
-                    weekTracks: this.dataManager.weekTracks
+                    ...this.dataManager.getData(),
+                    currentSongIndex: this.dataManager.currentSongIndex
                 });
-                return;
             }
+        } else {
+            // Modo Freeplay: volver al menú de selección
+            this.playFreakyMenuAndRedirect();
         }
-        
-        this.playFreakyMenuAndRedirect();
     } catch (error) {
         console.error('Error in _handleSongCompletion:', error);
-        // En caso de error, forzar limpieza y redirección
-        if (this.scriptHandler) {
-            await this.scriptHandler.cleanup();
-            this.scriptHandler.destroy();
-            this.scriptHandler = null;
-        }
-        this.playFreakyMenuAndRedirect();
+        this.scene.start('MainMenuState');
     }
 }
 
@@ -930,8 +1072,12 @@ playFreakyMenuAndRedirect() {
             weekBackground: this.dataManager.weekBackground,
             weekCharacters: this.dataManager.weekCharacters,
             campaignScore: this.dataManager.campaignScore,
-            campaignMisses: this.dataManager.campaignMisses
-        } : {};
+            campaignMisses: this.dataManager.campaignMisses,
+            selectedWeekIndex: this.dataManager.weekIndex // Añadir esto para mantener la selección
+        } : {
+            selectedIndex: this.dataManager.currentSongIndex, // Añadir esto para mantener la selección
+            selectedDifficulty: this.dataManager.storyDifficulty
+        };
 
         // Primero detener la escena actual
         this.scene.stop();
@@ -944,7 +1090,7 @@ playFreakyMenuAndRedirect() {
 
         freakyMusic.play();
 
-        // Cambiar de escena
+        // Cambiar de escena con los datos correspondientes
         this.scene.start(nextScene, sceneData);
     } catch (error) {
         console.error('Error during scene transition:', error);

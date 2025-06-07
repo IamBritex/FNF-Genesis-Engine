@@ -403,5 +403,45 @@ export class RatingManager {
 
     on(event, fn) {
         this.events.on(event, fn);
+   }
+
+    // Añadir método para guardar datos en localStorage
+    saveScoreData(songName, difficulty) {
+        const accuracy = this.calculateAccuracy();
+        const scoreData = {
+            score: this.score,
+            combo: this.combo,
+            maxCombo: this.maxCombo,
+            misses: this.misses,
+            totalNotesHit: this.totalNotesHit,
+            totalNotes: this.totalNotes,
+            accuracy: accuracy,
+            difficulty: difficulty
+        };
+
+        // Guardar datos específicos de la canción
+        const songKey = `score_${songName}_${difficulty}`;
+        
+        // Verificar si hay un puntaje anterior
+        const existingData = localStorage.getItem(songKey);
+        if (existingData) {
+            const oldScore = JSON.parse(existingData).score;
+            // Solo guardar si el nuevo puntaje es mayor
+            if (this.score > oldScore) {
+                localStorage.setItem(songKey, JSON.stringify(scoreData));
+            }
+        } else {
+            // Si no hay puntaje anterior, guardar el nuevo
+            localStorage.setItem(songKey, JSON.stringify(scoreData));
+        }
+
+        return scoreData;
+    }
+
+    // Añadir método para cargar datos
+    loadScoreData(songName, difficulty) {
+        const songKey = `score_${songName}_${difficulty}`;
+        const savedData = localStorage.getItem(songKey);
+        return savedData ? JSON.parse(savedData) : null;
     }
 }

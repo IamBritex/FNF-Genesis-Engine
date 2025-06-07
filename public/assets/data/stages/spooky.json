@@ -4,7 +4,7 @@
             "priority": 1,
             "layer": 1,
             "scale": 1.0,
-            "path": "public/assets/data/stages/spooky/halloween_bg.png",
+            "path": "halloween_bg",
             "visible": true,
             "opacity": 1.0,
             "position": [-300, -200]

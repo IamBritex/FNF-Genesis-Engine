@@ -213,11 +213,6 @@ export class HealthBar {
 
   _animateHealthBars(width, height, totalWidth, halfWidth, healthPercent) {
 
-    // Añadir logs de debug
-      console.log('Current health:', healthPercent);
-      console.log('Min health:', this.minHealth);
-      console.log('Is game over active:', this.scene.gameOver?.isActive);
-
       // Verificar si la salud llegó al mínimo
       if (healthPercent <= 0.001) {
           console.log('CRITICAL: Health reached minimum threshold!');
@@ -345,8 +340,6 @@ export class HealthBar {
 
   damage(amount) {
       const scaledAmount = amount * this.damageMultiplier;
-      console.log('Damage received:', scaledAmount);
-      console.log('Current health before damage:', this.curHealth);
       
       // Aplicar el daño con un mínimo garantizado
       const newHealth = Math.max(0, this.curHealth - scaledAmount);
@@ -358,19 +351,15 @@ export class HealthBar {
           this.setHealth(newHealth);
       }
       
-      console.log('Health after damage:', this.curHealth);
   }
 
   heal(amount) {
       // Aumentar la curación base
       const scaledAmount = amount * this.healMultiplier;
-      console.log('Heal amount:', scaledAmount);
-      console.log('Current health before healing:', this.curHealth);
       
       const newHealth = Math.min(this.maxHealth, this.curHealth + scaledAmount);
       this.setHealth(newHealth);
       
-      console.log('Health after healing:', this.curHealth);
   }
 
   destroy() {

@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TextureAtlas imagePath="Chimera.png">
+<SubTexture name="Chimera idle0000" x="0" y="0" width="563" height="1388" frameX="-679" frameY="-112" frameWidth="2000" frameHeight="1500" />
+<SubTexture name="Chimera idle0001" x="563" y="0" width="569" height="1385" frameX="-677" frameY="-115" frameWidth="2000" frameHeight="1500" />
+</TextureAtlas>

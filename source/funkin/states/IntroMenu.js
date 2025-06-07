@@ -61,7 +61,7 @@ class IntroMenu extends Phaser.Scene {
         let texts = [];
         let imageObj = null;
         const startY = 300;
-        const lineSpacing = 70;
+        const lineSpacing = 50;
         let currentYOffset = 0;
         let sceneEnded = false;
         let currentRandomPair = null;

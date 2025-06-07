@@ -83,6 +83,15 @@ export class NotesController {
 
         // Añadir Map para direcciones sostenidas
         this.enemyHeldDirections = new Map();
+
+        // Añadir propiedades para el bot
+        this.botEnabled = false;
+        this.botKey = this.scene.input.keyboard.addKey('B');
+        this.botKey.on('down', this.toggleBot, this);
+        
+        // Tiempo mínimo entre hits del bot para simular tiempo de reacción humano
+        this.botReactionTime = 16; // ms
+        this.lastBotHitTime = 0;
     }
 
     // Input setup
@@ -613,6 +622,28 @@ export class NotesController {
         );
     }
     
+    async init() {
+        if (this.initialized) {
+            console.warn('NotesController already initialized');
+            return;
+        }
+
+        try {
+            // Crear flechas del jugador y enemigo
+            await this.createPlayerArrows();
+            this.createEnemyArrows();
+            
+            // Configurar manejadores de entrada
+            this.setupInputHandlers();
+            
+            this.initialized = true;
+            console.log('NotesController initialized successfully');
+        } catch (error) {
+            console.error('Error initializing NotesController:', error);
+            throw error;
+        }
+    }
+    
     update(songPosition) {
         // No actualizar si el juego está pausado
         if (this.scene.isPaused()) return;
@@ -731,179 +762,97 @@ export class NotesController {
             (note.sprite?.active) || 
             (note.holdSprites?.some(sprite => sprite?.active))
         );
-    }
-    
-    updateHoldNote(note, currentTime) {
-        const holdEndTime = note.strumTime + note.sustainLength;
-        const directionIndex = note.noteDirection;
-        const direction = this.directions[directionIndex];
-        const arrow = this.playerArrows[directionIndex];
-        const key = this.keysHeld[direction];
-        const targetY = this.arrowConfigs.playerStatic[directionIndex].y;
-        const scrollSpeed = 0.45 * this.speed;
 
-        if (!note.isPlayerNote) return;
-
-        if (note.holdSprites && note.holdSprites.length > 0 && note.holdContainer) {
-            // Calcular posición base
-            const elapsedTime = currentTime - note.strumTime;
-            const noteY = targetY + (elapsedTime * -scrollSpeed);
-            note.holdContainer.y = noteY;
-
-            // Si la nota está siendo presionada
-            if (note.isBeingHeld && key) {
-                // Destruir segmentos solo cuando están siendo presionados
-                note.holdSprites.forEach((sprite, i) => {
-                    if (sprite && sprite.active) {
-                        const spriteGlobalY = note.holdContainer.y + sprite.y;
-                        if (spriteGlobalY <= targetY) {
-                            sprite.destroy();
-                            note.holdSprites[i] = null;
-                        }
-                    }
-                });
-
-                // Mantener flecha en estado de confirmación
-                const confirmPos = this.arrowConfigs.playerConfirm[directionIndex];
-                arrow.setPosition(confirmPos.x, confirmPos.y)
-                    .setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-                    .setScale(this.arrowConfigs.scale.confirm);
-
-                // Puntuación mientras se mantiene presionada
-                if (currentTime - note.holdScoreTime >= this.holdScoreInterval) {
-                    this.score += this.holdScoreRate;
-                    note.holdScoreTime = currentTime;
-                    
-                    if (currentTime - note.lastHoldHealthTime >= this.healthConfig.holdRate) {
-                        if (this.scene.healthBar) {
-                            this.scene.healthBar.heal(this.healthConfig.holdGain);
-                        }
-                        note.lastHoldHealthTime = currentTime;
-                    }
-                }
-
-                // Mientras la nota está siendo presionada, mantener idleTimer en 0
-                const character = this.scene.characters?.loadedCharacters.get(this.scene.characters?.currentPlayer);
-                if (character) {
-                    character.idleTimer = 0;
-                }
-            } else {
-                // Si no está siendo presionada, solo actualizar posición y seguir subiendo
-                if (!note.holdReleased && currentTime < holdEndTime - this.safeZoneOffset) {
-                    note.holdReleased = true;
-                    if (this.scene.healthBar) {
-                        this.scene.healthBar.damage(this.healthConfig.missLoss);
-                    }
-                    this.ratingManager.recordMiss();
-                }
-            }
-
-            // Verificar si la nota debe ser limpiada
-            const hasActiveSprites = note.holdSprites.some(sprite => sprite && sprite.active);
-            if (!hasActiveSprites || currentTime >= holdEndTime) {
-                this.cleanUpNote(note);
-                if (this.activeHoldNotes[directionIndex] === note) {
-                    this.activeHoldNotes[directionIndex] = null;
-                }
-            }
+        // Añadir lógica del bot antes del update normal
+        if (this.botEnabled) {
+            this.updateBot(songPosition);
         }
     }
-    
-    updateEnemyHoldNote(note, currentTime) {
-        const holdEndTime = note.strumTime + note.sustainLength;
-        const directionIndex = note.noteDirection;
-        const direction = this.directions[directionIndex];
-        const arrow = this.enemyArrows[directionIndex];
-        const targetY = this.arrowConfigs.enemyStatic[directionIndex].y;
-        const scrollSpeed = 0.45 * this.speed;
 
-        if (note.holdSprites && note.holdSprites.length > 0 && note.holdContainer) {
-            // Calcular posición base
-            const elapsedTime = currentTime - note.strumTime;
-            const noteY = targetY + (elapsedTime * -scrollSpeed);
-            note.holdContainer.y = noteY;
+    updateBot(currentTime) {
+        // No procesar si no hay suficiente tiempo desde el último hit
+        if (currentTime - this.lastBotHitTime < this.botReactionTime) return;
 
-            // Si la nota está activa (siendo "presionada" por la CPU)
-            if (note.enemyHoldActive) {
-                // Destruir segmentos que pasan el strumline
-                note.holdSprites.forEach((sprite, i) => {
-                    if (sprite && sprite.active) {
-                        const spriteGlobalY = note.holdContainer.y + sprite.y;
-                        if (spriteGlobalY <= targetY) {
-                            sprite.destroy();
-                            note.holdSprites[i] = null;
-                        }
-                    }
-                });
+        // Buscar la siguiente nota del jugador que pueda ser golpeada
+        for (const note of this.songNotes) {
+            if (!note.isPlayerNote || note.wasHit || note.tooLate || !note.spawned) continue;
 
-                // Mantener flecha en estado de confirmación
-                const confirmPos = this.arrowConfigs.enemyConfirm[directionIndex];
-                arrow.setPosition(confirmPos.x, confirmPos.y)
-                    .setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-                    .setScale(this.arrowConfigs.scale.confirm);
-
-                // Emitir evento de sustain
-                this.events.emit('sustainHold', {
-                    isPlayerNote: false,
-                    isHolding: true,
-                    direction: note.direction,
-                    animation: note.animation
-                });
-
-                const character = this.scene.characters?.loadedCharacters.get(this.scene.characters?.currentEnemy);
-                if (character) {
-                    character.idleTimer = 0;
-                }
-
-                // Para notas sostenidas del enemigo, mantener el idleTimer en 0
-                this.scene.time.addEvent({
-                    delay: 16,
-                    repeat: Math.floor(note.sustainLength / 16),
-                    callback: () => {
-                        if (character && note.enemyHoldActive) {
-                            character.idleTimer = 0;
-                        }
-                    }
-                });
-            } else {
-                // Si no está activa, solo seguir subiendo
-                if (currentTime >= holdEndTime) {
-                    this.cleanUpNote(note);
-                    
-                    arrow.x = arrow.originalX;
-                    arrow.y = arrow.originalY;
-                    arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                    arrow.setScale(this.arrowConfigs.scale.static);
-                }
-            }
-
-            // Verificar si la nota debe ser limpiada
-            const hasActiveSprites = note.holdSprites.some(sprite => sprite && sprite.active);
-            if (!hasActiveSprites || currentTime >= holdEndTime) {
-                this.cleanUpNote(note);
-                note.enemyHoldActive = false;
+            const timeDiff = note.strumTime - currentTime;
+            
+            // Si la nota está dentro de la ventana de tiempo
+            if (Math.abs(timeDiff) <= this.safeZoneOffset) {
+                // Simular presionar la tecla
+                const direction = this.directions[note.noteDirection];
                 
-                arrow.x = arrow.originalX;
-                arrow.y = arrow.originalY;
-                arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                arrow.setScale(this.arrowConfigs.scale.static);
+                if (!this.keysHeld[direction]) {
+                    // Simular presionar la tecla
+                    this.keysHeld[direction] = true;
+                    this.checkNoteHit(note.noteDirection);
+                    this.lastBotHitTime = currentTime;
+
+                    // Programar soltar la tecla después de un momento
+                    if (!note.isHoldNote) {
+                        this.scene.time.delayedCall(100, () => {
+                            this.keysHeld[direction] = false;
+                        });
+                    }
+                }
+            }
+
+            // Para notas hold, mantener presionada la tecla
+            if (note.isHoldNote && note.wasHit && !note.holdReleased) {
+                const direction = this.directions[note.noteDirection];
+                this.keysHeld[direction] = true;
+
+                // Soltar cuando termine la nota hold
+                if (currentTime >= note.strumTime + note.sustainLength) {
+                    this.keysHeld[direction] = false;
+                }
             }
         }
     }
-    
-    calculateNoteY(note, timeDiff) {
-        const directionIndex = note.noteDirection;
-        const targetY = note.isPlayerNote ? 
-            this.arrowConfigs.playerStatic[directionIndex].y : 
-            this.arrowConfigs.enemyStatic[directionIndex].y;
+
+    cleanUpNote(note) {
+        // Clean up main sprite
+        if (note.sprite?.active) {
+            note.sprite.destroy();
+            note.sprite = null;
+        }
         
-        // Use BPM-based scrolling
-        const scrollSpeed = (0.45 * this.speed) * (this.currentBPM / 100);
-        const yOffset = timeDiff * scrollSpeed;
+        // Clean up hold sprites
+        if (note.holdSprites) {
+            note.holdSprites.forEach(sprite => {
+                if (sprite?.active) {
+                    sprite.destroy();
+                }
+            });
+            note.holdSprites = [];
+        }
         
-        return targetY + yOffset;
+        // Clean up hold container
+        if (note.holdContainer?.active) {
+            note.holdContainer.destroy();
+            note.holdContainer = null;
+        }
+        
+        // Reset hold state
+        if (note.isHoldNote) {
+            note.isBeingHeld = false;
+            note.enemyHoldActive = false;
+            note.holdReleased = true;
+            note.holdEndPassed = true;
+        }
+        
+        // Mark note as completely processed
+        note.wasHit = true;
+        note.tooLate = true;
     }
-    
+
+    toggleBot() {
+        this.botEnabled = !this.botEnabled;
+        console.log(`Bot ${this.botEnabled ? 'enabled' : 'disabled'}`);
+    }
+
     getScore() { return this.score; }
     getCombo() { return this.combo; }
     getMaxCombo() { return this.maxCombo; }
@@ -1152,67 +1101,179 @@ export class NotesController {
 
     //     // ... resto del código existente ...
     // }
+    
+    // Game loop update for hold notes
+    updateHoldNote(note, currentTime) {
+        const holdEndTime = note.strumTime + note.sustainLength;
+        const directionIndex = note.noteDirection;
+        const direction = this.directions[directionIndex];
+        const arrow = this.playerArrows[directionIndex];
+        const key = this.keysHeld[direction];
+        const targetY = this.arrowConfigs.playerStatic[directionIndex].y;
+        const scrollSpeed = 0.45 * this.speed;
 
-    // Añadir después del constructor
-    async init() {
-        if (this.initialized) {
-            console.warn('NotesController already initialized');
-            return;
-        }
+        if (!note.isPlayerNote) return;
 
-        try {
-            // Crear flechas del jugador y enemigo
-            await this.createPlayerArrows();
-            this.createEnemyArrows();
-            
-            // Configurar manejadores de entrada
-            this.setupInputHandlers();
-            
-            this.initialized = true;
-            console.log('NotesController initialized successfully');
-        } catch (error) {
-            console.error('Error initializing NotesController:', error);
-            throw error;
-        }
-    }
+        if (note.holdSprites && note.holdSprites.length > 0 && note.holdContainer) {
+            // Calcular posición base
+            const elapsedTime = currentTime - note.strumTime;
+            const noteY = targetY + (elapsedTime * -scrollSpeed);
+            note.holdContainer.y = noteY;
 
-    // Add this method to the NotesController class
-    cleanUpNote(note) {
-        // Clean up main sprite
-        if (note.sprite?.active) {
-            note.sprite.destroy();
-            note.sprite = null;
-        }
-        
-        // Clean up hold sprites
-        if (note.holdSprites) {
-            note.holdSprites.forEach(sprite => {
-                if (sprite?.active) {
-                    sprite.destroy();
+            // Si la nota está siendo presionada
+            if (note.isBeingHeld && key) {
+                // Destruir segmentos solo cuando están siendo presionados
+                note.holdSprites.forEach((sprite, i) => {
+                    if (sprite && sprite.active) {
+                        const spriteGlobalY = note.holdContainer.y + sprite.y;
+                        if (spriteGlobalY <= targetY) {
+                            sprite.destroy();
+                            note.holdSprites[i] = null;
+                        }
+                    }
+                });
+
+                // Mantener flecha en estado de confirmación
+                const confirmPos = this.arrowConfigs.playerConfirm[directionIndex];
+                arrow.setPosition(confirmPos.x, confirmPos.y)
+                    .setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
+                    .setScale(this.arrowConfigs.scale.confirm);
+
+                // Puntuación mientras se mantiene presionada
+                if (currentTime - note.holdScoreTime >= this.holdScoreInterval) {
+                    this.score += this.holdScoreRate;
+                    note.holdScoreTime = currentTime;
+                    
+                    if (currentTime - note.lastHoldHealthTime >= this.healthConfig.holdRate) {
+                        if (this.scene.healthBar) {
+                            this.scene.healthBar.heal(this.healthConfig.holdGain);
+                        }
+                        note.lastHoldHealthTime = currentTime;
+                    }
                 }
-            });
-            note.holdSprites = [];
-        }
-        
-        // Clean up hold container
-        if (note.holdContainer?.active) {
-            note.holdContainer.destroy();
-            note.holdContainer = null;
-        }
-        
-        // Reset hold state
-        if (note.isHoldNote) {
-            note.isBeingHeld = false;
-            note.enemyHoldActive = false;
-            note.holdReleased = true;
-            note.holdEndPassed = true;
-        }
-        
-        // Mark note as completely processed
-        note.wasHit = true;
-        note.tooLate = true;
-    }
 
+                // Mientras la nota está siendo presionada, mantener idleTimer en 0
+                const character = this.scene.characters?.loadedCharacters.get(this.scene.characters?.currentPlayer);
+                if (character) {
+                    character.idleTimer = 0;
+                }
+            } else {
+                // Si no está siendo presionada, solo actualizar posición y seguir subiendo
+                if (!note.holdReleased && currentTime < holdEndTime - this.safeZoneOffset) {
+                    note.holdReleased = true;
+                    if (this.scene.healthBar) {
+                        this.scene.healthBar.damage(this.healthConfig.missLoss);
+                    }
+                    this.ratingManager.recordMiss();
+                }
+            }
+
+            // Verificar si la nota debe ser limpiada
+            const hasActiveSprites = note.holdSprites.some(sprite => sprite && sprite.active);
+            if (!hasActiveSprites || currentTime >= holdEndTime) {
+                this.cleanUpNote(note);
+                if (this.activeHoldNotes[directionIndex] === note) {
+                    this.activeHoldNotes[directionIndex] = null;
+                }
+            }
+        }
+    }
+    
+    updateEnemyHoldNote(note, currentTime) {
+        const holdEndTime = note.strumTime + note.sustainLength;
+        const directionIndex = note.noteDirection;
+        const direction = this.directions[directionIndex];
+        const arrow = this.enemyArrows[directionIndex];
+        const targetY = this.arrowConfigs.enemyStatic[directionIndex].y;
+        const scrollSpeed = 0.45 * this.speed;
+
+        if (note.holdSprites && note.holdSprites.length > 0 && note.holdContainer) {
+            // Calcular posición base
+            const elapsedTime = currentTime - note.strumTime;
+            const noteY = targetY + (elapsedTime * -scrollSpeed);
+            note.holdContainer.y = noteY;
+
+            // Si la nota está activa (siendo "presionada" por la CPU)
+            if (note.enemyHoldActive) {
+                // Destruir segmentos que pasan el strumline
+                note.holdSprites.forEach((sprite, i) => {
+                    if (sprite && sprite.active) {
+                        const spriteGlobalY = note.holdContainer.y + sprite.y;
+                        if (spriteGlobalY <= targetY) {
+                            sprite.destroy();
+                            note.holdSprites[i] = null;
+                        }
+                    }
+                });
+
+                // Mantener flecha en estado de confirmación
+                const confirmPos = this.arrowConfigs.enemyConfirm[directionIndex];
+                arrow.setPosition(confirmPos.x, confirmPos.y)
+                    .setTexture('noteStrumline', `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
+                    .setScale(this.arrowConfigs.scale.confirm);
+
+                // Emitir evento de sustain
+                this.events.emit('sustainHold', {
+                    isPlayerNote: false,
+                    isHolding: true,
+                    direction: note.direction,
+                    animation: note.animation
+                });
+
+                const character = this.scene.characters?.loadedCharacters.get(this.scene.characters?.currentEnemy);
+                if (character) {
+                    character.idleTimer = 0;
+                }
+
+                // Para notas sostenidas del enemigo, mantener el idleTimer en 0
+                this.scene.time.addEvent({
+                    delay: 16,
+                    repeat: Math.floor(note.sustainLength / 16),
+                    callback: () => {
+                        if (character && note.enemyHoldActive) {
+                            character.idleTimer = 0;
+                        }
+                    }
+                });
+            } else {
+                // Si no está activa, solo seguir subiendo
+                if (currentTime >= holdEndTime) {
+                    this.cleanUpNote(note);
+                    
+                    arrow.x = arrow.originalX;
+                    arrow.y = arrow.originalY;
+                    arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                    arrow.setScale(this.arrowConfigs.scale.static);
+                }
+            }
+
+            // Verificar si la nota debe ser limpiada
+            const hasActiveSprites = note.holdSprites.some(sprite => sprite && sprite.active);
+            if (!hasActiveSprites || currentTime >= holdEndTime) {
+                this.cleanUpNote(note);
+                note.enemyHoldActive = false;
+                
+                arrow.x = arrow.originalX;
+                arrow.y = arrow.originalY;
+                arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
+                arrow.setScale(this.arrowConfigs.scale.static);
+            }
+        }
+    }
+    
+    calculateNoteY(note, timeDiff) {
+        const directionIndex = note.noteDirection;
+        const targetY = note.isPlayerNote ? 
+            this.arrowConfigs.playerStatic[directionIndex].y : 
+            this.arrowConfigs.enemyStatic[directionIndex].y;
+        
+        // Use BPM-based scrolling
+        const scrollSpeed = (0.45 * this.speed) * (this.currentBPM / 100);
+        const yOffset = timeDiff * scrollSpeed;
+        
+        return targetY + yOffset;
+    }
+    
     disableInputs() {
         // Deshabilitar los inputs
         this.inputEnabled = false;

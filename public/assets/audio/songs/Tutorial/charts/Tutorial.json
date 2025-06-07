@@ -2,7 +2,7 @@
 	"song": {
 		"sectionLengths": [],
 		"player1": "bf",
-		"events": [],
+		"events": ["Events.json"],
 		"gfVersion": null,
 		"player2": "gf",
 		"notes": [

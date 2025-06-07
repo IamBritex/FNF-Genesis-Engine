@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="reed.png">
+	<!-- Created with Adobe Animate version 24.0.7.61 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="reed0000" x="40" y="40" width="456" height="773" pivotX="25.4" pivotY="0"/>
+	<SubTexture name="reed0001" x="40" y="40" width="456" height="773"/>
+	<SubTexture name="reed0002" x="516" y="40" width="401" height="773" frameX="-27" frameY="0" frameWidth="456" frameHeight="773"/>
+	<SubTexture name="reed0003" x="516" y="40" width="401" height="773" frameX="-27" frameY="0" frameWidth="456" frameHeight="773"/>
+	<SubTexture name="reed0004" x="937" y="40" width="391" height="773" frameX="-32" frameY="0" frameWidth="456" frameHeight="773"/>
+	<SubTexture name="reed0005" x="937" y="40" width="391" height="773" frameX="-32" frameY="0" frameWidth="456" frameHeight="773"/>
+	<SubTexture name="reed0006" x="1348" y="40" width="387" height="773" frameX="-34" frameY="0" frameWidth="456" frameHeight="773"/>
+	<SubTexture name="reed0007" x="1348" y="40" width="387" height="773" frameX="-34" frameY="0" frameWidth="456" frameHeight="773"/>
+</TextureAtlas>

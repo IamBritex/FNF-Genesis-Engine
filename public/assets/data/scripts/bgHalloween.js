@@ -28,7 +28,7 @@ export default class BgHalloweenScript {
             // Load spritesheet if not already loaded
             if (!this.scene.textures.exists(textureKey)) {
                 // Load the image first
-                this.scene.load.image(textureKey, 'public/assets/data/stages/spooky/halloween_bg.png');
+                this.scene.load.image(textureKey, 'public/assets/images/stages/spooky/halloween_bg.png');
                 await new Promise((resolve, reject) => {
                     this.scene.load.once('complete', resolve);
                     this.scene.load.once('loaderror', reject);
@@ -36,7 +36,7 @@ export default class BgHalloweenScript {
                 });
 
                 // Load and parse XML
-                const xmlResponse = await fetch('public/assets/data/stages/spooky/halloween_bg.xml');
+                const xmlResponse = await fetch('public/assets/images/stages/spooky/halloween_bg.xml');
                 const xmlText = await xmlResponse.text();
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(xmlText, "text/xml");

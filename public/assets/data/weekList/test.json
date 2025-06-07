@@ -12,5 +12,6 @@
 	"weekBackground": "stage",
 
 	"phrase": "TEST",
-	"weekName": "tutorial"
+	"weekName": "tutorial",
+	"StoryVisible": false
 }

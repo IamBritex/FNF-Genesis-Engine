@@ -54,47 +54,109 @@ export class GameOver {
             this.scene.sound.stopAll();
             console.log('All sounds stopped');
 
-            // Detener inputs
-            if (this.scene.arrowsManager) {
-                this.scene.arrowsManager.disableInputs();
-                console.log('Inputs disabled');
-            }
-
-            // Detener actualizaciones del juego
-            this.scene.isMusicPlaying = false;
-            console.log('Game updates stopped');
-
-            // Asegurarnos de que todo lo que sigue sea solo visible en la gameCamera
-            if (this.scene.cameraController) {
-                // Ocultar la cámara UI completamente
+            // Ocultar la cámara UI
+            if (this.scene.cameraController?.uiCamera) {
                 this.scene.cameraController.uiCamera.setVisible(false);
-                console.log('UI Camera hidden');
-
-                // Asegurar que la cámara del juego esté visible
-                this.scene.cameraController.gameCamera.setVisible(true);
-                console.log('Game Camera visible');
+                console.log('UI camera hidden');
             }
 
-            // Cargar y configurar el personaje de muerte
-            const playerData = this.scene.characters.loadedCharacters.get(this.scene.characters.currentPlayer);
-            if (playerData?.data?.dead) {
-                await this.scene.characters.loadDeathCharacter(playerData.data.dead);
+            // Cargar personaje de muerte
+            const defaultDeathPath = 'public/assets/data/characters/bf-dead.json';
+            console.log('Loading default death character (bf-dead)');
+            
+            try {
+                const response = await fetch(defaultDeathPath);
+                if (!response.ok) throw new Error('Failed to load default death character');
+                
+                const characterData = await response.json();
+                const textureKey = 'character_bf-dead';
+
+                // Cargar las texturas del personaje de muerte
+                await this._loadDeathTextures(textureKey, characterData);
+                
+                // Reemplazar el sprite actual del jugador con el sprite de muerte
+                const player = this.scene.characters.loadedCharacters.get(this.scene.characters.currentPlayer);
+                if (player?.sprite) {
+                    // Mantener la posición original
+                    const originalPos = {
+                        x: player.sprite.x,
+                        y: player.sprite.y
+                    };
+
+                    // Crear nuevo sprite de muerte
+                    const deathSprite = this.scene.add.sprite(originalPos.x, originalPos.y, textureKey);
+                    deathSprite.setScale(characterData.scale || 1);
+                    // No aplicamos flip al sprite de muerte
+                    
+                    // Reemplazar el sprite viejo
+                    player.sprite.destroy();
+                    player.sprite = deathSprite;
+                    player.textureKey = textureKey;
+                }
+
+                // Configurar las animaciones de muerte
+                await this._setupDeathAnimations(textureKey);
+
+            } catch (error) {
+                console.error('Failed to load death character:', error);
+                return;
             }
 
-            // Ya no necesitamos ocultar UI pues la cámara UI está oculta
+            // Continuar con la secuencia de muerte
             await this._hideStageElements(player);
-
-            // Centrar cámara en player1
             await this._focusCameraOnPlayer();
-
-            // Reproducir animación de muerte
             await this._playDeathAnimation();
-
-            // Configurar inputs para la secuencia de muerte
             this._setupDeathInputs();
 
         } catch (error) {
             console.error('Error during game over sequence:', error);
+        }
+    }
+
+    async _loadDeathTextures(textureKey, characterData) {
+        if (this.scene.textures.exists(textureKey)) return;
+
+        const spritesPath = {
+            TEXTURE: 'public/assets/images/characters/BOYFRIEND_DEAD.png',
+            ATLAS: 'public/assets/images/characters/BOYFRIEND_DEAD.xml'
+        };
+
+        return new Promise((resolve, reject) => {
+            this.scene.load.atlasXML(textureKey, spritesPath.TEXTURE, spritesPath.ATLAS);
+            this.scene.load.once('complete', resolve);
+            this.scene.load.once('loaderror', reject);
+            this.scene.load.start();
+        });
+    }
+
+    async _setupDeathAnimations(textureKey) {
+        const animations = [
+            { name: "BF dies", anim: "firstDeath" },
+            { name: "BF Dead Loop", anim: "deathLoop" },
+            { name: "BF Dead confirm", anim: "deathConfirm" }
+        ];
+
+        for (const animation of animations) {
+            const frames = this.scene.textures.get(textureKey)
+                .getFrameNames()
+                .filter(frame => frame.startsWith(animation.name))
+                .sort();
+
+            if (frames.length > 0) {
+                const animKey = `${textureKey}_${animation.anim}`;
+                
+                if (!this.scene.anims.exists(animKey)) {
+                    this.scene.anims.create({
+                        key: animKey,
+                        frames: frames.map(frame => ({
+                            key: textureKey,
+                            frame: frame
+                        })),
+                        frameRate: 24,
+                        repeat: animation.anim === "deathLoop" ? -1 : 0
+                    });
+                }
+            }
         }
     }
 

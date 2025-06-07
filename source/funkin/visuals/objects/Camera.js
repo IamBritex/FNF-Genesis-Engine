@@ -43,6 +43,9 @@ export class CameraController {
 
     this.gameCamera.setZoom(this.gameZoom);
     this.uiCamera.setZoom(this.defaultZoom).setScroll(0, 0);
+
+    this.followSinging = true; // Nueva propiedad
+    this.forcedTarget = null;  // Nueva propiedad
   }
 
   classifyAllSceneElements() {
@@ -188,12 +191,44 @@ export class CameraController {
     const elapsedSeconds = delta / 1000;
     const lerpSpeed = this.cameraLerpSpeed * (delta / 16.666);
 
+    // Manejar el foco de la cámara
+    if (this.forcedTarget) {
+      // Si hay un objetivo forzado, mantener el foco en ese objetivo
+      const characters = this.scene.characters;
+      if (characters) {
+        let targetCharacter = null;
+        switch (this.forcedTarget) {
+          case 'player1':
+            if (characters.currentPlayer && characters.playerVisible) {
+              targetCharacter = characters.loadedCharacters.get(characters.currentPlayer);
+            }
+            break;
+          case 'player2':
+            if (characters.currentEnemy && characters.enemyVisible) {
+              targetCharacter = characters.loadedCharacters.get(characters.currentEnemy);
+            }
+            break;
+          case 'gf':
+            if (characters.currentGF && characters.gfVisible) {
+              targetCharacter = characters.loadedCharacters.get(characters.currentGF);
+            }
+            break;
+        }
+
+        if (targetCharacter?.data) {
+          this.updateCameraPosition(targetCharacter.data);
+        }
+      }
+    } else if (this.followSinging) {
+      this._updateSingingFocus(songPosition, lerpSpeed);
+    }
+
+    // Actualizar posición y zoom
+    this._updateCameraPosition(lerpSpeed);
     if (this.isBopping) {
       this._handleBeatBop(songPosition);
     }
-
     this._updateZooms(elapsedSeconds);
-    this._updateCameraPosition(lerpSpeed);
   }
 
   _updateZooms(elapsedSeconds) {
@@ -229,33 +264,30 @@ export class CameraController {
 
   updateCameraPosition(characterData) {
     if (!characterData) {
-        this.targetCameraPos = {
-            x: this.defaultCameraPos.x - (this.gameCamera.width * 0.5),
-            y: this.defaultCameraPos.y - (this.gameCamera.height * 0.5)
-        };
-        return;
+      this.targetCameraPos = {
+        x: this.defaultCameraPos.x - (this.gameCamera.width * 0.5),
+        y: this.defaultCameraPos.y - (this.gameCamera.height * 0.5)
+      };
+      return;
     }
 
+    let targetX, targetY;
     if (characterData.camera_position) {
-        const [camX, camY] = characterData.camera_position;
-        this.targetCameraPos = {
-            x: camX - (this.gameCamera.width * 0.5),
-            y: camY - (this.gameCamera.height * 0.5)
-        };
+      [targetX, targetY] = characterData.camera_position;
     } else if (characterData.position) {
-        // Si no hay camera_position, usar la posición del personaje
-        const [posX, posY] = characterData.position;
-        this.targetCameraPos = {
-            x: posX - (this.gameCamera.width * 0.5),
-            y: posY - (this.gameCamera.height * 0.5)
-        };
+      [targetX, targetY] = characterData.position;
+    } else if (characterData.sprite) {
+      targetX = characterData.sprite.x;
+      targetY = characterData.sprite.y;
     } else {
-        // Si no hay ninguna posición, usar la posición por defecto
-        this.targetCameraPos = {
-            x: this.defaultCameraPos.x - (this.gameCamera.width * 0.5),
-            y: this.defaultCameraPos.y - (this.gameCamera.height * 0.5)
-        };
+      targetX = this.defaultCameraPos.x;
+      targetY = this.defaultCameraPos.y;
     }
+
+    this.targetCameraPos = {
+      x: targetX - (this.gameCamera.width * 0.5),
+      y: targetY - (this.gameCamera.height * 0.5)
+    };
   }
 
   triggerBop() {
@@ -263,22 +295,44 @@ export class CameraController {
     this.uiCamera?.setZoom(this.defaultZoom + this.bopZoom);
   }
 
-  reset() {
-    this.stopBoping();
-    this.defaultZoom = 1;
-    this.gameZoom = 1.5;
-    this.bopZoom = 1.1;
-    this.lastBeatTime = 0;
-    this.beatCounter = 0;
-    this.defaultCameraPos = { x: 0, y: 0 };
+  async reset() {
+    try {
+        // Verificar que las cámaras existan antes de intentar limpiarlas
+        if (this.gameCamera && !this.gameCamera.destroyed) {
+            this.gameCamera.setScroll(0, 0);
+            this.gameCamera.setZoom(1);
+            if (this.gameCamera.layer && typeof this.gameCamera.layer.clear === 'function') {
+                this.gameCamera.layer.clear();
+            }
+        }
 
-    this.gameCamera?.setZoom(this.gameZoom);
-    this.uiCamera?.setZoom(this.defaultZoom).setScroll(0, 0);
-    
-    this.gameLayer?.clear(false, false);
-    this.uiLayer?.clear(false, false);
-    this._setupCameraLayers();
-  }
+        if (this.uiCamera && !this.uiCamera.destroyed) {
+            this.uiCamera.setScroll(0, 0);
+            this.uiCamera.setZoom(1);
+            if (this.uiCamera.layer && typeof this.uiCamera.layer.clear === 'function') {
+                this.uiCamera.layer.clear();
+            }
+        }
+
+        // Resetear otras propiedades
+        this.targetX = 0;
+        this.targetY = 0;
+        this.currentZoom = 1;
+        this.defaultZoom = 1;
+        this.isBoping = false;
+        this.bopIntensity = 0.015;
+        this.lastBopTime = 0;
+
+        // Limpiar tweens si existen
+        if (this.currentTween) {
+            this.currentTween.stop();
+            this.currentTween = null;
+        }
+
+    } catch (error) {
+        console.warn('Error during camera reset:', error);
+    }
+}
 
   toggleCameraBounds() {
     if (this.gameCameraBounds) {
@@ -316,4 +370,30 @@ export class CameraController {
             ease: 'Power2'
         });
     }
-}}
+}
+    _updateSingingFocus(songPosition, lerpSpeed) {
+        const characters = this.scene.characters;
+        if (!characters) return;
+
+        // Get most recent sing times
+        const lastPlayerSing = this.scene.notesController?.lastSingTime?.player || 0;
+        const lastEnemySing = this.scene.notesController?.lastSingTime?.enemy || 0;
+
+        // Determine who's singing (500ms threshold)
+        const isSingingThreshold = 500;
+        
+        let targetCharacter = null;
+
+        if (songPosition - lastPlayerSing < isSingingThreshold && characters.playerVisible) {
+            targetCharacter = characters.loadedCharacters.get(characters.currentPlayer);
+        } else if (songPosition - lastEnemySing < isSingingThreshold && characters.enemyVisible) {
+            targetCharacter = characters.loadedCharacters.get(characters.currentEnemy);
+        }
+
+        if (targetCharacter?.data) {
+            this.updateCameraPosition(targetCharacter.data);
+        }
+
+        this._updateCameraPosition(lerpSpeed);
+    }
+  }
