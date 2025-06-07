@@ -47,7 +47,8 @@ export class ScriptHandler {
             // Construir la ruta del chart de eventos
             let chartPath;
             if (isMod) {
-                chartPath = `${modPath}/audio/songs/${songName}/charts/Events.json`;
+                const cleanModPath = modPath.replace('/public/', '');
+                chartPath = `${this.basePath}${cleanModPath}/audio/songs/${songName}/charts/Events.json`;
             } else {
                 chartPath = `${this.basePath}/assets/audio/songs/${songName}/charts/Events.json`;
             }
@@ -93,19 +94,21 @@ export class ScriptHandler {
 
     async loadScript(scriptName, inputs = null, isMod = false, modPath = null) {
         try {
-            // Clean up existing script if it exists
             if (this.activeScripts.has(scriptName)) {
                 await this.cleanupScript(scriptName);
             }
 
             let scriptPath;
             if (isMod && modPath) {
-                // Asegurar que la ruta del mod use el base path correcto
-                const cleanModPath = modPath.replace('/public/', '');
+                // Asegurar que la ruta del mod use el base path correcto y limpiar dobles slashes
+                const cleanModPath = modPath.replace('/public/', '').replace(/^\//, '');
                 scriptPath = `${this.basePath}${cleanModPath}/data/scripts/${scriptName}.js`;
             } else {
-                scriptPath = `${this.basePath}${this.scriptsBasePath}${scriptName}.js`;
+                scriptPath = `${this.basePath}${this.scriptsBasePath.replace(/^\//, '')}${scriptName}.js`;
             }
+
+            // Limpiar dobles slashes en la ruta final
+            scriptPath = scriptPath.replace(/\/+/g, '/');
 
             console.log(`Loading script from: ${scriptPath}`);
             
