@@ -46,15 +46,18 @@ export class ScriptHandler {
             // Construir la ruta del chart de eventos
             let chartPath;
             if (isMod) {
-                // Remove any 'public/' prefix and leading slashes
-                const cleanModPath = modPath.replace('public/', '').replace(/^\//, '');
-                chartPath = `${this.basePath}/public/${cleanModPath}/audio/songs/${songName}/charts/Events.json`;
+                const cleanModPath = modPath
+                    .replace(/^public\//, '')
+                    .replace(/^\/+/, '')
+                    .replace(/^mods\//, '');
+                chartPath = `public/mods/${cleanModPath}/audio/songs/${songName}/charts/Events.json`;
             } else {
-                chartPath = `${this.basePath}/assets/audio/songs/${songName}/charts/Events.json`;
+                // For base game, always include assets/ prefix
+                chartPath = `public/assets/audio/songs/${songName}/charts/Events.json`;
             }
-            
-            // Normalize path to remove any double slashes
-            chartPath = chartPath.replace(/\/+/g, '/');
+
+            // Normalizar la ruta usando el helper
+            chartPath = this._normalizePath(chartPath);
             
             console.log(`Attempting to load events from: ${chartPath} (${isMod ? 'MOD' : 'BASE GAME'})`);
             
@@ -95,6 +98,23 @@ export class ScriptHandler {
         }
     }
 
+    _normalizePath(path) {
+        // Remove any leading slashes
+        path = path.replace(/^\/+/, '');
+
+        // Handle mod paths (starting with public/)
+        if (path.startsWith('public/')) {
+            path = path.replace(/^public\//, '');
+            return `${this.basePath}/public/${path}`;
+        }
+        
+        // Handle base game assets
+        if (!path.startsWith('assets/')) {
+            path = `assets/${path}`;
+        }
+        return `${this.basePath}/${path}`;
+    }
+
     async loadScript(scriptName, inputs = null, isMod = false, modPath = null) {
         try {
             if (this.activeScripts.has(scriptName)) {
@@ -103,56 +123,88 @@ export class ScriptHandler {
 
             let scriptPath;
             if (isMod && modPath) {
-                // Remove any 'public/' prefix, leading slashes, and ensure no duplicate 'mods'
                 const cleanModPath = modPath
-                    .replace(/^public\//, '')  // Remove leading 'public/'
-                    .replace(/^\/+/, '')       // Remove leading slashes
-                    .replace(/^mods\//, '');   // Remove leading 'mods/'
+                    .replace(/^public\//, '')
+                    .replace(/^\/+/, '')
+                    .replace(/^mods\//, '');
 
-                scriptPath = `${this.basePath}/public/mods/${cleanModPath}/data/scripts/${scriptName}.js`;
+                scriptPath = `public/mods/${cleanModPath}/data/scripts/${scriptName}.js`;
             } else {
-                scriptPath = `${this.basePath}/assets/data/scripts/${scriptName}.js`;
+                scriptPath = `public/assets/data/scripts/${scriptName}.js`;
             }
 
-            // Normalize path to remove any double slashes
-            scriptPath = scriptPath.replace(/\/+/g, '/');
-
+            scriptPath = this._normalizePath(scriptPath);
             console.log(`Loading script from: ${scriptPath}`);
             
             const scriptModule = await import(scriptPath);
-            
             if (!scriptModule.default) {
                 throw new Error(`Script ${scriptName} has no default export`);
             }
 
             const ScriptClass = scriptModule.default;
             const scriptInstance = new ScriptClass(this.scene);
-            
+
+            // Crear un proxy para interceptar accesos a propiedades
+            const proxiedInstance = new Proxy(scriptInstance, {
+                get: (target, prop, receiver) => {
+                    const value = Reflect.get(target, prop, receiver);
+
+                    // Si es una función, verificar si usa rutas
+                    if (typeof value === 'function') {
+                        return (...args) => {
+                            // Procesar argumentos para normalizar rutas
+                            const processedArgs = args.map(arg => {
+                                if (typeof arg === 'string' && (
+                                    arg.startsWith('public/') || 
+                                    arg.startsWith('assets/') ||
+                                    arg.startsWith('mods/')
+                                )) {
+                                    return this._normalizePath(arg);
+                                }
+                                return arg;
+                            });
+                            return value.apply(target, processedArgs);
+                        };
+                    }
+
+                    // Si es una string que parece una ruta, normalizarla
+                    if (typeof value === 'string' && (
+                        value.startsWith('public/') || 
+                        value.startsWith('assets/') ||
+                        value.startsWith('mods/')
+                    )) {
+                        return this._normalizePath(value);
+                    }
+
+                    return value;
+                }
+            });
+
             // Pasar referencias necesarias
             if (this.cameraController) {
-                scriptInstance.cameraController = this.cameraController;
+                proxiedInstance.cameraController = this.cameraController;
             }
 
             // Initialize first
-            if (typeof scriptInstance.init === 'function') {
-                await scriptInstance.init();
+            if (typeof proxiedInstance.init === 'function') {
+                await proxiedInstance.init();
             }
             
             // Then define if needed
-            if (inputs && typeof scriptInstance.define === 'function') {
-                await scriptInstance.define(...inputs);
+            if (inputs && typeof proxiedInstance.define === 'function') {
+                await proxiedInstance.define(...inputs);
             }
 
-            // Store script with metadata
+            // Store proxied instance
             this.activeScripts.set(scriptName, {
-                instance: scriptInstance,
+                instance: proxiedInstance,
                 type: 'continuous',
                 isMod: isMod,
                 lastUpdate: this.scene.time.now
             });
 
             console.log(`Script ${scriptName} initialized successfully`);
-            return scriptInstance;
+            return proxiedInstance;
         } catch (error) {
             console.error(`Error loading ${scriptName}:`, error);
             return null;
