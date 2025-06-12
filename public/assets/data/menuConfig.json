@@ -38,7 +38,7 @@
         "spritesheetKey": "menuOptions",
         "spritePath": "public/assets/images/states/MainMenuState/options/menu_options",
         "animPrefix": "options",
-        "targetScene": "OptionsMenu",
+        "targetScene": "OptionsState",
         "position": {
           "x": 650,
           "y": 520
