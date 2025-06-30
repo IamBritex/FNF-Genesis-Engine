@@ -1,0 +1,79 @@
+{
+    "stage":[
+        {
+            "priority": 1,
+            "layer": 1,
+            "scale": 1.0,
+            "path": "sky",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-180, -10]
+        },
+        {
+            "priority": 1,
+            "layer": 2,
+            "scale": 1.0,
+            "path": "city",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-170, -20]
+        },
+        {
+            "priority": 1,
+            "layer": 3,
+            "scale": 1.0,
+            "path": "win0",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-170, -20]
+        },
+        {
+            "priority": 1,
+            "layer": 4,
+            "scale": 1.0,
+            "path": "behindTrain",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-102, -50]
+        },
+        {
+            "priority": 1,
+            "layer": 5,
+            "scale": 1.0,
+            "path": "train",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [3100, 190]
+        },
+        {
+            "priority": 1,
+            "layer": 5,
+            "scale": 1.0,
+            "path": "train",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [6100, 190]
+        },
+        {
+            "priority": 1,
+            "layer": 6,
+            "scale": 1.0,
+            "path": "street",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-100, -50]
+        },
+                {
+            "player": 1,
+            "layer": 8
+        },
+        {
+            "player": 2,
+            "layer": 8
+        },
+        {
+            "player": "gf",
+            "layer": 7
+        }
+    ]
+}

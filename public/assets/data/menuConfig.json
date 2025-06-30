@@ -1,0 +1,72 @@
+{
+    "menuOptions": [
+      {
+        "spritePath": "public/assets/images/states/MainMenuState/options/menu_story_mode",
+        "targetScene": "StoryModeState",
+        "position": {
+          "x": 650,
+          "y": 100
+        }
+      },
+      {
+        "spritePath": "public/assets/images/states/MainMenuState/options/menu_freeplay",
+        "targetScene": "FreeplayState",
+        "position": {
+          "x": 650,
+          "y": 240
+        }
+      },
+      {
+        "spritePath": "public/assets/images/states/MainMenuState/options/menu_awards",
+        "targetScene": "AwardsState",
+        "position": {
+          "x": 650,
+          "y": 380
+        }
+      },
+      {
+        "spritePath": "public/assets/images/states/MainMenuState/options/menu_options",
+        "targetScene": "OptionsState",
+        "position": {
+          "x": 650,
+          "y": 520
+        }
+      },
+      {
+        "spritePath": "public/assets/images/states/MainMenuState/options/menu_mods",
+        "targetScene": "ModsState",
+        "position": {
+          "x": 650,
+          "y": 660
+        }
+      },
+      {
+        "spritePath": "public/assets/images/states/MainMenuState/options/menu_credits",
+        "targetScene": "CreditsState",
+        "position": {
+          "x": 650,
+          "y": 800
+        }
+      }
+    ],
+    "spacing": 160,
+    "defaultScale": 1,
+    "inactiveScale": 0.9,
+    "scrollSpeed": 70,
+    "bgScrollSpeed": 70,
+    "animations": {
+        "basic": {
+            "frameRate": 19,
+            "endFrame": 8
+        },
+        "white": {
+            "frameRate": 20,
+            "endFrame": 2
+        }
+    },
+    "transitionConfig": {
+        "blinkDelay": 90,
+        "blinkRepeats": 24,
+        "transitionDelay": 100
+    }
+}

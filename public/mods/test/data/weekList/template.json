@@ -1,0 +1,17 @@
+{
+	"tracks": [
+		["sky"]
+	],
+
+	"weekCharacters": [
+		"bf",
+		"bf",
+		"gf"
+	],
+
+	"weekBackground": "stage",
+
+	"phrase": "template",
+	"weekName": "tutorial",
+	"StoryVisible": true
+}
