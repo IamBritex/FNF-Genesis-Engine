@@ -1,0 +1,34 @@
+{
+  "version": "2.2.4",
+  "songName": "Sky",
+  "artist": "GENZU",
+  "charter": "Nebula S. Nova",
+  "timeFormat": "ms",
+  "offsets": {
+    "instrumental": 0
+  },
+  "timeChanges": [{ "t": 0, "bpm": 200, "n": 4, "d": 4, "bt": [4, 4, 4, 4] }],
+  "playData": {
+    "songVariations": ["pico", "erect"],
+    
+    "difficulties": ["easy", "normal", "hard"],
+    "ratings": { "easy": 4, "normal": 6, "hard": 8 },
+    "characters": {
+      "player": "bf-sky",
+      "girlfriend": "gf-sky",
+      "opponent": "skyanxious",
+      "instrumental": "",
+      "opponentVocals": [
+        "sky"
+      ],
+      "altInstrumentals": []
+    },
+    "stage": "theShiftDark",
+    "noteStyle": "funkin",
+    "album": "skyreborn",
+    "stickerPack": "sky",
+    "previewStart": 0,
+    "previewEnd": 15000
+  },
+  "generatedBy": "EliteMasterEric (by hand)"
+}

@@ -1,0 +1,12 @@
+{
+	"idle_anim": "M darnell Idle",
+	"image": "darnell",
+	"position": [-20, -90],
+	"flipX": false,
+	"antialiasing": true,
+	"scale": 1,
+	"globalRotation": -90, 
+    "idleRotation": 0, 
+    "confirmRotation": 0,
+	"confirm_anim": "M darnell Idle"
+}

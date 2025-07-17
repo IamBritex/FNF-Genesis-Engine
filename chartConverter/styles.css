@@ -1,0 +1,113 @@
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #181c2f;
+  color: #f3f3f3;
+  text-align: center;
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.bg-animated {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0;
+  background: linear-gradient(120deg, #232946 0%, #3e92cc 100%);
+  animation: gradientMove 8s ease-in-out infinite alternate;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+.main-content {
+  position: relative;
+  z-index: 1;
+  max-width: 500px;
+  margin: 60px auto 0 auto;
+  background: rgba(24,28,47,0.95);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  padding: 40px 30px 30px 30px;
+}
+
+h1 {
+  font-size: 2.3em;
+  margin-bottom: 30px;
+  letter-spacing: 1px;
+}
+
+.genesis {
+  color: #ffb800;
+  text-shadow: 0 2px 8px #3e92cc, 0 0px 2px #fff;
+  font-weight: bold;
+}
+
+#dropArea {
+  border: 2.5px dashed #ffb800;
+  border-radius: 14px;
+  padding: 40px 20px;
+  cursor: pointer;
+  margin-bottom: 24px;
+  background: rgba(62,146,204,0.08);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+#dropArea.hover {
+  border-color: #3e92cc;
+  background: rgba(62,146,204,0.18);
+}
+
+input[type="file"] {
+  display: none;
+}
+
+select, button {
+  margin: 12px 8px;
+  padding: 12px 18px;
+  font-size: 1.1em;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  background: #232946;
+  color: #ffb800;
+  box-shadow: 0 2px 8px rgba(62,146,204,0.08);
+  transition: background 0.2s, color 0.2s;
+}
+
+select:focus, button:focus {
+  background: #3e92cc;
+  color: #fff;
+}
+
+button {
+  background: linear-gradient(90deg, #ffb800 0%, #ff7b00 100%);
+  color: #232946;
+  font-weight: bold;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(255,184,0,0.12);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+button:hover {
+  background: linear-gradient(90deg, #ff7b00 0%, #ffb800 100%);
+  color: #fff;
+}
+
+a {
+  display: block;
+  margin-top: 28px;
+  color: #ffb800;
+  font-size: 1.1em;
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: #fff;
+  text-shadow: 0 2px 8px #ffb800;
+}

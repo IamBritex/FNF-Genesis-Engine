@@ -1,0 +1,44 @@
+{
+    "stage":
+    [
+        {
+            "priority": 1,
+            "layer": 2,
+            "scale": 1.0,
+            "path": "stagefront",
+            "visible": true,
+            "opacity": 1.0,
+            "position": [-650, 500]
+        },
+        {
+            "priority": 1,
+            "layer": 1,
+            "scale": 0.8,
+            "path": "stageback",
+            "visible": true,
+            "opacity": 1,
+            "position": [-400, -199]
+        },
+        {
+            "player": 1,
+            "layer": 4
+        },
+        {
+            "player": 2,
+            "layer": 4
+        },
+        {
+            "player": "gf",
+            "layer": 3
+        },
+        {
+            "priority": 0,
+            "layer": 6,
+            "scale": 0.8,
+            "path": "stagecurtains",
+            "visible": true,
+            "opacity": 1,
+            "position": [-370, -550]
+        }
+    ]
+}

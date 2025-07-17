@@ -1,0 +1,22 @@
+{
+    "events": [
+        {
+            "time": 0,
+            "script": "windowsChanges",
+            "type": "continuous"
+        },
+        {
+            "time": 0,
+            "script": "TrainStreet",
+            "type": "continuous"
+        },
+        {
+            "time": 0,
+            "script": "EnemyHealtReduction.lua",
+            "type": "continuous",
+            "params": {
+                "damage": 0.04
+            }
+        }
+    ]
+}

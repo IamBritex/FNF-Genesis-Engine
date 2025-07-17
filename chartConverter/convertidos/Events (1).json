@@ -1,0 +1,878 @@
+{
+  "events": [
+    {
+      "t": 0,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 1,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 2400,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 4500,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 2,
+        "intensity": 1.5
+      }
+    },
+    {
+      "t": 4800,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 1,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 6900,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 1,
+        "intensity": 1.8
+      }
+    },
+    {
+      "t": 7200,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 8700,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 4,
+        "intensity": 1.5
+      }
+    },
+    {
+      "t": 9000,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 4,
+        "ease": "INSTANT",
+        "zoom": 1,
+        "mode": "direct"
+      }
+    },
+    {
+      "t": 9000,
+      "e": "PlayAnimation",
+      "v": {
+        "target": "dad",
+        "anim": "huh",
+        "force": false
+      }
+    },
+    {
+      "t": 9000,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 4,
+        "y": 80,
+        "ease": "INSTANT",
+        "char": 1
+      }
+    },
+    {
+      "t": 9300,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 2,
+        "intensity": 2
+      }
+    },
+    {
+      "t": 9600,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 12,
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 12000,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 14400,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 1,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 16200,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 3,
+        "ease": "expoOut",
+        "mode": "direct",
+        "zoom": 0.7
+      }
+    },
+    {
+      "t": 16500,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 3,
+        "ease": "expoOut",
+        "mode": "direct",
+        "zoom": 0.8
+      }
+    },
+    {
+      "t": 16800,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 8,
+        "ease": "expoOut",
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 16800,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 18600,
+      "e": "PlayAnimation",
+      "v": {
+        "force": false,
+        "anim": "bothered",
+        "target": "dad"
+      }
+    },
+    {
+      "t": 18600,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 80,
+        "char": 1,
+        "ease": "INSTANT"
+      }
+    },
+    {
+      "t": 18600,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "INSTANT",
+        "duration": 4,
+        "mode": "direct",
+        "zoom": 1
+      }
+    },
+    {
+      "t": 18900,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 4,
+        "intensity": 2.3
+      }
+    },
+    {
+      "t": 19200,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 12,
+        "ease": "expoOut",
+        "zoom": 0.5,
+        "mode": "direct"
+      }
+    },
+    {
+      "t": 24000,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "smoothStepIn",
+        "duration": 64,
+        "mode": "direct",
+        "zoom": 1.2
+      }
+    },
+    {
+      "t": 24000,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 4,
+        "y": 0,
+        "ease": "CLASSIC",
+        "char": 0
+      }
+    },
+    {
+      "t": 28200,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 4,
+        "y": 80,
+        "ease": "INSTANT",
+        "char": 1
+      }
+    },
+    {
+      "t": 28200,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 4,
+        "ease": "INSTANT",
+        "zoom": 1,
+        "mode": "direct"
+      }
+    },
+    {
+      "t": 28200,
+      "e": "PlayAnimation",
+      "v": {
+        "target": "dad",
+        "anim": "flabbergasted",
+        "force": false
+      }
+    },
+    {
+      "t": 28500,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 1,
+        "intensity": 2.6
+      }
+    },
+    {
+      "t": 28800,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 8,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "cubeOut"
+      }
+    },
+    {
+      "t": 28800,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 128,
+        "ease": "linear",
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 37800,
+      "e": "PlayAnimation",
+      "v": {
+        "force": false,
+        "anim": "bothered",
+        "target": "dad"
+      }
+    },
+    {
+      "t": 37800,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 80,
+        "char": 1,
+        "ease": "INSTANT"
+      }
+    },
+    {
+      "t": 37800,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "INSTANT",
+        "duration": 4,
+        "mode": "direct",
+        "zoom": 1
+      }
+    },
+    {
+      "t": 38100,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 4,
+        "intensity": 1.7
+      }
+    },
+    {
+      "t": 38400,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 16,
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 38400,
+      "e": "SetHealthIcon",
+      "v": {
+        "isPixel": false,
+        "offsetX": 0,
+        "offsetY": 0,
+        "char": 1,
+        "scale": 1,
+        "flipX": false,
+        "id": "skymad"
+      }
+    },
+    {
+      "t": 38700,
+      "e": "idleAnimationSuffixEvent",
+      "v": {
+        "alternate": true,
+        "character": "dad",
+        "suffix": "-alt"
+      }
+    },
+    {
+      "t": 40800,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 4,
+        "y": 0,
+        "ease": "CLASSIC",
+        "char": 0
+      }
+    },
+    {
+      "t": 43200,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 2,
+        "intensity": 2.1
+      }
+    },
+    {
+      "t": 43200,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 4,
+        "y": 0,
+        "ease": "CLASSIC",
+        "char": 1
+      }
+    },
+    {
+      "t": 45600,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 1,
+        "intensity": 2.5
+      }
+    },
+    {
+      "t": 45600,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 4,
+        "y": 0,
+        "ease": "CLASSIC",
+        "char": 0
+      }
+    },
+    {
+      "t": 47400,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 4,
+        "y": 80,
+        "ease": "INSTANT",
+        "char": 1
+      }
+    },
+    {
+      "t": 47400,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 4,
+        "ease": "INSTANT",
+        "zoom": 1,
+        "mode": "direct"
+      }
+    },
+    {
+      "t": 47400,
+      "e": "PlayAnimation",
+      "v": {
+        "target": "dad",
+        "anim": "flabbergasted",
+        "force": false
+      }
+    },
+    {
+      "t": 47700,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 2,
+        "intensity": 2.5
+      }
+    },
+    {
+      "t": 48000,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 16,
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 50400,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 52800,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 1,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 54600,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 3,
+        "mode": "direct",
+        "zoom": 0.65
+      }
+    },
+    {
+      "t": 54900,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 3,
+        "mode": "direct",
+        "zoom": 0.7
+      }
+    },
+    {
+      "t": 55200,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 3,
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 55200,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 57000,
+      "e": "PlayAnimation",
+      "v": {
+        "force": false,
+        "anim": "bothered",
+        "target": "dad"
+      }
+    },
+    {
+      "t": 57000,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 80,
+        "char": 1,
+        "ease": "INSTANT"
+      }
+    },
+    {
+      "t": 57000,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "INSTANT",
+        "duration": 4,
+        "mode": "direct",
+        "zoom": 1
+      }
+    },
+    {
+      "t": 57300,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 2,
+        "intensity": 3
+      }
+    },
+    {
+      "t": 57600,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "cubeOut",
+        "duration": 16,
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 60000,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "cubeOut",
+        "duration": 16,
+        "mode": "direct",
+        "zoom": 0.7
+      }
+    },
+    {
+      "t": 60000,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 8,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "cubeOut"
+      }
+    },
+    {
+      "t": 62400,
+      "e": "FocusCamera",
+      "v": {
+        "x": 0,
+        "duration": 8,
+        "y": 0,
+        "ease": "cubeOut",
+        "char": 1
+      }
+    },
+    {
+      "t": 62400,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 16,
+        "ease": "cubeOut",
+        "zoom": 0.8,
+        "mode": "direct"
+      }
+    },
+    {
+      "t": 64800,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "cubeOut",
+        "duration": 16,
+        "mode": "direct",
+        "zoom": 0.9
+      }
+    },
+    {
+      "t": 64800,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 8,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "cubeOut"
+      }
+    },
+    {
+      "t": 67200,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 8,
+        "mode": "direct",
+        "zoom": 1
+      }
+    },
+    {
+      "t": 68400,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 16,
+        "x": -80,
+        "y": 80,
+        "char": 1,
+        "ease": "INSTANT"
+      }
+    },
+    {
+      "t": 68400,
+      "e": "ZoomCamera",
+      "v": {
+        "duration": 4,
+        "ease": "INSTANT",
+        "zoom": 1,
+        "mode": "direct"
+      }
+    },
+    {
+      "t": 68400,
+      "e": "PlayAnimation",
+      "v": {
+        "force": false,
+        "anim": "scream",
+        "target": "dad"
+      }
+    },
+    {
+      "t": 69300,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 1,
+        "intensity": 2.4
+      }
+    },
+    {
+      "t": 69600,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "cubeOut",
+        "duration": 8,
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 69600,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 16,
+        "x": 0,
+        "y": -100,
+        "char": 2,
+        "ease": "cubeOut"
+      }
+    },
+    {
+      "t": 72000,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 1,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 74400,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 75300,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 8,
+        "intensity": 2.4
+      }
+    },
+    {
+      "t": 76200,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "INSTANT",
+        "duration": 4,
+        "mode": "direct",
+        "zoom": 1
+      }
+    },
+    {
+      "t": 76200,
+      "e": "PlayAnimation",
+      "v": {
+        "force": false,
+        "anim": "huh",
+        "target": "dad"
+      }
+    },
+    {
+      "t": 76200,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 80,
+        "char": 1,
+        "ease": "INSTANT"
+      }
+    },
+    {
+      "t": 76800,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 2,
+        "intensity": 2
+      }
+    },
+    {
+      "t": 76800,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "expoOut",
+        "duration": 12,
+        "mode": "direct",
+        "zoom": 0.6
+      }
+    },
+    {
+      "t": 79200,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 81600,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 1,
+        "intensity": 2.5
+      }
+    },
+    {
+      "t": 81600,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 1,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 83400,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 0,
+        "char": 0,
+        "ease": "CLASSIC"
+      }
+    },
+    {
+      "t": 85500,
+      "e": "SetCameraBop",
+      "v": {
+        "rate": 60,
+        "intensity": 3
+      }
+    },
+    {
+      "t": 85800,
+      "e": "FocusCamera",
+      "v": {
+        "duration": 4,
+        "x": 0,
+        "y": 80,
+        "char": 1,
+        "ease": "INSTANT"
+      }
+    },
+    {
+      "t": 85800,
+      "e": "PlayAnimation",
+      "v": {
+        "force": true,
+        "anim": "yell",
+        "target": "dad"
+      }
+    },
+    {
+      "t": 85800,
+      "e": "ZoomCamera",
+      "v": {
+        "ease": "INSTANT",
+        "duration": 4,
+        "mode": "direct",
+        "zoom": 1
+      }
+    }
+  ]
+}

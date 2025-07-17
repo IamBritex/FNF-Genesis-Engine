@@ -1,0 +1,80 @@
+{
+    "credits": [
+        {
+            "title": "Genesis Team",
+            "sections": [
+                {
+                    "title": "Coders",
+                    "users": [
+                        {
+                            "name": "Britex",
+                            "description": "Programador Principal",
+                            "icon": "BritexIcon",
+                            "link": "https://www.youtube.com/@ImBritex",
+                            "bgColor": "#2C003E"
+                        },
+                        {
+                            "name": "KettuMark",
+                            "description": "Programador Secundario",
+                            "icon": "MarkIcon",
+                            "link": "https://www.youtube.com/@KettuMark",
+                            "bgColor": "#ffb800"
+                        },
+                        {
+                            "name": "Alejo",
+                            "description": "Sub-Programador",
+                            "icon": "IconAlejo",
+                            "link": "https://www.youtube.com/@alejogdofficial",
+                            "bgColor": "#5457B0"
+                        },
+                        {
+                            "name": "MaGucci",
+                            "description": "Programador Asistente",
+                            "icon": "MGIcon",
+                            "link": "https://www.youtube.com/@HayimeAlina",
+                            "bgColor": "#f42f2f"
+                        }
+                    ]
+                },
+                {
+                    "title": "Artists",
+                    "users": [
+                        {
+                            "name": "Gianfranco",
+                            "description": "",
+                            "icon": "IconFranco",
+                            "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
+                            "bgColor": "#001A33"
+                        },
+                        {
+                            "name": "MR.pace",
+                            "description": "Main Artist",
+                            "icon": "MrPaceIcon",
+                            "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
+                            "bgColor": "#001A33"
+                        }                        
+                    ]
+                },
+                {
+                    "title": "Testers",
+                    "users": [
+                        {
+                            "name": "Anderei",
+                            "description": "",
+                            "icon": "AndereiIcon",
+                            "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
+                            "bgColor": "#330022"
+                        },
+                        {
+                            "name": "MaGucci",
+                            "description": "",
+                            "icon": "MGIcon",
+                            "link": "https://www.youtube.com/@HayimeAlina",
+                            "bgColor": "#f42f2f"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

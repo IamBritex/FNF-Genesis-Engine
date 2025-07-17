@@ -1,0 +1,41 @@
+{
+  "name": "fnf-genesis-engine-launcher",
+  "version": "1.0.0",
+  "description": "[![Made with Phaser](https://img.shields.io/badge/Made%20With-Phaser-red.svg?style=for-the-badge&logo=phaser)](https://phaser.io) [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=JavaScript&logoColor=black)](https://developer.mozilla.org/es/docs/Web/JavaScript) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/IamBritex/FNF-Genesis-Engine)",
+  "main": "index.html",
+  "scripts": {
+    "start": "nw .",
+    "server": "node server.js",
+    "dev": "npm run server & npm start",
+    "build:linux": "npx nw-builder --platforms linux64 --outDir ./dist --flavor normal ./",
+    "build:win": "npx nw-builder --platforms win64 --outDir ./dist --flavor normal ./",
+    "build": "npm run build:linux && npm run build:win"
+  },
+  "keywords": [
+    "fnf",
+    "phaser",
+    "launcher",
+    "nwjs",
+    "genesis-engine"
+  ],
+  "author": "Britex",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "nwjs": {
+    "main": "index.html",
+    "name": "FNF Genesis Engine Launcher",
+    "window": {
+      "title": "FNF Genesis Engine Launcher",
+      "icon": "public/html/icon.webp",
+      "width": 1280,
+      "height": 720,
+      "fullscreen": false
+    }
+  },
+  "devDependencies": {
+    "nw": "^0.101.2",
+    "nw-builder": "^4.13.16"
+  }
+}
