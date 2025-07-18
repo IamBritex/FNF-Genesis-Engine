@@ -6,7 +6,40 @@ class GfDanceState extends Phaser.Scene {
 
     preload() {
         console.log("GfDanceState cargado correctamente");
-        this.loadAssets();
+
+        const isMobile = this.sys.game.device.os.android 
+            || this.sys.game.device.os.iOS 
+            || window.navigator.userAgent.toLowerCase().includes("android")
+            || window.navigator.userAgent.toLowerCase().includes("iphone")
+            || window.innerWidth <= 768;
+
+        this.isMobile = isMobile; // Guardarlo global para createSprites()
+
+        const assets = [
+            { type: 'atlasXML', key: 'gfDance', img: 'public/assets/images/states/IntroMenu/gfDanceTitle.png', xml: 'public/assets/images/states/IntroMenu/gfDanceTitle.xml' },
+            { type: 'atlasXML', key: 'logoBumpin', img: 'public/assets/images/states/IntroMenu/logoBumpin.png', xml: 'public/assets/images/states/IntroMenu/logoBumpin.xml' },
+            { type: 'audio', key: 'confirm', url: 'public/assets/audio/sounds/confirmMenu.ogg' }
+        ];
+
+        if (isMobile) {
+            // Móvil: GIFs en lugar de atlasXML
+            assets.push(
+                { type: 'image', key: 'enter_idle', url: 'public/assets/images/states/IntroMenu/titleEnter_idle_mobile.gif' },
+                { type: 'image', key: 'enter_pressed', url: 'public/assets/images/states/IntroMenu/titleEnter_pressed_mobile.gif' }
+            );
+        } else {
+            // PC: usa el atlasXML clásico
+            assets.push({
+                type: 'atlasXML',
+                key: 'titleEnter',
+                img: 'public/assets/images/states/IntroMenu/titleEnter.png',
+                xml: 'public/assets/images/states/IntroMenu/titleEnter.xml'
+            });
+        }
+
+        assets.forEach(asset => {
+            this.load[asset.type](asset.key, asset.img || asset.url, asset.xml);
+        });
     }
 
     create() {
@@ -22,28 +55,37 @@ class GfDanceState extends Phaser.Scene {
         });
     }
 
-    loadAssets() {
-        const isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
-        
-        const assets = [
-            { type: 'atlasXML', key: 'gfDance', img: 'public/assets/images/states/IntroMenu/gfDanceTitle.png', xml: 'public/assets/images/states/IntroMenu/gfDanceTitle.xml' },
-            { 
-                type: 'atlasXML', 
-                key: 'titleEnter', 
-                img: isMobile ? 'public/assets/images/states/IntroMenu/titleEnter_mobile.png' : 'public/assets/images/states/IntroMenu/titleEnter.png', 
-                xml: isMobile ? 'public/assets/images/states/IntroMenu/titleEnter_mobile.xml' : 'public/assets/images/states/IntroMenu/titleEnter.xml' 
-            },
-            { type: 'atlasXML', key: 'logoBumpin', img: 'public/assets/images/states/IntroMenu/logoBumpin.png', xml: 'public/assets/images/states/IntroMenu/logoBumpin.xml' },
-            { type: 'audio', key: 'confirm', url: 'public/assets/audio/sounds/confirmMenu.ogg' }
-        ];
-
-        assets.forEach(asset => {
-            this.load[asset.type](asset.key, asset.img || asset.url, asset.xml);
-        });
-    }
-
     setupAnimations() {
-        // Animación de GF bailando
+        if (!this.isMobile) {
+            // Animaciones solo para PC
+            this.anims.create({
+                key: 'enter_idle',
+                frames: this.anims.generateFrameNames('titleEnter', {
+                    prefix: 'Press Enter to Begin', suffix: '', start: 0, end: 44, zeroPad: 4
+                }),
+                frameRate: 12,
+                repeat: -1
+            });
+
+            this.anims.create({
+                key: 'enter_pressed',
+                frames: [
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0000' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0001' },
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0002' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0003' },
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0004' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0005' },
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0006' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0007' },
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0008' },
+                ],
+                frameRate: 14,
+                repeat: 0
+            });
+        }
+
+        // Animación GF
         this.anims.create({
             key: 'gf_dance',
             frames: this.anims.generateFrameNames('gfDance', {
@@ -53,17 +95,7 @@ class GfDanceState extends Phaser.Scene {
             repeat: -1
         });
 
-        // Animación 'enter_idle'
-        this.anims.create({
-            key: 'enter_idle',
-            frames: this.anims.generateFrameNames('titleEnter', {
-                prefix: 'Press Enter to Begin', suffix: '', start: 0, end: 44, zeroPad: 4
-            }),
-            frameRate: 12,
-            repeat: -1
-        });
-
-        // Animación 'logo_bumpin'
+        // Animación logo
         this.anims.create({
             key: 'logo_bumpin',
             frames: this.anims.generateFrameNames('logoBumpin', {
@@ -71,24 +103,6 @@ class GfDanceState extends Phaser.Scene {
             }),
             frameRate: 16,
             repeat: -1
-        });
-
-        // Animación 'enter_pressed'
-        this.anims.create({
-            key: 'enter_pressed',
-            frames: [
-                { key: 'titleEnter', frame: 'ENTER PRESSED0000' }, 
-                { key: 'titleEnter', frame: 'ENTER PRESSED0001' },
-                { key: 'titleEnter', frame: 'ENTER PRESSED0002' }, 
-                { key: 'titleEnter', frame: 'ENTER PRESSED0003' },
-                { key: 'titleEnter', frame: 'ENTER PRESSED0004' }, 
-                { key: 'titleEnter', frame: 'ENTER PRESSED0005' },
-                { key: 'titleEnter', frame: 'ENTER PRESSED0006' }, 
-                { key: 'titleEnter', frame: 'ENTER PRESSED0007' },
-                { key: 'titleEnter', frame: 'ENTER PRESSED0008' },
-            ],
-            frameRate: 14,
-            repeat: 0
         });
     }
 
@@ -99,39 +113,58 @@ class GfDanceState extends Phaser.Scene {
             .setOrigin(0)
             .play('gf_dance');
 
-        // Logo "Press Enter" o "Tap to Begin" en móvil
-        const isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
-        this.enterLogo = this.add.sprite(900, 620, 'titleEnter')
-            .setScale(isMobile ? 0.8 : 1) // Escala reducida en móvil si es necesario
-            .setOrigin(0.5)
-            .play('enter_idle');
-
         // Logo principal
         this.logo = this.add.sprite(-165, -140, 'logoBumpin')
             .setScale(1.07)
             .setOrigin(0)
             .play('logo_bumpin');
+
+        // Press Enter
+        if (this.isMobile) {
+            // Para móviles: centramos el botón en X y mantenemos la posición Y
+            this.enterLogo = this.add.image(this.cameras.main.centerX, 620, 'enter_idle')
+                .setOrigin(0.5, 0.5)
+                .setScale(1);
+            
+            // Añadimos interactividad para móviles
+            this.enterLogo.setInteractive();
+            this.enterLogo.on('pointerdown', () => {
+                if (!this.isTransitioning) {
+                    this.enterLogo.setTexture('enter_pressed');
+                    this.handleTransition();
+                }
+            });
+        } else {
+            this.enterLogo = this.add.sprite(900, 620, 'titleEnter')
+                .setOrigin(0.5)
+                .setScale(1)
+                .play('enter_idle');
+        }
     }
 
     setupControls() {
         this.input.keyboard.removeAllListeners('keydown-ENTER');
         this.input.removeAllListeners('pointerdown');
 
-        const isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
-        
-        if (!isMobile) {
-            this.input.keyboard.on('keydown-ENTER', () => this.handleTransition());
+        this.input.keyboard.on('keydown-ENTER', () => this.handleTransition());
+
+        if (this.sys.game.device.os.android) {
+            this.input.on('pointerdown', () => this.handleTransition());
         }
-        
-        // En móvil, cualquier toque en la pantalla activa la transición
-        this.input.on('pointerdown', () => this.handleTransition());
     }
 
     handleTransition() {
         if (this.isTransitioning) return;
 
         this.isTransitioning = true;
-        this.enterLogo.play('enter_pressed');
+
+        if (this.isMobile) {
+            // Cambia el GIF al presionado
+            this.enterLogo.setTexture('enter_pressed');
+        } else {
+            this.enterLogo.play('enter_pressed');
+        }
+
         this.sound.play('confirm');
 
         this.time.delayedCall(800, () => {

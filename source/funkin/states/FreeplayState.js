@@ -20,6 +20,17 @@ class FreeplayState extends Phaser.Scene {
     this.confirmSound = null;
     this.cancelSound = null;
     this.scrollTween = null;
+    
+    // Propiedades para control táctil
+    this.touchStartY = 0;
+    this.touchStartX = 0;
+    this.isDragging = false;
+    this.songSpacing = 122;
+    this.difficultyText = null;
+    this.difficultyInteractiveArea = null;
+    this.lastTapTime = 0;
+    this.tapDelay = 300;
+    this.songHitAreaPadding = 40; // Padding adicional para el área de toque
   }
 
   init(data) {
@@ -51,6 +62,7 @@ class FreeplayState extends Phaser.Scene {
     this.updateScroll(true);
     this.updateSelection();
     this.setupInputs();
+    this.setupTouchControls();
     
     this.cameras.main.fadeIn(500);
   }
@@ -143,7 +155,6 @@ class FreeplayState extends Phaser.Scene {
     if (this.difficultyContainer) this.difficultyContainer.destroy();
 
     this.textContainer = this.add.container(80, 0);
-    const songSpacing = 122;
 
     await Promise.all(this.songList.map(async song => {
       let iconName = "face";
@@ -176,7 +187,7 @@ class FreeplayState extends Phaser.Scene {
     }));
 
     this.songTexts = this.songList.map((song, index) => {
-      const container = this.add.container(0, index * songSpacing);
+      const container = this.add.container(0, index * this.songSpacing);
       
       const songText = new Alphabet(this, 0, 0, song.name.toUpperCase(), true, 0.8);
       container.add(songText);
@@ -189,11 +200,42 @@ class FreeplayState extends Phaser.Scene {
         container._iconSprite = icon;
       }
 
+      // Calcular el área de hit ampliada
+      const hitWidth = container._iconSprite ? 
+        (container._iconSprite.x + container._iconSprite.displayWidth/2 + this.songHitAreaPadding) : 
+        (songText.width + this.songHitAreaPadding);
+      
+      const hitHeight = Math.max(
+        songText.height,
+        container._iconSprite ? container._iconSprite.displayHeight : 0
+      ) + this.songHitAreaPadding;
+
+      // Hacer todo el contenedor interactivo con área ampliada
+      container.setInteractive(new Phaser.Geom.Rectangle(
+        -this.songHitAreaPadding/2,
+        -hitHeight/2,
+        hitWidth + this.songHitAreaPadding,
+        hitHeight
+      ), Phaser.Geom.Rectangle.Contains);
+      
+      container.on('pointerdown', () => {
+        this.selectedIndex = index;
+        this.updateSelection();
+        this.scrollSound?.play();
+      });
+      
+      container.on('pointerup', () => {
+        if (!this.isDragging && (this.time.now - this.lastTapTime) < this.tapDelay) {
+          this.selectSong();
+        }
+      });
+
       container._songText = songText;
       this.textContainer.add(container);
       return container;
     });
 
+    // Configurar contenedor de dificultad
     this.difficultyContainer = this.add.container(width - 250, 170);
     this.updateDifficultyText();
   }
@@ -201,12 +243,27 @@ class FreeplayState extends Phaser.Scene {
   updateDifficultyText() {
     this.difficultyContainer?.removeAll(true);
 
+    if (this.songList.length === 0 || !this.songList[this.selectedIndex]) return;
+
     const difficulty = this.difficulties[this.selectedDifficulty];
     const song = this.songList[this.selectedIndex];
     const savedData = this.loadSongScore(song.name, difficulty);
 
-    const diffText = this.createVCRText(0, 0, `DIFFICULTY: ${difficulty.toUpperCase()}`, 36);
-    this.difficultyContainer.add(diffText);
+    // Texto de dificultad
+    this.difficultyText = this.createVCRText(0, 0, `DIFFICULTY: ${difficulty.toUpperCase()}`, 36);
+    this.difficultyContainer.add(this.difficultyText);
+
+    // Área interactiva para cambiar dificultad
+    this.difficultyInteractiveArea = this.add.zone(0, 0, this.difficultyText.width + 40, this.difficultyText.height + 20)
+      .setOrigin(0.5)
+      .setInteractive();
+    this.difficultyContainer.add(this.difficultyInteractiveArea);
+
+    // Configurar evento de toque
+    this.difficultyInteractiveArea.on('pointerdown', () => {
+      this.changeDifficulty(1);
+      this.scrollSound?.play();
+    });
 
     if (savedData) {
       const statsContainer = this.add.container(0, 50);
@@ -234,7 +291,7 @@ class FreeplayState extends Phaser.Scene {
       left: localStorage.getItem("CONTROLS.UI.LEFT") || "LEFT", 
       right: localStorage.getItem("CONTROLS.UI.RIGHT") || "RIGHT",
       accept: localStorage.getItem("CONTROLS.UI.ACCEPT") || "ENTER",
-      back: localStorage.getItem("CONTROLS.UI.BACK") || "ESCAPE" // Tecla BACK desde localStorage
+      back: localStorage.getItem("CONTROLS.UI.BACK") || "ESCAPE"
     };
 
     this.input.keyboard.on("keydown", event => {
@@ -245,12 +302,95 @@ class FreeplayState extends Phaser.Scene {
       else if (key === controls.left) this.changeDifficulty(-1);
       else if (key === controls.right) this.changeDifficulty(1);
       else if (key === controls.accept) this.selectSong();
-      else if (key === controls.back) this.returnToMenu(); // Usa la tecla configurada
+      else if (key === controls.back) this.returnToMenu();
     });
 
     this.input.on("wheel", (_, __, ___, dy) => {
       if (dy < 0) this.changeSelection(-1);
       else if (dy > 0) this.changeSelection(1);
+    });
+  }
+
+  setupTouchControls() {
+    // Limpiar eventos previos
+    this.input.off('pointerdown');
+    this.input.off('pointerup');
+    this.input.off('pointermove');
+
+    // Configurar eventos de arrastre general
+    this.input.on('pointerdown', (pointer) => {
+      this.touchStartY = pointer.y;
+      this.touchStartX = pointer.x;
+      this.isDragging = false;
+      this.lastTapTime = this.time.now;
+    });
+
+    this.input.on('pointermove', (pointer) => {
+      if (Math.abs(pointer.y - this.touchStartY) > 10 || Math.abs(pointer.x - this.touchStartX) > 10) {
+        this.isDragging = true;
+      }
+
+      if (this.isDragging) {
+        const deltaY = pointer.y - this.touchStartY;
+        this.touchStartY = pointer.y;
+        
+        // Mover el contenedor
+        this.textContainer.y += deltaY;
+        
+        // Actualizar selección basada en la posición
+        this.updateSelectionFromScroll();
+      }
+    });
+
+    this.input.on('pointerup', () => {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.snapToNearestSong();
+      }
+    });
+  }
+
+  updateSelectionFromScroll() {
+    const cameraHeight = this.cameras.main.height;
+    const centerY = cameraHeight / 2;
+    const currentPos = centerY - this.textContainer.y;
+    
+    const newIndex = Phaser.Math.Clamp(
+      Math.round(currentPos / this.songSpacing),
+      0,
+      this.songList.length - 1
+    );
+    
+    if (newIndex !== this.selectedIndex) {
+      this.selectedIndex = newIndex;
+      this.updateSelection();
+      this.updateDifficultyText();
+      this.scrollSound?.play();
+    }
+  }
+
+  snapToNearestSong() {
+    const cameraHeight = this.cameras.main.height;
+    const centerY = cameraHeight / 2;
+    const selectedY = this.selectedIndex * this.songSpacing;
+    
+    const targetY = centerY - selectedY;
+    const minY = centerY - ((this.songList.length - 1) * this.songSpacing);
+    const maxY = centerY;
+    
+    const clampedY = Phaser.Math.Clamp(targetY, minY, maxY);
+    
+    if (this.scrollTween) this.scrollTween.stop();
+    
+    this.scrollTween = this.tweens.add({
+      targets: this.textContainer,
+      y: clampedY,
+      duration: 300,
+      ease: "Cubic.out",
+      onComplete: () => {
+        this.updateSelection();
+        this.updateDifficultyText();
+      }
     });
   }
 
@@ -294,10 +434,10 @@ class FreeplayState extends Phaser.Scene {
     
     const cameraHeight = this.cameras.main.height;
     const centerY = cameraHeight / 2;
-    const selectedY = this.selectedIndex * 122;
+    const selectedY = this.selectedIndex * this.songSpacing;
     
     let targetY = centerY - selectedY;
-    const minY = centerY - ((this.songList.length - 1) * 122);
+    const minY = centerY - ((this.songList.length - 1) * this.songSpacing);
     const maxY = centerY;
     
     targetY = Phaser.Math.Clamp(targetY, minY, maxY);
@@ -345,6 +485,8 @@ class FreeplayState extends Phaser.Scene {
   }
 
   selectSong() {
+    if (!this.songList[this.selectedIndex]) return;
+    
     this.confirmSound?.play();
     const song = this.songList[this.selectedIndex];
     
@@ -377,6 +519,9 @@ class FreeplayState extends Phaser.Scene {
     });
     
     this.input.keyboard.removeAllListeners();
+    this.input.off('pointerdown');
+    this.input.off('pointerup');
+    this.input.off('pointermove');
     this.tweens.killAll();
   }
 

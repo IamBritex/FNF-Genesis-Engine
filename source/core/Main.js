@@ -102,10 +102,8 @@ class VolumeUIScene extends BaseScene {
             max: this.sound.add('volMax')
         };
         
-        setVolumeSounds(this.volumeSounds);
-
         const versionText = this.add.text(5, this.scale.height - 24, 
-            `v0.59 Indev`, 
+            `v0.60`, 
             {
                 fontFamily: 'Arial',
                 fontSize: '16px',
@@ -116,6 +114,7 @@ class VolumeUIScene extends BaseScene {
                 strokeThickness: 2
             });
 
+        setVolumeSounds(this.volumeSounds);
         versionText.setDepth(9000);
         versionText.setScrollFactor(0);
         this.scene.get('VolumeUIScene').scene.bringToTop();
@@ -125,12 +124,42 @@ class VolumeUIScene extends BaseScene {
 class OptimizedMainScene extends MainScene {
     constructor() {
         super();
+        this.accumulator = 0;
+        this.fixedDelta = 1000 / 80; // ~16.66ms para 80 updates por segundo 
     }
+
     preload() {
         super.preload();
     }
+
     create() {
         super.create();
+    }
+
+    update(time, delta) {
+        const maxDelta = 100;
+        delta = Math.min(delta, maxDelta);
+
+        this.accumulator += delta;
+
+        while (this.accumulator >= this.fixedDelta) {
+            this.fixedUpdate(this.fixedDelta / 1000); // pasa en segundos
+            this.accumulator -= this.fixedDelta;
+        }
+
+        const alpha = this.accumulator / this.fixedDelta;
+        this.interpolate(alpha);
+    }
+
+    fixedUpdate(dt) {
+        // Lógica de física o movimiento constante aquí
+         // Ejemplo: actualiza posiciones o física de objetos
+        // super.update() no se llama directamente, ya que implementas aquí tu lógica
+    }
+
+    interpolate(alpha) {
+        // Interpolación de render para suavidad
+        // Ejemplo: actualiza sprite.x interpolando entre la posición anterior y actual
     }
 }
 

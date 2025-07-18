@@ -1,5 +1,5 @@
 // source/core/Cursor.js
-const CURSOR_BASE_PATH = '/public/assets/images/cursor/';
+const CURSOR_BASE_PATH = 'public/assets/images/cursor/';
 
 const customCursors = {
   default: `url("${CURSOR_BASE_PATH}cursor-default.png"), auto`,
