@@ -1,146 +1,4 @@
 {
-    "previewAssets": {
-        "images": [
-            {
-                "key": "downscroll-preview-on",
-                "path": "public/assets/images/states/OptionsState/previews/downscroll-on.png"
-            },
-            {
-                "key": "downscroll-preview-off",
-                "path": "public/assets/images/states/OptionsState/previews/downscroll-off.png"
-            },
-            {
-                "key": "middlescroll-preview-on",
-                "path": "public/assets/images/states/OptionsState/previews/middlescroll-on.png"
-            },
-            {
-                "key": "middlescroll-preview-off",
-                "path": "public/assets/images/states/OptionsState/previews/middlescroll-off.png"
-            },
-            {
-                "key": "opponent-notes-on",
-                "path": "public/assets/images/states/OptionsState/previews/opponent-notes-on.png"
-            },
-            {
-                "key": "opponent-notes-off",
-                "path": "public/assets/images/states/OptionsState/previews/opponent-notes-off.png"
-            },
-            {
-                "key": "ghost-tap-on",
-                "path": "public/assets/images/states/OptionsState/previews/ghost-tap-on.png"
-            },
-            {
-                "key": "ghost-tap-off",
-                "path": "public/assets/images/states/OptionsState/previews/ghost-tap-off.png"
-            },
-            {
-                "key": "hit-sound-preview",
-                "path": "public/assets/images/states/OptionsState/previews/hit-sound.png"
-            },
-            {
-                "key": "menu-music-preview",
-                "path": "public/assets/images/states/OptionsState/previews/menu-music.png"
-            },
-            {
-                "key": "pause-music-preview",
-                "path": "public/assets/images/states/OptionsState/previews/pause-music.png"
-            },
-            {
-                "key": "antialiasing-on",
-                "path": "public/assets/images/states/OptionsState/previews/antialiasing-on.png"
-            },
-            {
-                "key": "antialiasing-off",
-                "path": "public/assets/images/states/OptionsState/previews/antialiasing-off.png"
-            },
-            {
-                "key": "shaders-on",
-                "path": "public/assets/images/states/OptionsState/previews/shaders-on.png"
-            },
-            {
-                "key": "shaders-off",
-                "path": "public/assets/images/states/OptionsState/previews/shaders-off.png"
-            },
-            {
-                "key": "low-quality-on",
-                "path": "public/assets/images/states/OptionsState/previews/low-quality-on.png"
-            },
-            {
-                "key": "low-quality-off",
-                "path": "public/assets/images/states/OptionsState/previews/low-quality-off.png"
-            },
-            {
-                "key": "gpu-cache-preview",
-                "path": "public/assets/images/states/OptionsState/previews/gpu-cache.png"
-            },
-            {
-                "key": "framerate-preview",
-                "path": "public/assets/images/states/OptionsState/previews/framerate.png"
-            },
-            {
-                "key": "hud-on",
-                "path": "public/assets/images/states/OptionsState/previews/hud-on.png"
-            },
-            {
-                "key": "hud-off",
-                "path": "public/assets/images/states/OptionsState/previews/hud-off.png"
-            },
-            {
-                "key": "time-bar-show",
-                "path": "public/assets/images/states/OptionsState/previews/time-bar-show.png"
-            },
-            {
-                "key": "time-bar-hide",
-                "path": "public/assets/images/states/OptionsState/previews/time-bar-hide.png"
-            },
-            {
-                "key": "time-bar-name",
-                "path": "public/assets/images/states/OptionsState/previews/time-bar-name.png"
-            },
-            {
-                "key": "health-bar-preview",
-                "path": "public/assets/images/states/OptionsState/previews/health-bar.png"
-            },
-            {
-                "key": "fps-on",
-                "path": "public/assets/images/states/OptionsState/previews/fps-on.png"
-            },
-            {
-                "key": "fps-off",
-                "path": "public/assets/images/states/OptionsState/previews/fps-off.png"
-            },
-            {
-                "key": "controls-preview",
-                "path": "public/assets/images/states/OptionsState/previews/controls.png"
-            }
-        ],
-        "spritesheets": [
-            {
-                "key": "note-splash-preview",
-                "path": "public/assets/images/states/OptionsState/previews/note-splash.png",
-                "frameWidth": 160,
-                "frameHeight": 160
-            }
-        ],
-        "atlases": [
-            {
-                "key": "note-skins-preview",
-                "textureURL": "public/assets/images/states/OptionsState/previews/note-skins.png",
-                "atlasURL": "public/assets/images/states/OptionsState/previews/note-skins.xml"
-            }
-        ],
-        "animations": [
-            {
-                "key": "note-splash-anim",
-                "spritesheet": "note-splash-preview",
-                "prefix": "note-splash-",
-                "start": 0,
-                "end": 5,
-                "frameRate": 24,
-                "repeat": -1
-            }
-        ]
-    },
     "sections": [
         {
             "title": "CONTROLS",
@@ -235,7 +93,7 @@
                         {
                             "name": "Mute",
                             "description": "Toggle mute",
-                            "value": "Digit0",
+                            "value": "0",
                             "type": "key"
                         },
                         {
@@ -553,7 +411,7 @@
                         {
                             "name": "Check For Updates",
                             "description": "Check for game updates on startup",
-                            "value": true,
+                            "value": false,
                             "type": "boolean"
                         },
                         {

@@ -161,28 +161,45 @@ export class GameOver {
     }
 
     _setupDeathInputs() {
+        // Evitar múltiples triggers de ENTER
+        let enterPressed = false;
+
         this.scene.input.keyboard.addKey('ENTER').on('down', () => {
-            if (this.isActive) {
+            if (this.isActive && !enterPressed) {
+                enterPressed = true;
                 this.sounds.loop.stop();
                 this.sounds.confirm.play();
                 this.scene.characters.confirmDeath();
-                
-                // Esperar a que termine la animación y el sonido
-                this.sounds.confirm.once('complete', () => {
-                    console.log('Restarting scene...');
-                    this.scene._cleanupBeforeRestart().then(() => {
-                        this.scene.scene.restart();
+
+                const player = this.scene.characters.loadedCharacters.get(this.scene.characters.currentPlayer);
+                if (player?.sprite) {
+                    this.scene.tweens.add({
+                        targets: player.sprite,
+                        alpha: 0,
+                        duration: 4500,
+                        onComplete: () => {
+                            this.sounds.confirm.once('complete', () => {
+                                console.log('Restarting scene...');
+                                this.scene._cleanupBeforeRestart().then(() => {
+                                    this.scene.scene.restart();
+                                });
+                            });
+                        }
                     });
-                });
+                } else {
+                    // Si no hay sprite, solo espera el sonido y reinicia
+                    this.sounds.confirm.once('complete', () => {
+                        this.scene._cleanupBeforeRestart().then(() => {
+                            this.scene.scene.restart();
+                        });
+                    });
+                }
             }
         });
 
         this.scene.input.keyboard.addKey('BACKSPACE').on('down', () => {
             if (this.isActive) {
-                // Detener el sonido del loop de muerte
                 this.sounds.loop.stop();
-                
-                // Llamar directamente al método del PlayState
                 this.scene.playFreakyMenuAndRedirect();
             }
         });

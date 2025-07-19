@@ -118,6 +118,13 @@ class CharacterEditorState extends Phaser.Scene {
                     this.modal.saveCharacter();
                 }
             }
+        },
+        // NUEVA OPCIÓN: Cargar spritesheet (PNG + XML)
+        {
+            text: 'Load Spritesheet (PNG + XML)',
+            callback: () => {
+                this.openSpritesheetDialog();
+            }
         }
     ]);
     fileMenu.setDepth(50);
@@ -922,6 +929,105 @@ class CharacterEditorState extends Phaser.Scene {
       );
       return bounds.contains(pointer.x, pointer.y);
     });
+  }
+
+  openSpritesheetDialog() {
+    // Crear input para PNG y XML
+    const inputPng = document.createElement('input');
+    inputPng.type = 'file';
+    inputPng.accept = '.png';
+
+    const inputXml = document.createElement('input');
+    inputXml.type = 'file';
+    inputXml.accept = '.xml';
+
+    // Paso 1: Seleccionar PNG
+    inputPng.onchange = (e) => {
+        const pngFile = e.target.files[0];
+        if (!pngFile) return;
+
+        inputXml.onchange = (e2) => {
+            const xmlFile = e2.target.files[0];
+            if (!xmlFile) return;
+
+            const readerPng = new FileReader();
+            const readerXml = new FileReader();
+
+            readerPng.onload = (evPng) => {
+                readerXml.onload = (evXml) => {
+                    const sheetKey = `custom_sheet_${Date.now()}`;
+                    this.textures.remove(sheetKey);
+                    this.textures.addBase64(sheetKey, evPng.target.result);
+
+                    this.textures.once(Phaser.Textures.Events.ADD, () => {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(evXml.target.result, "application/xml");
+                        const texture = this.textures.get(sheetKey);
+                        const subTextures = xmlDoc.getElementsByTagName("SubTexture");
+                        for (const subTexture of subTextures) {
+                            const name = subTexture.getAttribute("name");
+                            const x = parseInt(subTexture.getAttribute("x"), 10);
+                            const y = parseInt(subTexture.getAttribute("y"), 10);
+                            const width = parseInt(subTexture.getAttribute("width"), 10);
+                            const height = parseInt(subTexture.getAttribute("height"), 10);
+                            texture.add(name, 0, x, y, width, height);
+                        }
+
+                        // Crear sprite en el editor
+                        if (this.characterSprite) this.characterSprite.destroy();
+                        this.characterSprite = this.add.sprite(0, 0, sheetKey);
+                        this.gameLayer.add(this.characterSprite);
+                        this.cameras.main.centerOn(0, 0);
+
+                        // Generar JSON de animaciones automáticamente
+                        const generatedJson = this.generateAnimationsJsonFromFrames(texture.getFrameNames(), sheetKey);
+                        this.characterData = generatedJson;
+                        alert('Spritesheet cargado y JSON de animaciones generado automáticamente.');
+                        console.log('Animaciones generadas:', generatedJson);
+                      });
+
+                };
+                readerXml.readAsText(xmlFile);
+            };
+            readerPng.readAsDataURL(pngFile);
+        };
+        inputXml.click();
+    };
+    inputPng.click();
+  }
+
+  /**
+   * Genera un JSON de animaciones a partir de los nombres de frames.
+   * Cada animación tendrá offsets [0,0] y fps 24.
+   */
+  generateAnimationsJsonFromFrames(frameNames, imageKey) {
+    // Agrupar frames por prefijo (antes del primer dígito)
+    const animMap = {};
+    frameNames.forEach(name => {
+        // Ejemplo: "idle0000", "singLEFT0010", etc.
+        const match = name.match(/^([^\d]+)/);
+        const animName = match ? match[1] : name;
+        if (!animMap[animName]) animMap[animName] = [];
+        animMap[animName].push(name);
+    });
+
+    // Crear el objeto de animaciones
+    const animations = Object.entries(animMap).map(([anim, frames]) => ({
+        name: anim,
+        anim: anim, // Usar el mismo nombre para 'anim'
+        indices: [], // Si quieres usar indices, puedes extraerlos de los nombres
+        offsets: [0, 0],
+        fps: 24,
+        loop: anim.toLowerCase().includes('idle') // Solo idle en loop por defecto
+    }));
+
+    return {
+        image: imageKey,
+        position: [0, 0],
+        scale: 1,
+        flip_x: false,
+        animations
+    };
   }
 }
 

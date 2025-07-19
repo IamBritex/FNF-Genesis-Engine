@@ -370,7 +370,6 @@ export class Characters {
   async setupAnimations(characterInfo) {
     const { data, textureKey } = characterInfo;
     const bpm = this.scene.songData?.song?.bpm || 100;
-    const crochet = (60000 / bpm);
 
     const createAnimationPromises = data.animations.map(animation => {
       return new Promise((resolve) => {
@@ -391,6 +390,8 @@ export class Characters {
         if (animationFrames.length > 0) {
           const animKey = `${characterInfo.textureKey}_${animation.anim}`;
           const frameRate = animation.fps || (24 * (bpm / 100));
+          // --- CAMBIO: idle nunca en loop ---
+          const repeatVal = animation.anim === "idle" ? 0 : (animation.loop ? -1 : 0);
 
           if (!this.scene.anims.exists(animKey)) {
             this.scene.anims.create({
@@ -400,9 +401,7 @@ export class Characters {
                 frame: frameName,
               })),
               frameRate: frameRate,
-              repeat: animation.anim === "idle" || animation.loop ? -1 : 0,
-              duration: animation.anim === "idle" || animation.loop ? -1 : 
-                       Math.ceil((animationFrames.length / frameRate) * 1000 / crochet) * crochet
+              repeat: repeatVal
             });
           }
         }
@@ -465,10 +464,9 @@ export class Characters {
     const character = this.loadedCharacters.get(characterId);
     if (!character || !character.isReady || !character.animationsInitialized) return;
 
-    // Siempre actualizar el tiempo de la última animación si no es idle
+    // Si es una animación distinta a idle, guarda el beat en que empezó
     if (animName !== "idle") {
-      character.lastAnimationTime = this.scene.songPosition;
-      character.lastAnimationBeat = Math.floor(this.scene.lastBeat);
+      character.lastAnimationBeat = this.lastBeat;
     }
 
     const animation = character.data.animations.find(a => a.anim === animName);
@@ -486,8 +484,6 @@ export class Characters {
     if (this.scene.anims.exists(animKey)) {
         const anim = this.scene.anims.get(animKey);
         const bpm = this.scene.songData?.song?.bpm || 100;
-        const crochet = (60000 / bpm);
-        
         const frameRate = animation.fps || (24 * (bpm / 100));
         
         if (anim.frameRate !== frameRate) {
@@ -495,25 +491,14 @@ export class Characters {
         }
 
         character.sprite.stop();
-        
-        // Si es GF y la animación no es idle, configurar el retorno a idle
-        if (character.isGF && animName !== "idle") {
-            character.sprite.play(animKey);
-            character.sprite.once('animationcomplete', () => {
-                this.playAnimation(characterId, "idle", true);
-            });
-        } else {
-            character.sprite.play(animKey);
-        }
-        
+        character.sprite.play(animKey);
         character.currentAnimation = animName;
 
-        // Sincronizar duración si no es idle o loop
-        if (animation.anim !== "idle" && !animation.loop) {
-            const frames = anim.frames.length;
-            const animDuration = (frames / frameRate) * 1000;
-            const beats = Math.ceil(animDuration / crochet);
-            anim.duration = beats * crochet;
+        // Marcar cuando termina idle
+        if (animName === "idle") {
+          character.sprite.once('animationcomplete', () => {
+            // Cuando termine idle, quedará listo para el siguiente beat
+          });
         }
     } else {
       console.warn(`Animation ${animKey} not found for character ${characterId}`);
@@ -586,49 +571,34 @@ export class Characters {
   }
 
   update(elapsed) {
-    if (!this.scene.songData?.song?.bpm) return;
-
-    const bpm = this.scene.songData.song.bpm;
-    const currentBeat = this.scene.lastBeat;
-    const crochet = (60000 / bpm);
-
-    for (const [characterId, character] of this.loadedCharacters) {
-      if (!character || !character.isReady) continue;
-
-      const isPlayer = characterId === this.currentPlayer;
-      const directions = isPlayer ? this.heldDirections : this.enemyHeldDirections;
-      const hasActiveSustain = Array.from(directions.values()).some(note => note?.isSustain);
-      const currentTime = this.scene.songPosition;
-
-      // Manejar animaciones de notas para ambos jugadores
-      if (characterId !== this.currentGF && character.currentAnimation !== "idle") {
-        const animStartTime = character.lastAnimationTime || 0;
-        const timeSinceAnim = currentTime - animStartTime;
-
-        if (timeSinceAnim >= crochet * 2 && !hasActiveSustain) {
-          this.playAnimation(characterId, "idle");
-        }
-      }
-
-      // Manejar animaciones en beat
-      if (this.lastBeat !== currentBeat) {
-        if (characterId === this.currentGF) {
-          if (currentBeat % 2 === 0) {
-            this.playAnimation(characterId, "idle", true);
-          }
-        } else if (character.currentAnimation === "idle") {
-          if (currentBeat % 2 === 0) {
-            this.playAnimation(characterId, "idle", true);
-          }
-        }
-      }
-    }
-
-    this.lastBeat = currentBeat;
+    // Ya no hace falta lógica de idle por sustain o timers
+    // Solo se maneja por onBeat
   }
 
   onBeat(beat) {
     this.lastBeat = beat;
+    for (const [characterId, character] of this.loadedCharacters) {
+      if (!character || !character.isReady) continue;
+
+      // Si está en otra animación, checar si ya pasaron 2 beats desde que empezó
+      if (character.currentAnimation !== "idle") {
+        const lastAnimBeat = character.lastAnimationBeat ?? beat;
+        if ((beat - lastAnimBeat) >= 2) {
+          this.playAnimation(characterId, "idle", true);
+          character.lastIdleBeat = beat;
+        }
+        continue;
+      }
+
+      // Si está en idle, solo volver a reproducir idle si terminó la animación
+      if (character.currentAnimation === "idle") {
+        // Si no está animando (idle terminó), la reproducimos sincronizada al beat
+        if (!character.sprite.anims.isPlaying) {
+          this.playAnimation(characterId, "idle", true);
+          character.lastIdleBeat = beat;
+        }
+      }
+    }
   }
 
   cleanup() {

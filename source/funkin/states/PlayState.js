@@ -719,6 +719,10 @@ async _loadCharacterTextures(characterId, characterData) {
         return; // No actualizar nada más si estamos pausados
     }
 
+    if (this.gameOver?.isActive) {
+        return;
+    }
+
     if (!this.isMusicPlaying || !this.currentInst || !this.songData) return;
 
     // Actualizar posición de la canción

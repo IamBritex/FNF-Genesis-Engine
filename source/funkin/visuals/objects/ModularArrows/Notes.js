@@ -140,7 +140,7 @@ export class NoteSpawner {
         pieceDirection = 1
       }
 
-      const holdContainer = this.scene.add.container(pos.x + (holdOffset.x || 0), holdContainerY)
+      const holdContainer = this.scene.add.container(pos.x + (holdOffset.x || 0), noteY + (holdOffset.y || 0));
       holdContainer.setDepth(noteSprite.depth - 1)
       holdContainer.setName(`HoldNote_${direction}_${note.strumTime}`)
 
@@ -165,6 +165,11 @@ export class NoteSpawner {
         }
         holdContainer.add(holdPiece)
         note.holdSprites.push(holdPiece)
+
+        // --- INVERTIR LA IMAGEN DE LA ÚLTIMA PIEZA SI ES DOWNSCROLL ---
+        if (i === numPieces - 1 && downScroll) {
+          holdPiece.flipY = true
+        }
       }
 
       // El extremo final del hold
@@ -175,6 +180,10 @@ export class NoteSpawner {
         .setScale(holdScale)
       if (!isPlayer && this.notesController.enemyStrumlineVisuals) {
         holdEnd.setAlpha(holdAlpha)
+      }
+      // --- SOLO EL HOLD END: flipY si downScroll ---
+      if (downScroll) {
+        holdEnd.flipY = true;
       }
       holdContainer.add(holdEnd)
       note.holdSprites.push(holdEnd)
