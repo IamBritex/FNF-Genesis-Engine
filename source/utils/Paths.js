@@ -45,6 +45,12 @@ export class Paths {
             ATLAS: `${this.PLAY_STATE}/NOTE_hold_assets.xml`
         };
     }
+    static get NOTE_SPLASHES() {
+        return {
+            TEXTURE: `${this.PLAY_STATE}/noteSplashes.png`,
+            ATLAS: `${this.PLAY_STATE}/noteSplashes.xml`
+        };
+    }
 
     // Personajes
     static get CHARACTERS() { return `${this.IMAGES}/characters`; }

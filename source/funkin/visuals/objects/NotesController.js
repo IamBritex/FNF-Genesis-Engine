@@ -3,6 +3,7 @@ import { NoteSpawner } from './ModularArrows/Notes.js'
 import { HoldNotes } from './ModularArrows/HoldNotes.js';
 import { Pharser } from './ModularArrows/Pharser.js';
 import { StrumlinesNotes } from './ModularArrows/StrumlinesNotes.js';
+import { NoteSplashes } from './ModularArrows/NoteSplashes.js';
 
 export class NotesController {
     constructor(scene) {
@@ -68,6 +69,7 @@ export class NotesController {
         this.noteSpawner = new NoteSpawner(scene, this);
         this.holdNotes = new HoldNotes(scene, this);
         this.strumlines = new StrumlinesNotes(scene, this);
+        this.noteSplashes = new NoteSplashes(scene, this, 62, 72); // offsetX, offsetY
 
         this.lastSingTime = {
             player: 0,
@@ -341,7 +343,6 @@ export class NotesController {
             state: 'confirm'
         });
 
-        // --- CAMBIO: SIEMPRE volver a static tras 103ms, incluso para hold notes ---
         this.scene.time.delayedCall(103, () => {
             if (!this.keysHeld[direction]) {
                 arrow.x = arrow.originalX;
@@ -356,21 +357,17 @@ export class NotesController {
             }
         });
 
-        // --- CORRECCIÓN: Si es holdnote, asignarla a activeHoldNotes para destrucción progresiva ---
         if (note.isHoldNote) {
-            // Solo asignar si aún no está activa
             if (!this.activeHoldNotes[note.noteDirection]) {
                 this.activeHoldNotes[note.noteDirection] = note;
                 note.isBeingHeld = true;
                 note.holdReleased = false;
             }
-            // --- NUEVO: destruir la nota padre al presionar ---
             if (note.sprite?.active) {
                 note.sprite.destroy();
                 note.sprite = null;
             }
         } else {
-            // Si no es holdnote, destruir el sprite normal
             if (note.sprite?.active) {
                 note.sprite.destroy();
                 note.sprite = null;
@@ -386,6 +383,12 @@ export class NotesController {
         }
         this.combo = this.ratingManager.combo;
         this.maxCombo = this.ratingManager.maxCombo;
+
+        // --- AQUI: Notesplash si es sick ---
+        if (rating === 'sick' && note.isPlayerNote) {
+            const color = this.holdColors[note.noteDirection];
+            this.noteSplashes.showSplash(note.noteDirection, color);
+        }
 
         if (this.scene.healthBar) {
             this.scene.healthBar.heal(this.healthConfig.hitGain);

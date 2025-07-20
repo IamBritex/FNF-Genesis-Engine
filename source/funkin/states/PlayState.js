@@ -147,6 +147,8 @@ export class PlayState extends Phaser.Scene {
     this.load.atlasXML("notes", Paths.NOTES.TEXTURE, Paths.NOTES.ATLAS)
     this.load.atlasXML("noteStrumline", Paths.NOTE_STRUMLINE.TEXTURE, Paths.NOTE_STRUMLINE.ATLAS)
     this.load.atlasXML("NOTE_hold_assets", Paths.NOTE_HOLD_ASSETS.TEXTURE, Paths.NOTE_HOLD_ASSETS.ATLAS)
+    // --- PRELOAD NOTE SPLASHES ---
+    this.load.atlasXML("noteSplashes", Paths.NOTE_SPLASHES.TEXTURE, Paths.NOTE_SPLASHES.ATLAS)
   }
 
   _loadSongData() {
