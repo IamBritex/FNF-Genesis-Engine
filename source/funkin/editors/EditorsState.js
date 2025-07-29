@@ -122,7 +122,7 @@ class EditorsState extends Phaser.Scene {
     }
 
     confirmSelection() {
-        const scenes = ['CharacterEditorState', 'StageEditorState'];
+        const scenes = ['CharacterEditorState', 'StageEditorScene'];
         const targetScene = scenes[this.selectedIndex];
         
         // Verificar si la escena existe

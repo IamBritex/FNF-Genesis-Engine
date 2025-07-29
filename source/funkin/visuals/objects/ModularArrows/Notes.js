@@ -122,7 +122,7 @@ export class NoteSpawner {
       const holdDuration = note.sustainLength
       const pixelsPerMs = 0.45 * this.speed
       const holdLength = holdDuration * pixelsPerMs
-      const pieceHeight = 32 * this.defaultScale.holds
+      const pieceHeight = 1 * this.defaultScale.holds
       const numPieces = Math.max(1, Math.ceil(holdLength / pieceHeight))
       note.holdSprites = []
 

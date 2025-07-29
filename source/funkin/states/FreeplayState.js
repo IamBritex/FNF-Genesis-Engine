@@ -4,10 +4,6 @@ import Alphabet from "../../utils/Alphabet.js";
 class FreeplayState extends Phaser.Scene {
   constructor() {
     super({ key: "FreeplayState" });
-    this._initProperties();
-  }
-
-  _initProperties() {
     this.songList = [];
     this.selectedIndex = 0;
     this.selectedDifficulty = 1;
@@ -20,21 +16,15 @@ class FreeplayState extends Phaser.Scene {
     this.confirmSound = null;
     this.cancelSound = null;
     this.scrollTween = null;
-    
-    // Propiedades para control táctil
-    this.touchStartY = 0;
-    this.touchStartX = 0;
-    this.isDragging = false;
     this.songSpacing = 122;
     this.difficultyText = null;
     this.difficultyInteractiveArea = null;
     this.lastTapTime = 0;
     this.tapDelay = 300;
-    this.songHitAreaPadding = 40; // Padding adicional para el área de toque
+    this.songHitAreaPadding = 40;
   }
 
   init(data) {
-    this._initProperties();
     if (data?.selectedIndex !== undefined) this.selectedIndex = data.selectedIndex;
     if (data?.selectedDifficulty !== undefined) {
       this.selectedDifficulty = this.difficulties.indexOf(data.selectedDifficulty);
@@ -81,65 +71,60 @@ class FreeplayState extends Phaser.Scene {
   }
 
   async loadWeekData() {
-    try {
-      const allSongs = [];
-      const baseWeekList = this.cache.text.get("weekList")
-        .trim().split("\n").filter(week => week.trim());
+    const allSongs = [];
+    const baseWeekList = this.cache.text.get("weekList")
+      .trim().split("\n").filter(week => week.trim());
 
-      for (const week of baseWeekList) {
+    for (const week of baseWeekList) {
+      try {
+        const response = await fetch(`public/assets/data/weekList/${week}.json`);
+        if (response.ok) {
+          const weekData = await response.json();
+          if (weekData.tracks) {
+            weekData.tracks.flat().forEach(song => {
+              allSongs.push({
+                name: song,
+                weekName: weekData.weekName,
+                color: weekData.color || "#FFFFFF",
+                isMod: false,
+                modPath: null
+              });
+            });
+          }
+        }
+      } catch (error) {
+        console.warn(`Error loading week ${week}:`, error);
+      }
+    }
+
+    if (ModManager.isModActive()) {
+      const modWeeks = ModManager.getModWeekList();
+      for (const weekData of modWeeks) {
         try {
-          const response = await fetch(`public/assets/data/weekList/${week}.json`);
+          const response = await fetch(`${weekData.modPath}/data/weekList/${weekData.week}.json`);
           if (response.ok) {
-            const weekData = await response.json();
-            if (weekData.tracks) {
-              weekData.tracks.flat().forEach(song => {
+            const weekJson = await response.json();
+            if (weekJson.tracks) {
+              weekJson.tracks.flat().forEach(song => {
                 allSongs.push({
                   name: song,
-                  weekName: weekData.weekName,
-                  color: weekData.color || "#FFFFFF",
-                  isMod: false,
-                  modPath: null
+                  weekName: weekJson.weekName,
+                  color: weekJson.color || "#FFFFFF",
+                  isMod: true,
+                  modPath: weekData.modPath,
+                  modName: weekData.modName
                 });
               });
             }
           }
         } catch (error) {
-          console.warn(`Error loading week ${week}:`, error);
+          console.warn(`Error loading mod week ${weekData.week}:`, error);
         }
       }
-
-      if (ModManager.isModActive()) {
-        const modWeeks = ModManager.getModWeekList();
-        for (const weekData of modWeeks) {
-          try {
-            const response = await fetch(`${weekData.modPath}/data/weekList/${weekData.week}.json`);
-            if (response.ok) {
-              const weekJson = await response.json();
-              if (weekJson.tracks) {
-                weekJson.tracks.flat().forEach(song => {
-                  allSongs.push({
-                    name: song,
-                    weekName: weekJson.weekName,
-                    color: weekJson.color || "#FFFFFF",
-                    isMod: true,
-                    modPath: weekData.modPath,
-                    modName: weekData.modName
-                  });
-                });
-              }
-            }
-          } catch (error) {
-            console.warn(`Error loading mod week ${weekData.week}:`, error);
-          }
-        }
-      }
-
-      this.songList = allSongs;
-      if (!this.songList.length) console.warn("No songs loaded");
-    } catch (error) {
-      console.error("Error loading week data:", error);
-      throw error;
     }
+
+    this.songList = allSongs;
+    if (!this.songList.length) console.warn("No songs loaded");
   }
 
   createVCRText(x, y, text, size = 32, color = "#FFFFFF") {
@@ -200,7 +185,6 @@ class FreeplayState extends Phaser.Scene {
         container._iconSprite = icon;
       }
 
-      // Calcular el área de hit ampliada
       const hitWidth = container._iconSprite ? 
         (container._iconSprite.x + container._iconSprite.displayWidth/2 + this.songHitAreaPadding) : 
         (songText.width + this.songHitAreaPadding);
@@ -210,7 +194,6 @@ class FreeplayState extends Phaser.Scene {
         container._iconSprite ? container._iconSprite.displayHeight : 0
       ) + this.songHitAreaPadding;
 
-      // Hacer todo el contenedor interactivo con área ampliada
       container.setInteractive(new Phaser.Geom.Rectangle(
         -this.songHitAreaPadding/2,
         -hitHeight/2,
@@ -225,7 +208,7 @@ class FreeplayState extends Phaser.Scene {
       });
       
       container.on('pointerup', () => {
-        if (!this.isDragging && (this.time.now - this.lastTapTime) < this.tapDelay) {
+        if ((this.time.now - this.lastTapTime) < this.tapDelay) {
           this.selectSong();
         }
       });
@@ -235,7 +218,6 @@ class FreeplayState extends Phaser.Scene {
       return container;
     });
 
-    // Configurar contenedor de dificultad
     this.difficultyContainer = this.add.container(width - 250, 170);
     this.updateDifficultyText();
   }
@@ -249,17 +231,14 @@ class FreeplayState extends Phaser.Scene {
     const song = this.songList[this.selectedIndex];
     const savedData = this.loadSongScore(song.name, difficulty);
 
-    // Texto de dificultad
     this.difficultyText = this.createVCRText(0, 0, `DIFFICULTY: ${difficulty.toUpperCase()}`, 36);
     this.difficultyContainer.add(this.difficultyText);
 
-    // Área interactiva para cambiar dificultad
     this.difficultyInteractiveArea = this.add.zone(0, 0, this.difficultyText.width + 40, this.difficultyText.height + 20)
       .setOrigin(0.5)
       .setInteractive();
     this.difficultyContainer.add(this.difficultyInteractiveArea);
 
-    // Configurar evento de toque
     this.difficultyInteractiveArea.on('pointerdown', () => {
       this.changeDifficulty(1);
       this.scrollSound?.play();
@@ -312,85 +291,11 @@ class FreeplayState extends Phaser.Scene {
   }
 
   setupTouchControls() {
-    // Limpiar eventos previos
     this.input.off('pointerdown');
     this.input.off('pointerup');
-    this.input.off('pointermove');
 
-    // Configurar eventos de arrastre general
     this.input.on('pointerdown', (pointer) => {
-      this.touchStartY = pointer.y;
-      this.touchStartX = pointer.x;
-      this.isDragging = false;
       this.lastTapTime = this.time.now;
-    });
-
-    this.input.on('pointermove', (pointer) => {
-      if (Math.abs(pointer.y - this.touchStartY) > 10 || Math.abs(pointer.x - this.touchStartX) > 10) {
-        this.isDragging = true;
-      }
-
-      if (this.isDragging) {
-        const deltaY = pointer.y - this.touchStartY;
-        this.touchStartY = pointer.y;
-        
-        // Mover el contenedor
-        this.textContainer.y += deltaY;
-        
-        // Actualizar selección basada en la posición
-        this.updateSelectionFromScroll();
-      }
-    });
-
-    this.input.on('pointerup', () => {
-      if (this.isDragging) {
-        this.isDragging = false;
-        this.snapToNearestSong();
-      }
-    });
-  }
-
-  updateSelectionFromScroll() {
-    const cameraHeight = this.cameras.main.height;
-    const centerY = cameraHeight / 2;
-    const currentPos = centerY - this.textContainer.y;
-    
-    const newIndex = Phaser.Math.Clamp(
-      Math.round(currentPos / this.songSpacing),
-      0,
-      this.songList.length - 1
-    );
-    
-    if (newIndex !== this.selectedIndex) {
-      this.selectedIndex = newIndex;
-      this.updateSelection();
-      this.updateDifficultyText();
-      this.scrollSound?.play();
-    }
-  }
-
-  snapToNearestSong() {
-    const cameraHeight = this.cameras.main.height;
-    const centerY = cameraHeight / 2;
-    const selectedY = this.selectedIndex * this.songSpacing;
-    
-    const targetY = centerY - selectedY;
-    const minY = centerY - ((this.songList.length - 1) * this.songSpacing);
-    const maxY = centerY;
-    
-    const clampedY = Phaser.Math.Clamp(targetY, minY, maxY);
-    
-    if (this.scrollTween) this.scrollTween.stop();
-    
-    this.scrollTween = this.tweens.add({
-      targets: this.textContainer,
-      y: clampedY,
-      duration: 300,
-      ease: "Cubic.out",
-      onComplete: () => {
-        this.updateSelection();
-        this.updateDifficultyText();
-      }
     });
   }
 
@@ -521,7 +426,6 @@ class FreeplayState extends Phaser.Scene {
     this.input.keyboard.removeAllListeners();
     this.input.off('pointerdown');
     this.input.off('pointerup');
-    this.input.off('pointermove');
     this.tweens.killAll();
   }
 

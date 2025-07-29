@@ -1,6 +1,14 @@
 import { LocalHostOptions } from "../../utils/LocalHostOptions.js"
 
+/**
+ * OptionsState scene for managing game settings and configurations.
+ * @extends Phaser.Scene
+ */
 class OptionsState extends Phaser.Scene {
+  /**
+   * Creates an instance of OptionsState.
+   * @constructor
+   */
   constructor() {
     super({ key: "OptionsState" })
     this.currentSelected = 0
@@ -8,9 +16,13 @@ class OptionsState extends Phaser.Scene {
     this.targetScrollY = 190
     this.scrollSpeed = 0.2
     this.descriptionText = null
-    this.isKeyAssignMode = false // Flag para controlar el modo de asignación
+    this.isKeyAssignMode = false
   }
 
+  /**
+   * Calculates the total height of all visible options.
+   * @returns {number} The total height in pixels.
+   */
   getContentHeight() {
     let totalHeight = 0
     this.options.forEach((option) => {
@@ -27,6 +39,9 @@ class OptionsState extends Phaser.Scene {
     return totalHeight
   }
 
+  /**
+   * Repositions all options based on their visibility and collapsed state.
+   */
   repositionOptions() {
     let yPos = 0
     this.options.forEach((option) => {
@@ -59,6 +74,11 @@ class OptionsState extends Phaser.Scene {
     })
   }
 
+  /**
+   * Checks if an option should be hidden based on its parent's collapsed state.
+   * @param {Object} option - The option to check.
+   * @returns {boolean} True if the option should be hidden, false otherwise.
+   */
   isOptionHidden(option) {
     if (option.type === "title") {
       return false
@@ -75,12 +95,15 @@ class OptionsState extends Phaser.Scene {
     return false
   }
 
+  /**
+   * Preloads assets for the options menu.
+   */
   preload() {
     this.load.image("menuBG", "public/assets/images/menuDesat.png")
     this.load.atlasXML(
       "optionsMenu",
       "public/assets/images/states/MainMenuState/options/menu_options.png",
-      "public/assets/images/states/MainMenuState/options/menu_options.xml",
+      "public/assets/images/states/MainMenuState/options/menu_options.xml"
     )
     this.load.audio("scrollSound", "public/assets/audio/sounds/scrollMenu.ogg")
     this.load.audio("checkboxChecked", "public/assets/audio/sounds/checkboxChecked.ogg")
@@ -88,38 +111,17 @@ class OptionsState extends Phaser.Scene {
     this.load.atlasXML(
       "checkboxThingie",
       "public/assets/images/states/OptionsState/checkboxThingie.png",
-      "public/assets/images/states/OptionsState/checkboxThingie.xml",
+      "public/assets/images/states/OptionsState/checkboxThingie.xml"
     )
     this.load.json("optionsConfig", "source/utils/OptionsState.json")
-
-    this.load.once("complete", () => {
-      const config = this.cache.json.get("optionsConfig")
-      if (config && config.previewAssets) {
-        const loader = new Phaser.Loader.LoaderPlugin(this)
-
-        config.previewAssets.images?.forEach((image) => {
-          loader.image(image.key, image.path)
-        })
-
-        config.previewAssets.spritesheets?.forEach((spritesheet) => {
-          loader.spritesheet(spritesheet.key, spritesheet.path, {
-            frameWidth: spritesheet.frameWidth,
-            frameHeight: spritesheet.frameHeight,
-          })
-        })
-
-        config.previewAssets.atlases?.forEach((atlas) => {
-          loader.atlasXML(atlas.key, atlas.textureURL, atlas.atlasURL)
-        })
-
-        if (loader.list.size > 0) {
-          loader.start()
-        }
-      }
-    })
   }
 
-  // Método para formatear nombres de teclas igual que en OptionsState
+  /**
+   * Formats a key name for display.
+   * @param {string} key - The key name.
+   * @param {string} code - The key code.
+   * @returns {string} The formatted key name.
+   */
   formatKeyName(key, code) {
     const specialKeys = {
       " ": "SPACE",
@@ -150,14 +152,16 @@ class OptionsState extends Phaser.Scene {
     return key ? key.toUpperCase() : ""
   }
 
+  /**
+   * Sets up input handlers using custom controls from localStorage.
+   */
   setupInputs() {
-    // Obtener controles personalizados del localStorage
     const getKeyFromStorage = (key, fallback) => {
       const value = localStorage.getItem(key)
       return value && value !== "null" && value !== "undefined" ? value : fallback
     }
 
-    const controls = {
+    this.controls = {
       up: getKeyFromStorage('CONTROLS.UI.UP', 'UP'),
       down: getKeyFromStorage('CONTROLS.UI.DOWN', 'DOWN'),
       left: getKeyFromStorage('CONTROLS.UI.LEFT', 'LEFT'),
@@ -172,43 +176,45 @@ class OptionsState extends Phaser.Scene {
 
       const pressed = this.formatKeyName(event.key, event.code)
 
-      if (pressed === controls.up) {
+      if (pressed === this.controls.up) {
         this.moveSelection(-1)
-      } else if (pressed === controls.down) {
+      } else if (pressed === this.controls.down) {
         this.moveSelection(1)
-      } else if (pressed === controls.left) {
+      } else if (pressed === this.controls.left) {
         this.handleNumberChange(-1)
-      } else if (pressed === controls.right) {
+      } else if (pressed === this.controls.right) {
         this.handleNumberChange(1)
-      } else if (pressed === controls.accept) {
+      } else if (pressed === this.controls.accept) {
         this.toggleSection()
-      } else if (pressed === controls.back || pressed === "BACKSPACE") {
+      } else if (pressed === this.controls.back || pressed === "BACKSPACE") {
         this.returnToMenu()
       }
     })
   }
 
+  /**
+   * Creates the options menu scene.
+   */
   async create() {
-    // Black rectángulo con bordes redondeados para opciones
-    const blackRectOptions = this.add.graphics();
-    const optionsX = 30;
-    const optionsY = 150;
-    const optionsW = this.cameras.main.width - 700;
-    const optionsH = this.cameras.main.height - 190;
-    const radius = 20;
-    blackRectOptions.fillStyle(0x000000, 0.5);
-    blackRectOptions.fillRoundedRect(optionsX, optionsY, optionsW, optionsH, radius);
-    blackRectOptions.setDepth(1);
+    // Background and UI elements
+    const blackRectOptions = this.add.graphics()
+    const optionsX = 30
+    const optionsY = 150
+    const optionsW = this.cameras.main.width - 700
+    const optionsH = this.cameras.main.height - 190
+    const radius = 20
+    blackRectOptions.fillStyle(0x000000, 0.5)
+    blackRectOptions.fillRoundedRect(optionsX, optionsY, optionsW, optionsH, radius)
+    blackRectOptions.setDepth(1)
 
-    // Black rectángulo con bordes redondeados para preview
-    const blackRectPreview = this.add.graphics();
-    const previewX = 660;
-    const previewY = 150;
-    const previewW = this.cameras.main.width - 700;
-    const previewH = this.cameras.main.height - 190;
-    blackRectPreview.fillStyle(0x000000, 0.5);
-    blackRectPreview.fillRoundedRect(previewX, previewY, previewW, previewH, radius);
-    blackRectPreview.setDepth(1);
+    const blackRectPreview = this.add.graphics()
+    const previewX = 660
+    const previewY = 150
+    const previewW = this.cameras.main.width - 700
+    const previewH = this.cameras.main.height - 190
+    blackRectPreview.fillStyle(0x000000, 0.5)
+    blackRectPreview.fillRoundedRect(previewX, previewY, previewW, previewH, radius)
+    blackRectPreview.setDepth(1)
 
     const navBar = this.add
       .rectangle(0, 0, this.cameras.main.width, 80, 0x000000)
@@ -217,7 +223,7 @@ class OptionsState extends Phaser.Scene {
       .setDepth(10)
 
     this.add
-      .text(this.cameras.main.width / 2, 30, "NavBar", {
+      .text(this.cameras.main.width / 2, 30, "OPTIONS", {
         fontFamily: "VCR",
         fontSize: "32px",
         color: "#FFFFFF",
@@ -246,14 +252,6 @@ class OptionsState extends Phaser.Scene {
 
     optionsMenu.play("options-white")
     optionsMenu.setDepth(4)
-    ;[blackRectOptions, blackRectPreview, navBar].forEach((rect) => {
-      rect.setDepth(1)
-    })
-
-    if (this.optionsContainer) {
-      this.optionsContainer.removeAll(true)
-      this.options = []
-    }
 
     this.descriptionText = this.add
       .text(660, 600, "", {
@@ -269,17 +267,7 @@ class OptionsState extends Phaser.Scene {
     this.optionsContainer = this.add.container(30, 10)
     this.optionsContainer.setDepth(2)
 
-    this.previewContainer = this.add.container(660, 30)
-    this.previewContainer.setDepth(2)
-
-    this.previewDisplay = this.add
-      .sprite((this.cameras.main.width - 700) / 2, (this.cameras.main.height - 55) / 2)
-      .setVisible(false)
-      .setDepth(2)
-
-    this.previewContainer.add(this.previewDisplay)
-
-    // Cargar configuración y aplicar valores guardados
+    // Load configuration and apply saved values
     let config = this.cache.json.get("optionsConfig")
     config = await LocalHostOptions.loadOptionsToConfig(config)
 
@@ -295,34 +283,10 @@ class OptionsState extends Phaser.Scene {
     this.updateSelection()
     this.scrollToSelected()
 
-    // Input handlers
-    this.moveSelectionUp = () => {
-      if (!this.isKeyAssignMode) this.moveSelection(-1)
-    }
-    this.moveSelectionDown = () => {
-      if (!this.isKeyAssignMode) this.moveSelection(1)
-    }
-    this.handleToggleSection = () => {
-      if (!this.isKeyAssignMode) this.toggleSection()
-    }
-    this.handleReturnToMenu = () => {
-      if (!this.isKeyAssignMode) this.returnToMenu()
-    }
+    // Setup input handlers
+    this.setupInputs()
 
-    this.input.keyboard.on("keydown-UP", this.moveSelectionUp)
-    this.input.keyboard.on("keydown-DOWN", this.moveSelectionDown)
-    this.input.keyboard.on("keydown-ENTER", this.handleToggleSection)
-    this.input.keyboard.on("keydown-ESC", this.handleReturnToMenu)
-    this.input.keyboard.on("keydown-BACKSPACE", this.handleReturnToMenu)
-    this.input.keyboard.on("keydown-LEFT", () => {
-      if (!this.isKeyAssignMode) this.handleNumberChange(-1)
-    })
-    this.input.keyboard.on("keydown-RIGHT", () => {
-      if (!this.isKeyAssignMode) this.handleNumberChange(1)
-    })
-
-    this.events.on("update", this.updateScroll, this)
-
+    // Animation setup for checkboxes
     if (!this.anims.exists("checkbox-static")) {
       this.anims.create({
         key: "checkbox-static",
@@ -362,8 +326,14 @@ class OptionsState extends Phaser.Scene {
         repeat: 0,
       })
     }
+
+    this.events.on("update", this.updateScroll, this)
   }
 
+  /**
+   * Creates the options menu structure from the configuration.
+   * @param {Object} config - The configuration object.
+   */
   async createOptionsMenu(config) {
     const sections = config.sections
     let yPos = 0
@@ -433,8 +403,6 @@ class OptionsState extends Phaser.Scene {
 
         subsection.options.forEach((optionData) => {
           const path = `${section.title}.${subsection.title}.${optionData.name}`.toUpperCase()
-
-          // Usar los valores ya cargados por loadOptionsToConfig
           const value = optionData.value
           const currentValue = optionData.currentValue || 0
 
@@ -468,7 +436,6 @@ class OptionsState extends Phaser.Scene {
               .setDepth(3)
               .setOrigin(0.5, 0.5)
 
-            // Aplicar el estado visual correcto basado en el valor cargado
             this.updateCheckboxVisual(checkbox, value, yPos)
 
             valueDisplay = checkbox
@@ -521,7 +488,6 @@ class OptionsState extends Phaser.Scene {
             valueType: optionData.type,
             min: optionData.min,
             max: optionData.max,
-            preview: optionData.preview,
           }
 
           if (optionData.type === "boolean") {
@@ -541,37 +507,28 @@ class OptionsState extends Phaser.Scene {
         })
       })
     })
-
-    if (config.previewAssets?.animations) {
-      config.previewAssets.animations.forEach((anim) => {
-        if (!this.anims.exists(anim.key)) {
-          this.anims.create({
-            key: anim.key,
-            frames: this.anims.generateFrameNames(anim.spritesheet, {
-              prefix: anim.prefix,
-              start: anim.start,
-              end: anim.end,
-              zeroPad: anim.zeroPad,
-            }),
-            frameRate: anim.frameRate,
-            repeat: anim.repeat,
-          })
-        }
-      })
-    }
   }
 
-  // Método auxiliar para actualizar la visualización del checkbox
+  /**
+   * Updates the visual state of a checkbox.
+   * @param {Phaser.GameObjects.Sprite} checkbox - The checkbox sprite.
+   * @param {boolean} value - The checkbox value.
+   * @param {number} yPos - The y-position of the checkbox.
+   */
   updateCheckboxVisual(checkbox, value, yPos) {
     if (value) {
       checkbox.play("checkbox-static")
-      checkbox.y = yPos + 15 // Posición normal para checkbox activado
+      checkbox.y = yPos + 15
     } else {
       checkbox.setFrame("Check Box unselected0000")
-      checkbox.y = yPos + 17 // Ajuste visual para checkbox desactivado
+      checkbox.y = yPos + 17
     }
   }
 
+  /**
+   * Moves the selection in the specified direction.
+   * @param {number} direction - The direction to move (-1 for up, 1 for down).
+   */
   moveSelection(direction) {
     let nextIndex = this.currentSelected
 
@@ -595,19 +552,23 @@ class OptionsState extends Phaser.Scene {
     } while (nextIndex >= 0 && nextIndex < this.options.length)
   }
 
+  /**
+   * Scrolls the menu to center the currently selected option.
+   */
   scrollToSelected() {
     const selectedOption = this.options[this.currentSelected]
     const selectedY = selectedOption.text.y
     const containerHeight = this.cameras.main.height - 213
 
-    // Calcular posición para centrar la opción
     const centerY = containerHeight / 2
-    this.targetScrollY = 190 - selectedY + centerY - 20 // -20 para ajuste fino
+    this.targetScrollY = 190 - selectedY + centerY - 20
 
-    // Aplicar límites al scroll
     this.targetScrollY = Phaser.Math.Clamp(this.targetScrollY, -this.getContentHeight() + containerHeight + 190, 190)
   }
 
+  /**
+   * Updates the scroll position smoothly.
+   */
   updateScroll() {
     const currentY = this.optionsContainer.y
     const diff = this.targetScrollY - currentY
@@ -617,6 +578,9 @@ class OptionsState extends Phaser.Scene {
     }
   }
 
+  /**
+   * Toggles the collapsed state of the current section or performs an action on the current option.
+   */
   async toggleSection() {
     const currentOption = this.options[this.currentSelected]
 
@@ -628,20 +592,14 @@ class OptionsState extends Phaser.Scene {
         currentOption.currentValue = (currentOption.currentValue + 1) % values.length
         currentOption.valueText.setText(values[currentOption.currentValue])
 
-        // Guardar inmediatamente
         await LocalHostOptions.saveOption(path, currentOption.currentValue, currentOption.valueType)
         this.sound.play("scrollSound")
-
-        // Actualizar preview si existe
-        this.updatePreview(currentOption)
       } else if (currentOption.valueType === "boolean") {
         currentOption.value = !currentOption.value
         const checkbox = currentOption.valueText
 
-        // Guardar inmediatamente
         await LocalHostOptions.saveOption(path, currentOption.value, currentOption.valueType)
 
-        // Actualizar visual con animación
         if (currentOption.value) {
           checkbox.play("checkbox-selecting").once("animationcomplete", () => {
             checkbox.play("checkbox-static")
@@ -650,41 +608,31 @@ class OptionsState extends Phaser.Scene {
         } else {
           checkbox.play("checkbox-unselecting").once("animationcomplete", () => {
             checkbox.setFrame("Check Box unselected0000")
-            checkbox.y = currentOption.text.y + 17 // Ajuste visual
+            checkbox.y = currentOption.text.y + 17
           })
           this.sound.play("checkboxUnchecked")
         }
-
-        // Actualizar preview si existe
-        this.updatePreview(currentOption)
       } else if (currentOption.valueType === "key") {
-        // Mostrar overlay para asignar nueva tecla
         this.showKeyAssignOverlay(currentOption, path)
-        return // No continuar con el resto
+        return
       }
 
-      // Actualizar descripción
       this.updateDescription(currentOption)
     } else if (currentOption.type === "title") {
       currentOption.collapsed = !currentOption.collapsed
-      // Cambiar color del título
       currentOption.text.setTint(currentOption.collapsed ? 0xffff00 : 0xffffff)
 
-      // Colapsar todos los subtítulos hijos
       currentOption.children.forEach((subtitleObj) => {
         subtitleObj.collapsed = currentOption.collapsed
         subtitleObj.text.setTint(currentOption.collapsed ? 0xffff00 : 0xffffff)
-        // También colapsar las opciones del subtítulo
         subtitleObj.children.forEach((optionObj) => {
           optionObj.collapsed = currentOption.collapsed
         })
       })
     } else if (currentOption.type === "subtitle") {
       currentOption.collapsed = !currentOption.collapsed
-      // Cambiar color del subtítulo
       currentOption.text.setTint(currentOption.collapsed ? 0xffff00 : 0xffffff)
 
-      // Colapsar todas las opciones hijas
       currentOption.children.forEach((optionObj) => {
         optionObj.collapsed = currentOption.collapsed
       })
@@ -693,11 +641,16 @@ class OptionsState extends Phaser.Scene {
     this.repositionOptions()
   }
 
+  /**
+   * Shows an overlay for assigning a new key to an option.
+   * @param {Object} option - The option to assign the key to.
+   * @param {string} path - The path for saving the option.
+   */
   showKeyAssignOverlay(option, path) {
     this.isKeyAssignMode = true
 
     this.tweens.add({
-      targets: [this.optionsContainer, this.previewContainer, this.descriptionText],
+      targets: [this.optionsContainer, this.descriptionText],
       alpha: 0.3,
       duration: 200,
       ease: "Power2",
@@ -735,7 +688,7 @@ class OptionsState extends Phaser.Scene {
       .setDepth(1001)
 
     const assignText = this.add
-      .text(centerX, centerY + 70, `Press Any key para asignar un valor a esta opcion: ${option.text.text}`, {
+      .text(centerX, centerY + 70, `Press any key to assign to: ${option.text.text}`, {
         fontFamily: "VCR",
         fontSize: "20px",
         color: "#FFFFFF",
@@ -754,7 +707,7 @@ class OptionsState extends Phaser.Scene {
       currentKeyValue.destroy()
       assignText.destroy()
       this.tweens.add({
-        targets: [this.optionsContainer, this.previewContainer, this.descriptionText],
+        targets: [this.optionsContainer, this.descriptionText],
         alpha: 1,
         duration: 200,
         ease: "Power2",
@@ -763,20 +716,17 @@ class OptionsState extends Phaser.Scene {
     }
 
     const keyHandler = async (event) => {
-      // Ignorar la primera tecla si es ENTER (la que abrió el overlay)
       if (firstKey) {
         firstKey = false
         if (event.key === "Enter") return
       }
 
-      // Si se presiona ESC, cerrar sin cambiar la key
       if (event.key === "Escape") {
         this.input.keyboard.off("keydown", keyHandler)
         closeOverlay()
         return
       }
 
-      // Asignar la nueva tecla
       const newKey = this.formatKeyName(event.key, event.code)
       option.value = newKey
       option.valueText.setText(newKey)
@@ -798,282 +748,9 @@ class OptionsState extends Phaser.Scene {
     this.input.keyboard.on("keydown", keyHandler)
   }
 
-  moveSelection(direction) {
-    let nextIndex = this.currentSelected
-
-    do {
-      nextIndex += direction
-
-      if (nextIndex < 0 || nextIndex >= this.options.length) {
-        return
-      }
-
-      if (
-        !this.isOptionHidden(this.options[nextIndex]) &&
-        (this.options[nextIndex].type === "title" || !this.options[nextIndex].parent?.collapsed)
-      ) {
-        this.currentSelected = nextIndex
-        this.updateSelection()
-        this.scrollToSelected()
-        this.sound.play("scrollSound")
-        break
-      }
-    } while (nextIndex >= 0 && nextIndex < this.options.length)
-  }
-
-  scrollToSelected() {
-    const selectedOption = this.options[this.currentSelected]
-    const selectedY = selectedOption.text.y
-    const containerHeight = this.cameras.main.height - 213
-
-    // Calcular posición para centrar la opción
-    const centerY = containerHeight / 2
-    this.targetScrollY = 190 - selectedY + centerY - 20 // -20 para ajuste fino
-
-    // Aplicar límites al scroll
-    this.targetScrollY = Phaser.Math.Clamp(this.targetScrollY, -this.getContentHeight() + containerHeight + 190, 190)
-  }
-
-  updateScroll() {
-    const currentY = this.optionsContainer.y
-    const diff = this.targetScrollY - currentY
-
-    if (Math.abs(diff) > 0.1) {
-      this.optionsContainer.y += diff * this.scrollSpeed
-    }
-  }
-
-  async toggleSection() {
-    const currentOption = this.options[this.currentSelected]
-
-    if (currentOption.type === "option") {
-      const path = `${currentOption.parent.parent.text.text}.${currentOption.parent.text.text}.${currentOption.text.text}`
-
-      if (currentOption.valueType === "static") {
-        const values = currentOption.value
-        currentOption.currentValue = (currentOption.currentValue + 1) % values.length
-        currentOption.valueText.setText(values[currentOption.currentValue])
-
-        // Guardar inmediatamente
-        await LocalHostOptions.saveOption(path, currentOption.currentValue, currentOption.valueType)
-        this.sound.play("scrollSound")
-
-        // Actualizar preview si existe
-        this.updatePreview(currentOption)
-      } else if (currentOption.valueType === "boolean") {
-        currentOption.value = !currentOption.value
-        const checkbox = currentOption.valueText
-
-        // Guardar inmediatamente
-        await LocalHostOptions.saveOption(path, currentOption.value, currentOption.valueType)
-
-        // Actualizar visual con animación
-        if (currentOption.value) {
-          checkbox.play("checkbox-selecting").once("animationcomplete", () => {
-            checkbox.play("checkbox-static")
-          })
-          this.sound.play("checkboxChecked")
-        } else {
-          checkbox.play("checkbox-unselecting").once("animationcomplete", () => {
-            checkbox.setFrame("Check Box unselected0000")
-            checkbox.y = currentOption.text.y + 17 // Ajuste visual
-          })
-          this.sound.play("checkboxUnchecked")
-        }
-
-        // Actualizar preview si existe
-        this.updatePreview(currentOption)
-      } else if (currentOption.valueType === "key") {
-        // Mostrar overlay para asignar nueva tecla
-        this.showKeyAssignOverlay(currentOption, path)
-        return // No continuar con el resto
-      }
-
-      // Actualizar descripción
-      this.updateDescription(currentOption)
-    } else if (currentOption.type === "title") {
-      currentOption.collapsed = !currentOption.collapsed
-      // Cambiar color del título
-      currentOption.text.setTint(currentOption.collapsed ? 0xffff00 : 0xffffff)
-
-      // Colapsar todos los subtítulos hijos
-      currentOption.children.forEach((subtitleObj) => {
-        subtitleObj.collapsed = currentOption.collapsed
-        subtitleObj.text.setTint(currentOption.collapsed ? 0xffff00 : 0xffffff)
-        // También colapsar las opciones del subtítulo
-        subtitleObj.children.forEach((optionObj) => {
-          optionObj.collapsed = currentOption.collapsed
-        })
-      })
-    } else if (currentOption.type === "subtitle") {
-      currentOption.collapsed = !currentOption.collapsed
-      // Cambiar color del subtítulo
-      currentOption.text.setTint(currentOption.collapsed ? 0xffff00 : 0xffffff)
-
-      // Colapsar todas las opciones hijas
-      currentOption.children.forEach((optionObj) => {
-        optionObj.collapsed = currentOption.collapsed
-      })
-    }
-
-    this.repositionOptions()
-  }
-
-  showKeyAssignOverlay(option, path) {
-    this.isKeyAssignMode = true
-
-    this.tweens.add({
-      targets: [this.optionsContainer, this.previewContainer, this.descriptionText],
-      alpha: 0.3,
-      duration: 200,
-      ease: "Power2",
-    })
-
-    const overlayWidth = 600
-    const overlayHeight = 250
-    const centerX = this.cameras.main.width / 2
-    const centerY = this.cameras.main.height / 2
-
-    const overlay = this.add
-      .rectangle(centerX, centerY, overlayWidth, overlayHeight, 0x000000)
-      .setAlpha(0.85)
-      .setDepth(1000)
-      .setStrokeStyle(2, 0xffffff, 0.8)
-
-    const currentKeyLabel = this.add
-      .text(centerX, centerY - 80, "Current Key:", {
-        fontFamily: "VCR",
-        fontSize: "28px",
-        color: "#FFFFFF",
-        align: "center",
-      })
-      .setOrigin(0.5)
-      .setDepth(1001)
-
-    const currentKeyValue = this.add
-      .text(centerX, centerY - 30, option.value, {
-        fontFamily: "VCR",
-        fontSize: "54px",
-        color: "#FFD700",
-        align: "center",
-      })
-      .setOrigin(0.5)
-      .setDepth(1001)
-
-    const assignText = this.add
-      .text(centerX, centerY + 70, `Press Any key para asignar un valor a esta opcion: ${option.text.text}`, {
-        fontFamily: "VCR",
-        fontSize: "20px",
-        color: "#FFFFFF",
-        align: "center",
-        wordWrap: { width: overlayWidth - 40 },
-      })
-      .setOrigin(0.5)
-      .setDepth(1001)
-
-    let firstKey = true
-
-    const closeOverlay = () => {
-      this.isKeyAssignMode = false
-      overlay.destroy()
-      currentKeyLabel.destroy()
-      currentKeyValue.destroy()
-      assignText.destroy()
-      this.tweens.add({
-        targets: [this.optionsContainer, this.previewContainer, this.descriptionText],
-        alpha: 1,
-        duration: 200,
-        ease: "Power2",
-      })
-      this.updateDescription(option)
-    }
-
-    const keyHandler = async (event) => {
-      // Ignorar la primera tecla si es ENTER (la que abrió el overlay)
-      if (firstKey) {
-        firstKey = false
-        if (event.key === "Enter") return
-      }
-
-      // Si se presiona ESC, cerrar sin cambiar la key
-      if (event.key === "Escape") {
-        this.input.keyboard.off("keydown", keyHandler)
-        closeOverlay()
-        return
-      }
-
-      // Asignar la nueva tecla
-      const newKey = this.formatKeyName(event.key, event.code)
-      option.value = newKey
-      option.valueText.setText(newKey)
-      currentKeyValue.setText(newKey)
-
-      try {
-        await LocalHostOptions.saveOption(path, newKey, "key")
-        this.sound.play("scrollSound")
-        this.time.delayedCall(300, () => {
-          this.input.keyboard.off("keydown", keyHandler)
-          closeOverlay()
-        })
-      } catch (error) {
-        this.input.keyboard.off("keydown", keyHandler)
-        closeOverlay()
-      }
-    }
-
-    this.input.keyboard.on("keydown", keyHandler)
-  }
-
-  // Método para formatear nombres de teclas
-  formatKeyName(key, code) {
-    // Manejar teclas especiales
-    const specialKeys = {
-      " ": "SPACE",
-      ArrowUp: "UP",
-      ArrowDown: "DOWN",
-      ArrowLeft: "LEFT",
-      ArrowRight: "RIGHT",
-      Control: "CTRL",
-      Alt: "ALT",
-      Shift: "SHIFT",
-      Tab: "TAB",
-      CapsLock: "CAPS",
-      Backspace: "BACKSPACE",
-      Delete: "DELETE",
-      Insert: "INSERT",
-      Home: "HOME",
-      End: "END",
-      PageUp: "PAGEUP",
-      PageDown: "PAGEDOWN",
-      Enter: "ENTER",
-      Meta: "META",
-      ContextMenu: "MENU",
-    }
-
-    // Si es una tecla especial, usar el mapeo
-    if (specialKeys[key]) {
-      return specialKeys[key]
-    }
-
-    // Para teclas F1-F12
-    if (key.startsWith("F") && key.length <= 3) {
-      return key.toUpperCase()
-    }
-
-    // Para números del teclado numérico
-    if (code && code.startsWith("Numpad")) {
-      return code.replace("Numpad", "NUM_")
-    }
-
-    // Para letras y números normales
-    if (key.length === 1) {
-      return key.toUpperCase()
-    }
-
-    // Para cualquier otra tecla, usar el key tal como viene
-    return key.toUpperCase()
-  }
-
+  /**
+   * Updates the visual state of all options based on the current selection.
+   */
   updateSelection() {
     if (this.options.length > 0) {
       this.options.forEach((option, index) => {
@@ -1097,7 +774,6 @@ class OptionsState extends Phaser.Scene {
             ease: "Back.Out",
           })
           this.updateDescription(option)
-          this.updatePreview(option)
           this.sound.play("scrollSound", { volume: 0.1 })
         } else {
           option.text.setAlpha(0.6)
@@ -1123,6 +799,10 @@ class OptionsState extends Phaser.Scene {
     }
   }
 
+  /**
+   * Updates the description text for the currently selected option.
+   * @param {Object} option - The option to display the description for.
+   */
   updateDescription(option) {
     if (this.descriptionText && option) {
       let description = option.description || ""
@@ -1133,7 +813,7 @@ class OptionsState extends Phaser.Scene {
         } else if (option.valueType === "static") {
           description += `\nCurrent: ${option.value[option.currentValue]}`
         } else if (option.valueType === "key") {
-          description += `\nCurrent: ${option.value}\nPress ENTER to change key"`
+          description += `\nCurrent: ${option.value}\nPress ENTER to change key`
         } else if (option.valueType === "boolean") {
           description += `\nCurrent: ${option.value ? "On" : "Off"}`
         } else if (option.valueType === "number") {
@@ -1148,66 +828,15 @@ class OptionsState extends Phaser.Scene {
 
       this.descriptionText.setPosition(
         660 + (containerWidth - textBounds.width) / 2,
-        600 + (containerHeight - textBounds.height) / 2,
+        600 + (containerHeight - textBounds.height) / 2
       )
     }
   }
 
-  updatePreview(option) {
-    // Si no hay opción o no tiene preview, ocultar el display
-    if (!option?.preview) {
-      this.previewDisplay.setVisible(false)
-      return
-    }
-
-    if (option.type === "option") {
-      let textureKey
-      const hasValidTexture = (key) => key && this.textures.exists(key)
-
-      // Determinar la textura según el tipo de opción
-      switch (option.valueType) {
-        case "boolean":
-          textureKey = option.preview[option.value.toString()]
-          break
-        case "static":
-          textureKey = option.preview.assets?.[option.currentValue]
-          break
-        case "number":
-        case "key":
-          textureKey = option.preview
-          break
-      }
-
-      // Verificar y aplicar la textura
-      if (hasValidTexture(textureKey)) {
-        this.previewDisplay.setTexture(textureKey).setVisible(true)
-
-        // Manejar animaciones si existen
-        const animKey = `${textureKey}-anim`
-        if (this.anims.exists(animKey)) {
-          this.previewDisplay.play(animKey)
-        }
-
-        // Ajustar escala y posición
-        this.adjustPreviewDisplay()
-      } else {
-        this.previewDisplay.setVisible(false)
-      }
-    }
-  }
-
-  adjustPreviewDisplay() {
-    if (!this.previewDisplay.visible) return
-
-    const bounds = this.previewDisplay.getBounds()
-    const containerWidth = this.cameras.main.width - 700
-    const containerHeight = this.cameras.main.height - 55
-
-    const scale = Math.min(containerWidth / bounds.width, containerHeight / bounds.height) * 0.6
-
-    this.previewDisplay.setScale(scale).setPosition(660 + containerWidth / 2, 30 + containerHeight / 2)
-  }
-
+  /**
+   * Handles changing a numeric option value.
+   * @param {number} direction - The direction to change the value (-1 for decrease, 1 for increase).
+   */
   handleNumberChange(direction) {
     const currentOption = this.options[this.currentSelected]
 
@@ -1217,24 +846,23 @@ class OptionsState extends Phaser.Scene {
       const newValue = Phaser.Math.Clamp(
         currentOption.value + direction * step,
         currentOption.min || 0,
-        currentOption.max || 10,
+        currentOption.max || 10
       )
 
-      currentOption.value = Math.round(newValue * 100) / 100 // Redondear a 2 decimales
+      currentOption.value = Math.round(newValue * 100) / 100
       currentOption.valueText.setText(currentOption.value.toFixed(2))
 
-      // Guardar inmediatamente
       LocalHostOptions.saveOption(path, currentOption.value, currentOption.valueType)
       this.sound.play("scrollSound")
 
-      // Actualizar descripción y preview
       this.updateDescription(currentOption)
-      this.updatePreview(currentOption)
     }
   }
 
+  /**
+   * Returns to the main menu.
+   */
   returnToMenu() {
-    // Guardar todas las opciones antes de salir
     this.saveAllOptions().then(() => {
       this.input.keyboard.removeAllListeners()
       this.events.off("update", this.updateScroll, this)
@@ -1242,6 +870,10 @@ class OptionsState extends Phaser.Scene {
     })
   }
 
+  /**
+   * Saves all options to localStorage.
+   * @returns {Promise} A promise that resolves when all options are saved.
+   */
   async saveAllOptions() {
     const savePromises = []
 
@@ -1261,17 +893,14 @@ class OptionsState extends Phaser.Scene {
     await Promise.all(savePromises)
   }
 
+  /**
+   * Cleans up the scene when shutting down.
+   */
   shutdown() {
     this.textures.remove("menuBG")
     this.textures.remove("optionsMenu")
     this.anims.remove("options-white")
-    this.input.keyboard.off("keydown-UP", this.moveSelectionUp)
-    this.input.keyboard.off("keydown-DOWN", this.moveSelectionDown)
-    this.input.keyboard.off("keydown-ENTER", this.handleToggleSection)
-    this.input.keyboard.off("keydown-ESC", this.handleReturnToMenu)
-    this.input.keyboard.off("keydown-BACKSPACE", this.handleReturnToMenu)
-    this.input.keyboard.off("keydown-LEFT")
-    this.input.keyboard.off("keydown-RIGHT")
+    this.input.keyboard.removeAllListeners()
     this.events.off("update", this.updateScroll, this)
 
     this.options = []
@@ -1290,5 +919,6 @@ class OptionsState extends Phaser.Scene {
     }
   }
 }
+
 
 game.scene.add("OptionsState", OptionsState)

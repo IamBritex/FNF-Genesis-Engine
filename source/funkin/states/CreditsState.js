@@ -15,17 +15,17 @@ class CreditsState extends Phaser.Scene {
     preload() {
         this.load.image('bg', 'public/assets/images/menuDesat.png');
         this.load.json('credits', 'public/assets/data/Credits.json');
-        
+
         this.load.on('filecomplete-json-credits', () => {
             const creditsData = this.cache.json.get('credits')?.credits || [];
-            
+
             const loadedIcons = new Set();
-            creditsData.forEach(category => 
+            creditsData.forEach(category =>
                 category.sections.forEach(section =>
                     section.users.forEach(user => {
                         const iconKey = `icon_${user.icon}`;
                         if (!loadedIcons.has(iconKey)) {
-                            this.load.image(iconKey, 
+                            this.load.image(iconKey,
                                 `public/assets/images/states/Credits/${user.icon}.png`
                             );
                             loadedIcons.add(iconKey);
@@ -33,7 +33,7 @@ class CreditsState extends Phaser.Scene {
                     })
                 )
             );
-            
+
             // Iniciamos la carga de los iconos
             if (!this.load.isLoading()) {
                 this.load.start();
@@ -117,9 +117,9 @@ class CreditsState extends Phaser.Scene {
         this.menuItems = [];
         this.selectableItems = [];
         this.curSelected = 0;
-        
+
         this.creditsData = this.cache.json.get('credits').credits;
-        
+
         this.setupCreditsDisplay();
         this.setupInputs(); // <-- Agrega esto para usar controles personalizados
     }
@@ -254,31 +254,31 @@ class CreditsState extends Phaser.Scene {
     updateTextPositions() {
         const centerY = this.scale.height / 2;
         const selectedItem = this.selectableItems[this.curSelected];
-        
+
         if (!selectedItem || this.menuItems.length === 0) return;
-        
+
         if (selectedItem.bgColor) {
             this.targetColor = Number(selectedItem.bgColor.replace('#', '0x'));
-            
+
             const currentRGB = {
                 r: (this.currentColor >> 16) & 0xFF,
                 g: (this.currentColor >> 8) & 0xFF,
                 b: this.currentColor & 0xFF
             };
-            
+
             const targetRGB = {
                 r: (this.targetColor >> 16) & 0xFF,
                 g: (this.targetColor >> 8) & 0xFF,
                 b: this.targetColor & 0xFF
             };
-            
+
             const lerpFactor = 0.1;
             const newRGB = {
                 r: Math.round(Phaser.Math.Linear(currentRGB.r, targetRGB.r, lerpFactor)),
                 g: Math.round(Phaser.Math.Linear(currentRGB.g, targetRGB.g, lerpFactor)),
                 b: Math.round(Phaser.Math.Linear(currentRGB.b, targetRGB.b, lerpFactor))
             };
-            
+
             // Combinar los componentes en un solo color
             this.currentColor = (newRGB.r << 16) | (newRGB.g << 8) | newRGB.b;
             this.bgRect.setFillStyle(this.currentColor);

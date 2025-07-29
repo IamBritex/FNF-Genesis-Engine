@@ -192,9 +192,9 @@
                         {
                             "name": "Note Splashes",
                             "description": "Visual effect when hitting notes",
-                            "value": ["On", "Off", "Only Sicks"],
+                            "value": true,
                             "currentValue": 2,
-                            "type": "static"
+                            "type": "boolean"
                         },
                         {
                             "name": "Note Splash Opacity",

@@ -7,8 +7,8 @@ class GfDanceState extends Phaser.Scene {
     preload() {
         console.log("GfDanceState cargado correctamente");
 
-        const isMobile = this.sys.game.device.os.android 
-            || this.sys.game.device.os.iOS 
+        const isMobile = this.sys.game.device.os.android
+            || this.sys.game.device.os.iOS
             || window.navigator.userAgent.toLowerCase().includes("android")
             || window.navigator.userAgent.toLowerCase().includes("iphone")
             || window.innerWidth <= 768;
@@ -70,13 +70,13 @@ class GfDanceState extends Phaser.Scene {
             this.anims.create({
                 key: 'enter_pressed',
                 frames: [
-                    { key: 'titleEnter', frame: 'ENTER PRESSED0000' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0000' },
                     { key: 'titleEnter', frame: 'ENTER PRESSED0001' },
-                    { key: 'titleEnter', frame: 'ENTER PRESSED0002' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0002' },
                     { key: 'titleEnter', frame: 'ENTER PRESSED0003' },
-                    { key: 'titleEnter', frame: 'ENTER PRESSED0004' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0004' },
                     { key: 'titleEnter', frame: 'ENTER PRESSED0005' },
-                    { key: 'titleEnter', frame: 'ENTER PRESSED0006' }, 
+                    { key: 'titleEnter', frame: 'ENTER PRESSED0006' },
                     { key: 'titleEnter', frame: 'ENTER PRESSED0007' },
                     { key: 'titleEnter', frame: 'ENTER PRESSED0008' },
                 ],
@@ -99,7 +99,7 @@ class GfDanceState extends Phaser.Scene {
         this.anims.create({
             key: 'logo_bumpin',
             frames: this.anims.generateFrameNames('logoBumpin', {
-                start: 0, end:9, prefix: 'logo bumpin', suffix: '', zeroPad: 4
+                start: 0, end: 9, prefix: 'logo bumpin', suffix: '', zeroPad: 4
             }),
             frameRate: 16,
             repeat: -1
@@ -125,7 +125,7 @@ class GfDanceState extends Phaser.Scene {
             this.enterLogo = this.add.image(this.cameras.main.centerX, 620, 'enter_idle')
                 .setOrigin(0.5, 0.5)
                 .setScale(1);
-            
+
             // Añadimos interactividad para móviles
             this.enterLogo.setInteractive();
             this.enterLogo.on('pointerdown', () => {

@@ -5,10 +5,15 @@ import { Pharser } from './ModularArrows/Pharser.js';
 import { StrumlinesNotes } from './ModularArrows/StrumlinesNotes.js';
 import { NoteSplashes } from './ModularArrows/NoteSplashes.js';
 
+/**
+ * Main controller for handling note gameplay logic
+ */
 export class NotesController {
+    /**
+     * @param {Phaser.Scene} scene - The phaser scene instance 
+     */
     constructor(scene) {
         this.scene = scene;
-        // --- Define offsets antes de crear StrumlinesNotes ---
         this.offsets = {
             static: { x: 0, y: 0 },
             press: { x: 28, y: 28 },
@@ -69,7 +74,7 @@ export class NotesController {
         this.noteSpawner = new NoteSpawner(scene, this);
         this.holdNotes = new HoldNotes(scene, this);
         this.strumlines = new StrumlinesNotes(scene, this);
-        this.noteSplashes = new NoteSplashes(scene, this, 62, 72); // offsetX, offsetY
+        this.noteSplashes = new NoteSplashes(scene, this, 62, 72);
 
         this.lastSingTime = {
             player: 0,
@@ -81,22 +86,21 @@ export class NotesController {
         this.botEnabled = false;
         this.botKey = this.scene.input.keyboard.addKey('B');
         this.botKey.on('down', this.toggleBot, this);
-
-        this.botReactionTime = 16; // ms
+        this.botReactionTime = 16;
         this.lastBotHitTime = 0;
 
         this.uiElements = [];
     }
 
-    // Input setup
+    /**
+     * Sets up keyboard bindings from localStorage
+     */
     async setupKeyBindings() {
-        // Lee directamente de localStorage
         const leftKey = localStorage.getItem('CONTROLS.NOTES.LEFT') || 'LEFT';
         const downKey = localStorage.getItem('CONTROLS.NOTES.DOWN') || 'DOWN';
         const upKey = localStorage.getItem('CONTROLS.NOTES.UP') || 'UP';
         const rightKey = localStorage.getItem('CONTROLS.NOTES.RIGHT') || 'RIGHT';
 
-        // Crear los keyCodes dinámicamente
         this.keyBindings = {
             left: [
                 this.scene.input.keyboard.addKey(
@@ -124,6 +128,9 @@ export class NotesController {
     directions = ['left', 'down', 'up', 'right'];
     holdColors = ['purple', 'blue', 'green', 'red'];
 
+    /**
+     * Configures the rating manager with default positions
+     */
     configureRatingManager() {
         this.ratingManager.configure({
             positions: {
@@ -139,6 +146,12 @@ export class NotesController {
         });
     }
 
+    /**
+     * Loads notes from song data
+     * @param {Object} songData - The song data containing notes 
+     * @param {number} bpm - Option BPM override
+     * @param {number} speed - Optional speed override
+     */
     loadNotes(songData, bpm, speed) {
         this.songNotes = Pharser.parseNotes(songData);
 
@@ -155,6 +168,9 @@ export class NotesController {
         console.log("Enemy notes:", enemyNotes);
     }
     
+    /**
+     *  Sets up input handlers for note controls
+     */
     setupInputHandlers() {
         if (!this.initialized) {
             console.log('NotesController initialized');
@@ -190,14 +206,12 @@ export class NotesController {
                         return;
                     }
 
-                    // Calcula posición de "press" y "confirm"
                     const pos = this.getStrumlinePositions(true)[index];
                     const pressOffset = this.offsets.press;
                     const confirmOffset = this.offsets.confirm;
                     const pressPos = { x: pos.x + (pressOffset.x || 0), y: pos.y + (pressOffset.y || 0) };
                     const confirmPos = { x: pos.x + (confirmOffset.x || 0), y: pos.y + (confirmOffset.y || 0) };
 
-                    // ¿Hay nota presionable?
                     let hasHittableNote = false;
                     const currentTime = this.scene.songPosition;
                     for (const note of this.songNotes) {
@@ -229,10 +243,8 @@ export class NotesController {
                         arrow.setTexture('noteStrumline', `press${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
                         arrow.setScale(this.strumlines.defaultScale.press);
 
-                        // GHOST TAPPING: Si está desactivado, cuenta como miss si presionas sin nota
                         const ghostTapping = localStorage.getItem('GAMEPLAY.NOTE SETTINGS.GHOST TAPPING');
                         if (ghostTapping === 'false') {
-                            // Crear un "fake note" para el miss visual y lógica
                             this.missNote({
                                 isPlayerNote: true,
                                 noteDirection: index,
@@ -297,6 +309,10 @@ export class NotesController {
         console.log('Input handlers setup complete');
     }
 
+    /**
+     * Check for note hits in a specific direction
+     * @param {number} directionIndex - The direction index to check 
+     */
     checkNoteHit(directionIndex) {
         const currentTime = this.scene.songPosition;
         let closestNote = null;
@@ -323,7 +339,11 @@ export class NotesController {
         }
     }
     
-    // Modifica hitNote para que al tocar una nota larga, se elimine toda la holdnote de inmediato
+    /**
+     * Handles a successful note hit
+     * @param {Object} note - The note tat was hit
+     * @param {number} timeDiff - The time difference between the note and the current timing
+     */
     hitNote(note, timeDiff) {
         note.wasHit = true;
         const direction = this.directions[note.noteDirection];
@@ -384,7 +404,6 @@ export class NotesController {
         this.combo = this.ratingManager.combo;
         this.maxCombo = this.ratingManager.maxCombo;
 
-        // --- AQUI: Notesplash si es sick ---
         if (rating === 'sick' && note.isPlayerNote) {
             const color = this.holdColors[note.noteDirection];
             this.noteSplashes.showSplash(note.noteDirection, color);
@@ -402,11 +421,14 @@ export class NotesController {
         });
     }
     
+    /**
+     * Handles a missed note
+     * @param {Object} note - The note that was missed
+     */
     missNote(note) {
         note.tooLate = true;
         this.notesMissed++;
         
-        // Reproducir un sonido de fallo aleatorio
         const randomSound = this.missSounds[Math.floor(Math.random() * this.missSounds.length)];
         if (this.scene.cache.audio.exists(randomSound)) {
             this.scene.sound.play(randomSound, { volume: 0.5 });
@@ -424,7 +446,6 @@ export class NotesController {
             note.holdSprites = [];
         }
 
-        // Definir las animaciones de fallo según la dirección
         const missAnims = {
             0: "singLEFTmiss",
             1: "singDOWNmiss",
@@ -432,7 +453,6 @@ export class NotesController {
             3: "singRIGHTmiss"
         };
 
-        // Emitir evento strumlineStateChange para la animación de fallo
         this.events.emit('strumlineStateChange', {
             direction: note.noteDirection,
             isPlayerNote: true,
@@ -440,20 +460,26 @@ export class NotesController {
             animation: missAnims[note.noteDirection]
         });
         
-        // Usar RatingManager para registrar el fallo
         this.ratingManager.recordMiss();
         this.combo = this.ratingManager.combo;
 
-        // Añadir pérdida de salud
         if (this.scene.healthBar) {
             this.scene.healthBar.damage(this.healthConfig.missLoss);
         }
     }
     
+    /** 
+    * Spawns a note in the game
+    * @param {Object} note - The note object to spawn
+    */
     spawnNote(note) {        
         this.noteSpawner.spawnNote(note);
     }
 
+    /**
+     * Gets all active notes
+     * @returns {Array} Array of active notes
+     */
     getAllNotes() {
         return this.songNotes.filter(note => 
             note.spawned && 
@@ -461,6 +487,9 @@ export class NotesController {
         );
     }
     
+    /** 
+    * Initializes the NotesController 
+    */
     async init() {
         if (this.initialized) {
             console.warn('NotesController already initialized');
@@ -468,11 +497,9 @@ export class NotesController {
         }
 
         try {
-            // --- Crear strumlines y agregarlas a la UI ---
             await this.strumlines.createPlayerStrumline();
             this.strumlines.createEnemyStrumline();
 
-            // Aplica visuales especiales a las strumlines enemigas desde el inicio
             if (this.enemyStrumlineVisuals) {
                 this.strumlines.enemyStrumline.forEach(arrow => {
                     if (arrow) {
@@ -482,31 +509,25 @@ export class NotesController {
                 });
             }
 
-            // Agregar flechas a la capa UI usando cameraController
             if (this.scene.cameraController) {
-                // Player strumline
                 this.strumlines.playerStrumline.forEach(arrow => {
                     if (arrow) {
                         this.scene.cameraController.addToUILayer(arrow);
                         arrow.setScale(this.strumlines.defaultScale.static); // <-- Fuerza la escala después de añadir a la UI
                     }
                 });
-                // Enemy strumline
                 this.strumlines.enemyStrumline.forEach(arrow => {
                     if (arrow) {
                         this.scene.cameraController.addToUILayer(arrow);
-                        // Mantén la escala especial si aplica
                         const scale = this.enemyStrumlineVisuals
                             ? this.strumlines.defaultScale.static * this.enemyStrumlineVisuals.scale
                             : this.strumlines.defaultScale.static;
                         arrow.setScale(scale);
                     }
                 });
-                // Forzar actualización de capas
                 this.scene.cameraController._setupCameraLayers();
             }
 
-            // Guardar referencias para PlayState (para _setupUICameraElements)
             this.uiElements = [
                 ...this.strumlines.playerStrumline,
                 ...this.strumlines.enemyStrumline
@@ -520,15 +541,17 @@ export class NotesController {
             throw error;
         }
     }
-    
+
+    /**
+     * Updates the NotesController
+     * @param {number} songPosition - Current song position in milliseconds
+     */
     update(songPosition) {
-        // No actualizar si el juego está pausado
         if (this.scene.isPaused()) return;
         
         const currentTime = songPosition;
         const spawnTime = 2000 * this.speed;
         
-        // Limpiar notas que ya no son necesarias
         this.songNotes = this.songNotes.filter(note => {
             const timeDiff = note.strumTime - currentTime;
             const isHoldActive = note.isHoldNote && 
@@ -547,10 +570,8 @@ export class NotesController {
             return true;
         });
 
-        // Actualizar notas visibles y posiciones usando NoteSpawner
         this.noteSpawner.updateNotes(this.songNotes, currentTime, this.speed, this.currentBPM);
 
-        // Lógica de spawn
         for (const note of this.songNotes) {
             if (!note.spawned && note.strumTime <= currentTime + spawnTime) {
                 this.spawnNote(note);
@@ -558,7 +579,6 @@ export class NotesController {
             }
         }
         
-        // Handle player notes
         for (const note of this.songNotes) {
             if (note.isPlayerNote) {
                 const timeDiff = note.strumTime - currentTime;
@@ -568,7 +588,6 @@ export class NotesController {
                     this.missNote(note);
                 }
             } else {
-                // CPU: acierta solo cuando está en la ventana perfecta
                 const timeDiff = note.strumTime - currentTime;
                 if (!note.wasHit && Math.abs(timeDiff) <= this.safeZoneOffset && timeDiff <= 0) {
                     this.playEnemyNote(note);
@@ -576,7 +595,6 @@ export class NotesController {
             }
         }
 
-        // Actualizar hold notes activas para ambos lados
         this.updateActiveHoldNotes(currentTime);
 
         const time = this.scene.time.now;
@@ -594,34 +612,32 @@ export class NotesController {
             }
         })
 
-        // Añadir lógica del bot antes del update normal
         if (this.botEnabled) {
             this.updateBot(songPosition);
         }
     }
 
-    // Nuevo método para actualizar hold notes activas
+    /**
+     * Updates active hold notes
+     * @param {number} currentTime - Current song position in milliseconds
+     */
     updateActiveHoldNotes(currentTime) {
-        // Actualizar hold notes del jugador
         for (let i = 0; i < this.activeHoldNotes.length; i++) {
             const note = this.activeHoldNotes[i];
             if (note && note.isPlayerNote && !note.cleanedUp) {
                 this.holdNotes.updateHoldNote(note, currentTime);
                 
-                // Si la nota fue limpiada durante la actualización, removerla
                 if (note.cleanedUp) {
                     this.activeHoldNotes[i] = null;
                 }
             }
         }
 
-        // Actualizar hold notes del enemigo
         for (let i = 0; i < this.activeEnemyHoldNotes.length; i++) {
             const note = this.activeEnemyHoldNotes[i];
             if (note && !note.isPlayerNote && !note.cleanedUp) {
                 this.holdNotes.updateEnemyHoldNote(note, currentTime);
                 
-                // Si la nota fue limpiada durante la actualización, removerla
                 if (note.cleanedUp) {
                     this.activeEnemyHoldNotes[i] = null;
                 }
@@ -629,11 +645,14 @@ export class NotesController {
         }
     }
 
+    /**
+     * Updates bot behavior
+     * @param {number} currentTime - Current song position in milliseconds 
+     */
     updateBot(currentTime) {
         for (let dirIndex = 0; dirIndex < this.directions.length; dirIndex++) {
             const direction = this.directions[dirIndex];
 
-            // Buscar la nota más cercana para esta dirección
             let closestNote = null;
             let closestTimeDiff = Infinity;
 
@@ -656,7 +675,6 @@ export class NotesController {
                 }
             }
 
-            // --- NUEVO: Mantener la tecla presionada durante toda la hold note ---
             const holdNote = this.activeHoldNotes[dirIndex];
             if (
                 holdNote &&
@@ -664,17 +682,14 @@ export class NotesController {
                 holdNote.isBeingHeld &&
                 !holdNote.holdEndPassed
             ) {
-                // Mantener presionada la tecla mientras la hold note esté activa
                 this.keysHeld[direction] = true;
             } else if (closestNote && Math.abs(closestTimeDiff) <= (1000 / 60)) {
-                // Presionar la tecla SOLO cuando la nota está en la línea de golpeo
                 if (!this.keysHeld[direction]) {
                     this.keysHeld[direction] = true;
                     this.checkNoteHit(dirIndex);
                     this.lastBotHitTime = currentTime;
                 }
             } else {
-                // Solo soltar si no hay holdnote activa en esa dirección
                 if (!holdNote || holdNote.holdEndPassed) {
                     this.keysHeld[direction] = false;
                 }
@@ -682,7 +697,10 @@ export class NotesController {
         }
     }
 
-    // CPU: igual, limpia la nota larga de inmediato
+    /**
+     * Handles enemy note hits
+     * @param {Object} note - The note begin hit ny the enemy
+     */
     playEnemyNote(note) {
         note.wasHit = true;
         const direction = this.directions[note.noteDirection];
@@ -691,14 +709,12 @@ export class NotesController {
         const confirmOffset = this.offsets.confirm;
         const confirmPos = { x: pos.x + (confirmOffset.x || 0), y: pos.y + (confirmOffset.y || 0) };
 
-        // --- NUEVO: Si es holdnote, asignarla a activeEnemyHoldNotes para destrucción progresiva ---
         if (note.isHoldNote) {
             if (!this.activeEnemyHoldNotes[note.noteDirection]) {
                 this.activeEnemyHoldNotes[note.noteDirection] = note;
                 note.isBeingHeld = true;
                 note.holdReleased = false;
             }
-            // Destruir la nota padre al presionar
             if (note.sprite?.active) {
                 note.sprite.destroy();
                 note.sprite = null;
@@ -738,34 +754,46 @@ export class NotesController {
             arrow.setScale(scaleConfirm);
             arrow.setAlpha(alpha);
 
-            // --- CAMBIO: SIEMPRE volver a static tras 103ms, incluso para hold notes ---
             this.scene.time.delayedCall(103, () => {
                 arrow.x = arrow.originalX;
                 arrow.y = arrow.originalY;
                 arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                // Mantener SIEMPRE la escala y alpha especial
                 arrow.setScale(scaleStatic);
                 arrow.setAlpha(alpha);
             });
         }
 
-        // --- EMITIR EL EVENTO PARA LUA ---
         if (this.scene.events && typeof this.scene.events.emit === 'function') {
             this.scene.events.emit('enemyNoteHit', note);
         }
     }
 
-    // Limpieza centralizada
+    /**
+     * Clean up a note after it has been hit or missed
+     * @param {Object} note - The note to clean up
+     */
     cleanUpNote(note) {
         this.noteSpawner.cleanUpNote(note);
         note.cleanedUp = true;
     }
 
+    /**
+     * Toggle bot mode
+     */
     toggleBot() {
         this.botEnabled = !this.botEnabled;
         console.log(`Bot ${this.botEnabled ? 'enabled' : 'disabled'}`);
     }
 
+    /**
+     * Gets current score, combo, max combo, notes hit, notes missed, and accuracy
+     * @returns {number} Current score
+     * @returns {number} Current combo
+     * @returns {number} Maximum combo
+     * @returns {number} Notes hit count
+     * @returns {number} Notes missed count
+     * @returns {number} Current accuracy percentage
+     */
     getScore() { return this.score; }
     getCombo() { return this.combo; }
     getMaxCombo() { return this.maxCombo; }
@@ -775,6 +803,9 @@ export class NotesController {
         return this.ratingManager.getResults().accuracy;
     }
     
+    /**
+     * Cleans up all resources
+     */
     cleanup() {
         this.noteSpawner.cleanup();
         this.playerNotes = [];
@@ -788,24 +819,29 @@ export class NotesController {
         if (this.ratingManager) this.ratingManager.reset();
         if (this.strumlines) this.strumlines.destroyStrumlines();
 
-        // Limpiar referencias UI
         this.uiElements = [];
 
         console.log("NotesController cleanup complete");
     }
 
+    /**
+     * Updates enemy notes
+     * @param {number} songPosition - Current song position in milliseconds
+     */
     updateEnemyNotes(songPosition) {
         const currentTime = songPosition;
         
         this.songNotes.forEach(note => {
             if (!note.isPlayerNote && !note.wasHit && note.spawned) {
-                // La CPU acierta la nota en cuanto aparece en pantalla
                 this.playEnemyNote(note);
             }
         });
     }
 
-    // En el método playEnemyNote, simplificar y asegurar que siempre golpee las notas
+    /**
+     * Updates ememy notes
+     * @param {number} songPosition - Current song position in milliseconds
+     */
     playEnemyNote(note) {
         note.wasHit = true;
         const direction = this.directions[note.noteDirection];
@@ -814,14 +850,12 @@ export class NotesController {
         const confirmOffset = this.offsets.confirm;
         const confirmPos = { x: pos.x + (confirmOffset.x || 0), y: pos.y + (confirmOffset.y || 0) };
 
-        // --- NUEVO: Si es holdnote, asignarla a activeEnemyHoldNotes para destrucción progresiva ---
         if (note.isHoldNote) {
             if (!this.activeEnemyHoldNotes[note.noteDirection]) {
                 this.activeEnemyHoldNotes[note.noteDirection] = note;
                 note.isBeingHeld = true;
                 note.holdReleased = false;
             }
-            // Destruir la nota padre al presionar
             if (note.sprite?.active) {
                 note.sprite.destroy();
                 note.sprite = null;
@@ -861,36 +895,35 @@ export class NotesController {
             arrow.setScale(scaleConfirm);
             arrow.setAlpha(alpha);
 
-            // --- CAMBIO: SIEMPRE volver a static tras 103ms, incluso para hold notes ---
             this.scene.time.delayedCall(103, () => {
                 arrow.x = arrow.originalX;
                 arrow.y = arrow.originalY;
                 arrow.setTexture('noteStrumline', `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`);
-                // Mantener SIEMPRE la escala y alpha especial
                 arrow.setScale(scaleStatic);
                 arrow.setAlpha(alpha);
             });
         }
 
-        // --- EMITIR EL EVENTO PARA LUA ---
         if (this.scene.events && typeof this.scene.events.emit === 'function') {
             this.scene.events.emit('enemyNoteHit', note);
         }
     }
     
-    // Debe estar aquí, fuera del constructor:
+    /**
+     * Get strumline positions
+     * @param {boolean} isPlayer - Whether to get positions for player or enemy posiitons
+     * @return {Array} Array of positions objects
+     */
     getStrumlinePositions(isPlayer = true) {
         const arrowWidth = 64;
         const separation = 110;
         const staticOffset = this.offsets.static;
         let baseX, baseY;
 
-        // Leer desde localStorage
         const middleScroll = localStorage.getItem('GAMEPLAY.NOTE SETTINGS.MIDDLESCROLL') === 'true';
         const downScroll = localStorage.getItem('GAMEPLAY.NOTE SETTINGS.DOWNSCROLL') === 'true';
         const opponentNotes = localStorage.getItem('GAMEPLAY.NOTE SETTINGS.OPPONENT NOTES') === 'true';
 
-        // Calcular baseY según downscroll
         if (downScroll) {
             baseY = this.scene.cameras.main.height - arrowWidth - 120;
         } else {
@@ -909,12 +942,10 @@ export class NotesController {
                 y: baseY + (staticOffset.y || 0)
             }));
         } else {
-            // Enemy strumlines: si middleScroll, solo cambia escala y opacidad, NO la posición X
             const enemyScale = middleScroll ? 0.8 : 1;
-            // Si opponentNotes es false, alpha = 0
             let enemyAlpha = !opponentNotes ? 0 : (middleScroll ? 0.5 : 1);
             const enemySeparation = separation * (middleScroll ? 0.7 : 1);
-            baseX = 40; // Siempre a la izquierda
+            baseX = 40;
 
             this.enemyStrumlineVisuals = { scale: enemyScale, alpha: enemyAlpha };
 
@@ -936,8 +967,10 @@ export class NotesController {
         }
     }
 
+    /**
+     * Disables input handlers
+     */
     disableInputs() {
-        // Desactiva los handlers de input
         if (this.keyPressCallbacks) {
             this.keyPressCallbacks.forEach(({ key, callback }) => key.off('down', callback));
         }
@@ -946,8 +979,10 @@ export class NotesController {
         }
     }
 
+    /**
+     * Enables input handlers
+     */
     enableInputs() {
-        // Vuelve a activar los handlers de input
         this.setupInputHandlers();
     }
 }

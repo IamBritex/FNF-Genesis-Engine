@@ -34,7 +34,7 @@ class StoryModeState extends Phaser.Scene {
         const baseCharacters = ['bf', 'gf', 'dad'];
         baseCharacters.forEach(char => {
             this.load.json(
-                `${char}Data`, 
+                `${char}Data`,
                 `public/assets/images/states/storyMenu/menucharacters/${char}.json`
             );
             this.load.atlasXML(
@@ -66,12 +66,12 @@ class StoryModeState extends Phaser.Scene {
 
     async loadWeekData() {
         let weekList = [];
-        
+
         // 1. Cargar semanas del juego base
         const baseWeekList = this.cache.text.get('weekList').trim().split('\n')
             .map(week => week.trim())
             .filter(week => week.length > 0);
-        
+
         // 2. Obtener todas las semanas de los mods
         const modWeeks = ModManager.getModWeekList();
         console.log('Semanas de mods encontradas:', modWeeks);
@@ -83,7 +83,7 @@ class StoryModeState extends Phaser.Scene {
             const modPath = isMod ? weekData.modPath : null;
 
             try {
-                const weekPath = isMod 
+                const weekPath = isMod
                     ? `${modPath}/data/weekList/${weekName}.json`
                     : `public/assets/data/weekList/${weekName}.json`;
 
@@ -110,7 +110,7 @@ class StoryModeState extends Phaser.Scene {
 
     async loadAssets(weekList) {
         this.characterCache = {};
-        
+
         for (const week of weekList) {
             const weekData = this.cache.json.get(week);
             if (!weekData) continue;
@@ -145,20 +145,20 @@ class StoryModeState extends Phaser.Scene {
                         try {
                             const baseCharPath = 'public/assets/images/states/storyMenu/menucharacters';
                             const response = await fetch(`${baseCharPath}/Menu_${character}.png`);
-                            
+
                             if (response.ok) {
                                 console.log(`Loading character from base assets: ${character}`);
                                 this.load.atlasXML(
                                     character,
                                     `${baseCharPath}/Menu_${character}.png`,
                                     `${baseCharPath}/Menu_${character}.xml`
-                            );
-                            this.load.json(
-                                `${character}Data`,
-                                `${baseCharPath}/${character}.json`
-                            );
-                            characterLoaded = true;
-                        }
+                                );
+                                this.load.json(
+                                    `${character}Data`,
+                                    `${baseCharPath}/${character}.json`
+                                );
+                                characterLoaded = true;
+                            }
                         } catch (error) {
                             console.log(`Character not found in base assets: ${character}`);
                         }
@@ -168,7 +168,7 @@ class StoryModeState extends Phaser.Scene {
                             try {
                                 const modCharPath = `${basePath}/images/states/storyMenu/menucharacters`;
                                 const response = await fetch(`${modCharPath}/${character}.png`);
-                                
+
                                 if (response.ok) {
                                     console.log(`Loading character from mod: ${character}`);
                                     this.load.atlasXML(
@@ -220,14 +220,14 @@ class StoryModeState extends Phaser.Scene {
         this.canPressEnter = true;
         this.keyState = {}; // <-- Reinicia el estado de teclas
         this.registry.remove('selectedWeekIndex');
-                // ====== BARRA SUPERIOR ======
-                this.topBar = this.add.rectangle(
-                    this.scale.width / 2, // Centrada en X
-                    200, // Ubicación en Y
-                    this.scale.width, // Ancho total
-                    500, // Altura de la barra
-                    0x000000 // Color negro
-                ).setDepth(1).setAlpha(1); // Semi-transparente
+        // ====== BARRA SUPERIOR ======
+        this.topBar = this.add.rectangle(
+            this.scale.width / 2, // Centrada en X
+            200, // Ubicación en Y
+            this.scale.width, // Ancho total
+            500, // Altura de la barra
+            0x000000 // Color negro
+        ).setDepth(1).setAlpha(1); // Semi-transparente
 
         // Reinicia también al volver de otra escena
         this.events.on('wake', () => {
@@ -239,7 +239,7 @@ class StoryModeState extends Phaser.Scene {
     async processWeeks(weekList) {
         console.log("Processing weeks");
         this.selectedWeekIndex = 0;
-        
+
         // Filtrar las semanas que son visibles en Story Mode
         const visibleWeeks = weekList.filter(week => {
             const weekData = this.cache.json.get(week);
@@ -304,7 +304,7 @@ class StoryModeState extends Phaser.Scene {
             fontFamily: 'VCR',
             fontSize: '30px',
             color: '#FFFFFF'
-        }) .setDepth(10);
+        }).setDepth(10);
 
         this.weekPhrase = this.add.text(width - 20, 20, this.weeks[this.weekKeys[this.selectedWeekIndex]].phrase, {
             fontFamily: 'VCR',
@@ -329,7 +329,7 @@ class StoryModeState extends Phaser.Scene {
 
         // Aplicar opacidad completa al título de la semana seleccionada
         this.weekTitlesContainer.list[this.selectedWeekIndex].setAlpha(1);
-        
+
         this.trackLabel = this.add.image(100, 480, 'tracksLabel').setOrigin(0, 0);
         this.trackTexts = [];
         this.updateTracks();
@@ -342,7 +342,7 @@ class StoryModeState extends Phaser.Scene {
         if (this.game.device.os.android) {
             if (window.AndroidSupport) {
                 window.AndroidSupport.initialize(this);
-                
+
                 // Precargar el atlas de virtualpad si no está cargado
                 if (!this.textures.exists('virtualpad')) {
                     this.load.atlasXML('virtualpad', 'public/assets/android/virtualpad.png', 'public/assets/android/virtualpad.xml');
@@ -447,7 +447,7 @@ class StoryModeState extends Phaser.Scene {
         // Limpiar personajes existentes
         this.characters.forEach(character => character.destroy());
         this.characters = [];
-    
+
         const weekData = this.weeks[this.weekKeys[this.selectedWeekIndex]];
         if (!weekData || !weekData.weekCharacters) {
             console.error('No week data or characters found');
@@ -483,7 +483,7 @@ class StoryModeState extends Phaser.Scene {
                     positions[index].y,
                     characterData
                 );
-                
+
                 this.characters.push(character);
                 console.log(`Character loaded successfully: ${characterName}`);
 
@@ -533,7 +533,7 @@ class StoryModeState extends Phaser.Scene {
         this.difficultyImage.setTexture(this.difficulties[this.selectedDifficulty]);
         this.updateWeekScore(); // Actualizar score al cambiar dificultad
         console.log("Selected difficulty:", this.difficulties[this.selectedDifficulty]);
-    }    
+    }
 
     updateTracks() {
         this.trackTexts.forEach(text => text.destroy());
@@ -544,7 +544,7 @@ class StoryModeState extends Phaser.Scene {
 
         // Crear un contenedor para los tracks
         let tracksContainer = this.add.container(100, 580);
-        
+
         // Calcular el ancho máximo de los textos para centrarlos
         let maxWidth = 0;
         let tempTexts = songs.map(track => {
@@ -560,12 +560,12 @@ class StoryModeState extends Phaser.Scene {
 
         // Crear los textos centrados
         songs.forEach((track, i) => {
-            let text = this.add.text(maxWidth/2, i * 30, track, {
+            let text = this.add.text(maxWidth / 2, i * 30, track, {
                 fontFamily: 'VCR',
                 fontSize: '24px',
                 color: '#ff69b4'
             })
-            .setOrigin(0.5, 0.5); // Centrar el texto
+                .setOrigin(0.5, 0.5); // Centrar el texto
 
             this.trackTexts.push(text);
             tracksContainer.add(text);
@@ -578,27 +578,27 @@ class StoryModeState extends Phaser.Scene {
         const weekName = this.weeks[currentWeek].weekName;
         const weekKey = `weekScore_${weekName}_${difficulty}`;
         const savedScore = parseInt(localStorage.getItem(weekKey) || "0");
-        
+
         // Si no existe el animador, créalo
         if (!this.scoreAnimator) {
             this.scoreAnimator = new NumberAnimation(this, this.scoreText);
         }
-        
+
         // Si es una actualización forzada, resetear el texto actual
         if (forceUpdate) {
             this.scoreText.setText('LEVEL SCORE: 0');
         }
-        
+
         // Obtener el score actual
         const currentScore = parseInt(this.scoreText.text.replace('LEVEL SCORE: ', '') || '0');
-        
+
         // Si el score es diferente o es una actualización forzada, animar
         if (currentScore !== savedScore || forceUpdate) {
             // Detener cualquier animación anterior
             if (this.scoreAnimator.isAnimating) {
                 this.scoreAnimator.stop();
             }
-            
+
             // Animar al nuevo valor
             this.scoreAnimator.animateNumber(
                 0, // Siempre empezar desde 0 para evitar confusiones
@@ -614,7 +614,7 @@ class StoryModeState extends Phaser.Scene {
         // Obtener los datos del JSON original para verificar si es un mod
         const weekData = this.cache.json.get(this.weekKeys[this.selectedWeekIndex]);
         const selectedWeekData = this.weeks[this.weekKeys[this.selectedWeekIndex]];
-        
+
         // Verificar explícitamente si es un mod y obtener sus datos
         const isMod = Boolean(weekData?.isMod);
         const modPath = weekData?.modPath || null;
@@ -636,21 +636,21 @@ class StoryModeState extends Phaser.Scene {
             storyPlaylist: storyPlaylist,
             songList: storyPlaylist,
             currentSongIndex: 0,
-            
+
             // Datos de la semana
             weekName: selectedWeekData.weekName,
             weekBackground: selectedWeekData.bg,
             weekCharacters: selectedWeekData.weekCharacters,
             weekTracks: selectedWeekData.tracks,
-            
+
             // Datos del juego
             campaignScore: 0,
             campaignMisses: 0,
-            
+
             // Dificultad
             storyDifficulty: this.difficulties[this.selectedDifficulty],
             selectedDifficulty: this.difficulties[this.selectedDifficulty],
-            
+
             // Datos del mod
             isMod: isMod,
             modPath: modPath,
@@ -658,7 +658,7 @@ class StoryModeState extends Phaser.Scene {
         };
 
         console.log("Enviando datos a PlayState:", storyData);
-        
+
         // Verificar que los datos del mod estén presentes si es un mod
         if (isMod && (!modPath || !modName)) {
             console.error('Datos del mod incompletos:', { isMod, modPath, modName });
@@ -677,13 +677,13 @@ class StoryModeState extends Phaser.Scene {
         });
         this.selectWeek();
     }
-    
+
     handleBack() {
         if (this.keyState['BACKSPACE']) return;
         this.keyState['BACKSPACE'] = true;
         this.scene.start("MainMenuState");
     }
-    
+
 }
 
 // ====== ASIGNACIONES GLOBALES ======

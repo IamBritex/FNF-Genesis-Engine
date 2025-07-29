@@ -1,10 +1,9 @@
 {
     "stage":[
         {
-            "priority": 1,
             "layer": 1,
             "scale": 1.0,
-            "path": "halloween_bg",
+            "namePath": "halloween_bg",
             "visible": true,
             "opacity": 1.0,
             "position": [-300, -200]

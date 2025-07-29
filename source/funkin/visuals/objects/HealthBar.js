@@ -48,7 +48,42 @@ export class HealthBar {
       // Inicializar estados de iconos por defecto  
       this.p1UsingDefault = false;  
       this.p2UsingDefault = false;  
+
+      // Opacidad de la barra de vida (1 por defecto)
+      this.opacity = 1.0;
+      this._loadOpacityFromStorage();
   }  
+
+  /**
+   * Loads the health bar opacity from localStorage.
+   * If not found, defaults to 1 (fully visible).
+   */
+  _loadOpacityFromStorage() {
+      const storedOpacity = localStorage.getItem('APPEARANCE.UI.HEALTH BAR OPACITY');
+      this.opacity = storedOpacity !== null ? parseFloat(storedOpacity) : 1.0;
+  }
+
+  /**
+   * Applies the current opacity to all health bar elements.
+   */
+  _applyOpacity() {
+      if (!this.container) return;
+
+      // Aplicar opacidad a todos los elementos de la barra de vida
+      const elements = [
+          this.backgroundBar,
+          this.p1HealthBar,
+          this.p2HealthBar,
+          this.p1Icon,
+          this.p2Icon
+      ];
+
+      elements.forEach(element => {
+          if (element) {
+              element.setAlpha(this.opacity);
+          }
+      });
+  }
   
   _setupBPM() {  
       this.lastBeatTime = 0;  
@@ -95,6 +130,9 @@ export class HealthBar {
             this.p2Icon
         ]);
     }
+
+    // Aplicar opacidad inicial
+    this._applyOpacity();
 
     // Asegurar que se añada a la capa UI
     if (this.scene.cameraController) {
@@ -489,6 +527,15 @@ _createDefaultIcon(xPos, flipX, playerKey) {
       const newHealth = Math.min(this.maxHealth, this.curHealth + scaledAmount);
       this.setHealth(newHealth);
       
+  }
+
+  /**
+   * Updates the opacity of the health bar from localStorage.
+   * Call this when the opacity setting might have changed.
+   */
+  updateOpacity() {
+      this._loadOpacityFromStorage();
+      this._applyOpacity();
   }
 
   destroy() {

@@ -16,7 +16,7 @@ class IntroMenu extends Phaser.Scene {
     this.load.atlas("bold", "public/assets/images/UI/bold.png", "public/assets/images/UI/bold.json")
   }
 
-create() {
+  create() {
     console.log("IntroMenu loaded successfully")
     const bpmTime = Math.floor((60 / 102) * 1235)
 
