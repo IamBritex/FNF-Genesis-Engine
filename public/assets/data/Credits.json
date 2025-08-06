@@ -8,31 +8,38 @@
                     "users": [
                         {
                             "name": "Britex",
-                            "description": "Programador Principal",
+                            "description": "Lead Programmer",
                             "icon": "BritexIcon",
                             "link": "https://www.youtube.com/@ImBritex",
                             "bgColor": "#2C003E"
                         },
                         {
                             "name": "KettuMark",
-                            "description": "Programador Secundario",
+                            "description": "Secondary Programmer",
                             "icon": "MarkIcon",
                             "link": "https://www.youtube.com/@KettuMark",
                             "bgColor": "#ffb800"
                         },
                         {
                             "name": "Alejo",
-                            "description": "Sub-Programador",
+                            "description": "Junior Programmer",
                             "icon": "IconAlejo",
                             "link": "https://www.youtube.com/@alejogdofficial",
                             "bgColor": "#5457B0"
                         },
                         {
                             "name": "MaGucci",
-                            "description": "Programador Asistente",
+                            "description": "Assistant Programmer",
                             "icon": "MGIcon",
                             "link": "https://www.youtube.com/@HayimeAlina",
                             "bgColor": "#f42f2f"
+                        },
+                        {
+                            "name": "Shiro",
+                            "description": "LUA Programmer",
+                            "icon": "awa",
+                            "link": "https://www.youtube.com/@HayimeAlina",
+                            "bgColor": "#ffffff"
                         }
                     ]
                 },
@@ -40,12 +47,19 @@
                     "title": "Artists",
                     "users": [
                         {
-                            "name": "MR.pace",
+                            "name": "Proto",
                             "description": "Main Artist",
+                            "icon": "poto",
+                            "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
+                            "bgColor": "#669966"
+                        },
+                        {
+                            "name": "MR.pace",
+                            "description": "Sub Artist",
                             "icon": "MrPaceIcon",
                             "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
                             "bgColor": "#001A33"
-                        }                        
+                        }                   
                     ]
                 },
                 {
@@ -53,17 +67,10 @@
                     "users": [
                         {
                             "name": "Anderei",
-                            "description": "",
+                            "description": "xd",
                             "icon": "AndereiIcon",
                             "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
                             "bgColor": "#330022"
-                        },
-                        {
-                            "name": "MaGucci",
-                            "description": "",
-                            "icon": "MGIcon",
-                            "link": "https://www.youtube.com/@HayimeAlina",
-                            "bgColor": "#f42f2f"
                         }
                     ]
                 }
