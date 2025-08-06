@@ -1,0 +1,11 @@
+{
+	"idle_anim": "M Parents Idle",
+	"confirm_anim": "M Parents Idle",
+	"image": "parents",
+	"position": [
+		110,
+		10
+	],
+	"scale": 1,
+	"antialiasing": true
+}

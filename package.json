@@ -1,0 +1,38 @@
+{
+  "name": "fnf-genesis-engine-launcher",
+  "version": "1.0.0",
+  "description": "FNF Genesis Engine Launcher",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx nw .",
+    "build": "nwbuild ./ --platform linux64,win64 --outDir ./dist"
+  },
+  "build": {
+    "nwVersion": "0.101.2",
+    "srcDir": "./",
+    "product_string": "FNF Genesis Engine Launcher"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nw": "^0.101.2",
+    "nwjs-builder-phoenix": "^1.15.0"
+  },
+  "nwjs": {
+    "main": "index.html",
+    "name": "FNF Genesis Engine Launcher",
+    "window": {
+      "title": "FNF Genesis Engine Launcher",
+      "width": 720,
+      "height": 1280,
+      "fullscreen": false
+    }
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Friday Night Funkin': Genesis Engine</title>
+    <link rel="stylesheet" href="public/html/index.css">
+    <link rel="icon" sizes="16x16" href="public/html/icon.webp">
+    <!--  LIBRERIAS  -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://unpkg.com/fengari-web/dist/fengari-web.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.87.0/phaser.min.js"
+        integrity="sha512-e251dDfxfj70o3iWsf84M612cWbWdTXjVbFXA7MavobTcKB1sCLV+WNiduc20UrpWLXRgi1tgob1TOAfySx9Xg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"
+        integrity="sha512-NcZdtrT77bJr4STcmsGAESr06BYGE8woZdSdEgqnpyqac7sugNO+Tr4bGwGF3MsnEkGKhU2KL2xh6Ec+BqsaHA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+    <div id="game-container"></div>
+
+    <!-- Scripts del juego -->
+    <script type="module" src="source/core/Main.js"></script>
+    <script type="module" src="source/funkin/states/PlayState.js"></script>
+    <script type="module" src="source/funkin/states/StoryModeState.js"></script>
+    <script type="module" src="source/funkin/states/FreeplayState.js"></script>
+    <script type="module" src="source/funkin/visuals/effects/flash.js"></script>
+    <script type="module" src="source/funkin/states/IntroMenu.js"></script>
+    <script type="module" src="source/funkin/visuals/effects/TransitionScene.js"></script>
+    <script type="module" src="source/funkin/states/GfDanceState.js"></script>
+    <script type="module" src="source/funkin/states/OptionsState.js"></script>
+    <script type="module" src="source/funkin/editors/CharacterEditor.js"></script>
+    <script type="module" src="source/funkin/editors/EditorsState.js"></script>
+    <script type="module" src="source/funkin/states/MainMenuState.js"></script>
+    <script type="module" src="source/funkin/states/CreditsState.js"></script>
+    <script type="module" src="source/funkin/states/AwardsState.js"></script>
+    <script type="module" src="source/funkin/editors/StageEditor.js"></script>
+    <script src="public/html/Script.js"></script>
+</body>
+
+</html>

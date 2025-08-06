@@ -1,0 +1,32 @@
+{
+    "menuOptions": [
+      {
+        "spritePath": "",
+        "targetScene": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    ],
+    "spacing": 160,
+    "defaultScale": 1,
+    "inactiveScale": 0.9,
+    "scrollSpeed": 70,
+    "bgScrollSpeed": 70,
+    "animations": {
+        "basic": {
+            "frameRate": 19,
+            "endFrame": 8
+        },
+        "white": {
+            "frameRate": 20,
+            "endFrame": 2
+        }
+    },
+    "transitionConfig": {
+        "blinkDelay": 90,
+        "blinkRepeats": 24,
+        "transitionDelay": 100
+    }
+}

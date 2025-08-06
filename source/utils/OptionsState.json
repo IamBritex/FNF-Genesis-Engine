@@ -1,0 +1,434 @@
+{
+    "sections": [
+        {
+            "title": "CONTROLS",
+            "description": "Configure your gameplay controls",
+            "subsections": [
+                {
+                    "title": "Notes",
+                    "description": "Configure arrow keys for gameplay",
+                    "options": [
+                        {
+                            "name": "Left",
+                            "description": "Key for left arrow notes",
+                            "value": "A",
+                            "type": "key",
+                            "preview": "controls-preview"
+                        },
+                        {
+                            "name": "Down",
+                            "description": "Key for down arrow notes",
+                            "value": "S",
+                            "type": "key",
+                            "preview": "controls-preview"
+                        },
+                        {
+                            "name": "Up",
+                            "description": "Key for up arrow notes",
+                            "value": "W",
+                            "type": "key",
+                            "preview": "controls-preview"
+                        },
+                        {
+                            "name": "Right",
+                            "description": "Key for right arrow notes",
+                            "value": "D",
+                            "type": "key",
+                            "preview": "controls-preview"
+                        }
+                    ]
+                },
+                {
+                    "title": "UI",
+                    "description": "Configure menu navigation controls",
+                    "options": [
+                        {
+                            "name": "Left",
+                            "description": "Navigate left in menus",
+                            "value": "LEFT",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Down",
+                            "description": "Navigate down in menus",
+                            "value": "DOWN",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Up",
+                            "description": "Navigate up in menus",
+                            "value": "UP",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Right",
+                            "description": "Navigate right in menus",
+                            "value": "RIGHT",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Reset",
+                            "description": "Reset current song",
+                            "value": "R",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Back",
+                            "description": "Go back/cancel",
+                            "value": "BACKSPACE",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Pause",
+                            "description": "Pause the game",
+                            "value": "ENTER",
+                            "type": "key"
+                        }
+                    ]
+                },
+                {
+                    "title": "Volume",
+                    "description": "Configure volume controls",
+                    "options": [
+                        {
+                            "name": "Mute",
+                            "description": "Toggle mute",
+                            "value": "0",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Volume Up",
+                            "description": "Increase volume",
+                            "value": "+",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Volume Down",
+                            "description": "Decrease volume",
+                            "value": "-",
+                            "type": "key"
+                        }
+                    ]
+                },
+                {
+                    "title": "Debug",
+                    "description": "Debug controls",
+                    "options": [
+                        {
+                            "name": "Key 1",
+                            "description": "Debug key 1",
+                            "value": "Digit7",
+                            "type": "key"
+                        },
+                        {
+                            "name": "Key 2",
+                            "description": "Debug key 2",
+                            "value": "Digit8",
+                            "type": "key"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "GAMEPLAY",
+            "description": "Configure gameplay settings",
+            "subsections": [
+                {
+                    "title": "Note Settings",
+                    "description": "Configure how notes behave and appear",
+                    "options": [
+                        {
+                            "name": "Downscroll",
+                            "description": "Notes fall from top to bottom instead of bottom to top",
+                            "value": false,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "downscroll-preview-on",
+                                "false": "downscroll-preview-off"
+                            }
+                        },
+                        {
+                            "name": "Middlescroll",
+                            "description": "Center your notes, opponent's notes on sides",
+                            "value": false,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "middlescroll-preview-on",
+                                "false": "middlescroll-preview-off"
+                            }
+                        },
+                        {
+                            "name": "Opponent Notes",
+                            "description": "Show/Hide opponent's notes",
+                            "value": true,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "opponent-notes-on",
+                                "false": "opponent-notes-off"
+                            }
+                        },
+                        {
+                            "name": "Ghost Tapping",
+                            "description": "Miss when pressing keys with no notes",
+                            "value": true,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "ghost-tap-on",
+                                "false": "ghost-tap-off"
+                            }
+                        },
+                        {
+                            "name": "Note Skins",
+                            "description": "Change the appearance of notes",
+                            "value": ["Default", "Pixel", "Circle"],
+                            "currentValue": 0,
+                            "type": "static",
+                            "preview": {
+                                "type": "atlas",
+                                "assets": ["note-default", "note-pixel", "note-circle"]
+                            }
+                        },
+                        {
+                            "name": "Note Splashes",
+                            "description": "Visual effect when hitting notes",
+                            "value": true,
+                            "currentValue": 2,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Note Splash Opacity",
+                            "description": "Transparency of note splash effects",
+                            "value": 1.0,
+                            "min": 0.0,
+                            "max": 1.0,
+                            "type": "number",
+                            "preview": {
+                                "type": "animation",
+                                "key": "note-splash-anim"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "title": "Audio",
+                    "description": "Sound related settings",
+                    "options": [
+                        {
+                            "name": "Hit Sound Volume",
+                            "description": "Volume of note hit sounds",
+                            "value": 1.0,
+                            "min": 0.0,
+                            "max": 1.0,
+                            "type": "number",
+                            "preview": "hit-sound-preview"
+                        },
+                        {
+                            "name": "Music Menu",
+                            "description": "Background music in menus",
+                            "value": ["FNF OST", "Custom", "None"],
+                            "currentValue": 0,
+                            "type": "static",
+                            "preview": {
+                                "type": "image",
+                                "key": "menu-music-preview"
+                            }
+                        },
+                        {
+                            "name": "Pause Screen Song",
+                            "description": "Music played in pause menu",
+                            "value": ["Breakfast", "Tea Time", "None"],
+                            "currentValue": 0,
+                            "type": "static",
+                            "preview": {
+                                "type": "image",
+                                "key": "pause-music-preview"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "APPEARANCE",
+            "description": "Visual and performance settings",
+            "subsections": [
+                {
+                    "title": "Visual",
+                    "description": "Visual effects settings",
+                    "options": [
+                        {
+                            "name": "Anti-Aliasing",
+                            "description": "Smoother graphics (may impact performance)",
+                            "value": true,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "antialiasing-on",
+                                "false": "antialiasing-off"
+                            }
+                        },
+                        {
+                            "name": "Shaders",
+                            "description": "Enable visual effects shaders",
+                            "value": true,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "shaders-on",
+                                "false": "shaders-off"
+                            }
+                        },
+                        {
+                            "name": "Low Quality",
+                            "description": "Reduce visual quality for better performance",
+                            "value": false,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "low-quality-on",
+                                "false": "low-quality-off"
+                            }
+                        },
+                        {
+                            "name": "GPU Caching",
+                            "description": "Cache sprites in GPU memory",
+                            "value": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Frame Rate",
+                            "description": "Target FPS (higher = smoother but more demanding)",
+                            "value": 60,
+                            "min": 30,
+                            "max": 240,
+                            "type": "number",
+                            "preview": {
+                                "type": "image",
+                                "key": "framerate-preview"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "title": "UI",
+                    "description": "Interface settings",
+                    "options": [
+                        {
+                            "name": "Hide HUD",
+                            "description": "Hide interface elements during gameplay",
+                            "value": false,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "hud-off",
+                                "false": "hud-on"
+                            }
+                        },
+                        {
+                            "name": "Time Bar",
+                            "description": "Show song progress bar",
+                            "value": ["Show", "Hide", "Song Name Only"],
+                            "currentValue": 0,
+                            "type": "static",
+                            "preview": {
+                                "type": "image",
+                                "key": "time-bar-show"
+                            }
+                        },
+                        {
+                            "name": "Health Bar Opacity",
+                            "description": "Transparency of health bar",
+                            "value": 1.0,
+                            "min": 0.0,
+                            "max": 1.0,
+                            "type": "number",
+                            "preview": {
+                                "type": "image",
+                                "key": "health-bar-preview"
+                            }
+                        },
+                        {
+                            "name": "FPS Counter",
+                            "description": "Show FPS counter",
+                            "value": true,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "fps-on",
+                                "false": "fps-off"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "MISC",
+            "description": "Additional settings",
+            "subsections": [
+                {
+                    "title": "General",
+                    "description": "Miscellaneous settings",
+                    "options": [
+                        {
+                            "name": "Auto Pause",
+                            "description": "Pause when window loses focus",
+                            "value": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Disable Reset Button",
+                            "description": "Prevent accidental song resets",
+                            "value": false,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Disable Cursor",
+                            "description": "Prevent accidental song resets",
+                            "value": false,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Flashing Lights",
+                            "description": "Enable flashing effects (epilepsy warning)",
+                            "value": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Camera Zooms",
+                            "description": "Enable camera zoom effects",
+                            "value": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Combo Stacking",
+                            "description": "Stack combo sprites",
+                            "value": true,
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
+                    "title": "External",
+                    "description": "External features settings",
+                    "options": [
+                        {
+                            "name": "Check For Updates",
+                            "description": "Check for game updates on startup",
+                            "value": false,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Discord Rich Presence",
+                            "description": "Show game status in Discord",
+                            "value": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "Showcase Mode",
+                            "description": "Display mode for showcasing",
+                            "value": false,
+                            "type": "boolean"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
