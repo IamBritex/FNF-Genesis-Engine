@@ -15,6 +15,8 @@ class CreditsState extends Phaser.Scene {
         this.selectableItems = [];
         this.curSelected = 0;
         this.lastSelectedIndex = 0;
+        this.tapStartTime = 0;
+        this.maxTapDuration = 200; // Tiempo máximo para considerar un tap (ms)
     }
 
     detectMobile() {
@@ -106,19 +108,7 @@ class CreditsState extends Phaser.Scene {
                 currentY += titleText.height + 12;
 
                 for (const user of section.users) {
-                    const userContainer = this.add.container(textX, currentY);
-                    userContainer.bgColor = user.bgColor;
-
-                    const icon = this.add.image(0, 0, `icon_${user.icon}`)
-                        .setOrigin(0, 0)
-                        .setDisplaySize(150, 150);
-
-                    const nameText = new Alphabet(this, icon.displayWidth + 10, 0, user.name, true, 0.8);
-                    const descText = new Alphabet(this, icon.displayWidth + 10, nameText.height + 4, user.description, false, 0.7);
-
-                    userContainer.add([icon, nameText, descText]);
-                    userContainer.link = user.link;
-
+                    const userContainer = this.createUserContainer(textX, currentY, user);
                     this.creditContainer.add(userContainer);
                     this.menuItems.push(userContainer);
                     this.selectableItems.push(userContainer);
@@ -138,35 +128,82 @@ class CreditsState extends Phaser.Scene {
         }
     }
 
+    createUserContainer(textX, currentY, user) {
+        const userContainer = this.add.container(textX, currentY);
+        userContainer.bgColor = user.bgColor;
+        userContainer.link = user.link;
+
+        const icon = this.add.image(0, 0, `icon_${user.icon}`)
+            .setOrigin(0, 0)
+            .setDisplaySize(150, 150);
+
+        const nameText = new Alphabet(this, icon.displayWidth + 10, 0, user.name, true, 0.8);
+        const descText = new Alphabet(this, icon.displayWidth + 10, nameText.height + 4, user.description, false, 0.7);
+
+        userContainer.add([icon, nameText, descText]);
+
+        // Hacer el contenedor interactivo para móviles
+        if (this.isMobile) {
+            this.setupUserContainerInteraction(userContainer);
+        }
+
+        return userContainer;
+    }
+
+    setupUserContainerInteraction(userContainer) {
+        // Crear un área invisible más grande para facilitar el toque
+        const bounds = userContainer.getBounds();
+        const hitArea = this.add.rectangle(
+            bounds.width / 2, 
+            bounds.height / 2, 
+            bounds.width + 20, 
+            bounds.height + 20, 
+            0x000000
+        )
+        .setAlpha(0)
+        .setInteractive();
+
+        userContainer.add(hitArea);
+
+        hitArea.on('pointerdown', (pointer, localX, localY, event) => {
+            this.tapStartTime = this.time.now;
+            event.stopPropagation(); // Prevenir que se active el drag
+        });
+
+        hitArea.on('pointerup', (pointer, localX, localY, event) => {
+            const tapDuration = this.time.now - this.tapStartTime;
+            
+            if (tapDuration < this.maxTapDuration && !this.isDragging) {
+                // Es un tap rápido, abrir el link
+                this.openUserLink(userContainer);
+            }
+            event.stopPropagation();
+        });
+    }
+
     setupMobileControls() {
         this.input.on('pointerdown', (pointer) => {
-            this.isDragging = true;
+            this.isDragging = false; // Reset dragging state
             this.lastDragPosition = pointer.y;
         });
 
         this.input.on('pointermove', (pointer) => {
-            if (this.isDragging && this.lastDragPosition) {
-                const delta = pointer.y - this.lastDragPosition;
-                this.creditContainer.y += delta;
-
-                // Calcular el ítem más cercano al centro
-                const centerY = this.scale.height / 2;
-                let closestItem = null;
-                let closestDistance = Number.MAX_VALUE;
-
-                this.selectableItems.forEach((item, index) => {
-                    const distance = Math.abs((item.y + this.creditContainer.y) - centerY);
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closestItem = index;
-                    }
-                });
-
-                if (closestItem !== null && closestItem !== this.curSelected) {
-                    this.curSelected = closestItem;
+            if (this.lastDragPosition) {
+                const dragDistance = Math.abs(pointer.y - this.lastDragPosition);
+                
+                // Solo comenzar a hacer drag si se mueve más de 10 píxeles
+                if (dragDistance > 10) {
+                    this.isDragging = true;
                 }
 
-                this.lastDragPosition = pointer.y;
+                if (this.isDragging) {
+                    const delta = pointer.y - this.lastDragPosition;
+                    this.creditContainer.y += delta;
+
+                    // Calcular el ítem más cercano al centro
+                    this.updateSelectedItemFromPosition();
+                    this.lastDragPosition = pointer.y;
+                }
             }
         });
 
@@ -175,7 +212,10 @@ class CreditsState extends Phaser.Scene {
             this.lastDragPosition = null;
         });
 
-        // Reemplazar la zona de retroceso con el botón animado
+        this.setupBackButton();
+    }
+
+    setupBackButton() {
         const { width, height } = this.scale;
         
         this.backButton = this.add.sprite(width - 105, height - 75, 'backButton')
@@ -186,8 +226,15 @@ class CreditsState extends Phaser.Scene {
             .setFrame('back0000');
         
         this.backButton.on('pointerdown', () => {
-            // Reproducir la animación
-            this.sound.play('cancelMenu');
+            this.playBackButtonAnimation();
+        });
+    }
+
+    playBackButtonAnimation() {
+        this.sound.play('cancelMenu');
+        
+        // Crear animación si no existe
+        if (!this.anims.exists('backPress')) {
             this.anims.create({
                 key: 'backPress',
                 frames: this.anims.generateFrameNames('backButton', {
@@ -199,18 +246,35 @@ class CreditsState extends Phaser.Scene {
                 frameRate: 24,
                 repeat: 0
             });
+        }
 
-            this.backButton.play('backPress');
-            
-            // Esperar a que la animación llegue a la mitad antes de cambiar de escena
-            this.time.delayedCall(50, () => {
-                this.scene.get("TransitionScene").startTransition("MainMenuState");
-            });
+        this.backButton.play('backPress');
+        
+        // Esperar a que la animación llegue a la mitad antes de cambiar de escena
+        this.time.delayedCall(50, () => {
+            this.scene.get("TransitionScene").startTransition("MainMenuState");
         });
     }
 
+    updateSelectedItemFromPosition() {
+        const centerY = this.scale.height / 2;
+        let closestItem = null;
+        let closestDistance = Number.MAX_VALUE;
+
+        this.selectableItems.forEach((item, index) => {
+            const distance = Math.abs((item.y + this.creditContainer.y) - centerY);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestItem = index;
+            }
+        });
+
+        if (closestItem !== null && closestItem !== this.curSelected) {
+            this.curSelected = closestItem;
+        }
+    }
+
     setupInputs() {
-        // Obtener controles guardados en localStorage con manejo de teclas especiales
         const specialKeys = {
             'ArrowUp': 'UP',
             'ArrowDown': 'DOWN',
@@ -224,7 +288,8 @@ class CreditsState extends Phaser.Scene {
         const controls = {
             up: localStorage.getItem('CONTROLS.UI.UP') || 'UP',
             down: localStorage.getItem('CONTROLS.UI.DOWN') || 'DOWN',
-            back: localStorage.getItem('CONTROLS.UI.BACK') || 'ESCAPE'
+            back: localStorage.getItem('CONTROLS.UI.BACK') || 'ESCAPE',
+            accept: localStorage.getItem('CONTROLS.UI.ACCEPT') || 'ENTER'
         };
 
         this.input.keyboard.removeAllListeners();
@@ -232,25 +297,53 @@ class CreditsState extends Phaser.Scene {
         this.input.keyboard.on('keydown', (event) => {
             if (this.isDragging) return;
 
-            // Normalizar la tecla presionada
             let pressedKey = event.key;
             
-            // Convertir teclas especiales
             if (specialKeys[pressedKey]) {
                 pressedKey = specialKeys[pressedKey];
             } else {
                 pressedKey = pressedKey.toUpperCase();
             }
 
-            // Comprobar contra los controles guardados
             if (pressedKey === controls.up || pressedKey === 'UP') {
                 this.changeSelection(-1);
             } else if (pressedKey === controls.down || pressedKey === 'DOWN') {
                 this.changeSelection(1);
+            } else if (pressedKey === controls.accept || pressedKey === 'ENTER') {
+                this.openSelectedUserLink();
             } else if (pressedKey === controls.back || pressedKey === 'ESCAPE' || pressedKey === 'BACKSPACE') {
                 this.scene.get("TransitionScene").startTransition("MainMenuState");
             }
         });
+    }
+
+    openSelectedUserLink() {
+        const selectedItem = this.selectableItems[this.curSelected];
+        if (selectedItem) {
+            this.openUserLink(selectedItem);
+        }
+    }
+
+    openUserLink(userContainer) {
+        if (userContainer && userContainer.link) {
+            // Añadir efecto visual al seleccionar
+            this.tweens.add({
+                targets: userContainer,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 100,
+                yoyo: true,
+                ease: 'Power2'
+            });
+
+            // Reproducir sonido de confirmación si existe
+            if (this.sound.get('confirmMenu')) {
+                this.sound.play('confirmMenu');
+            }
+
+            // Abrir el enlace en una nueva pestaña
+            window.open(userContainer.link, '_blank');
+        }
     }
 
     changeSelection(change) {
@@ -258,12 +351,9 @@ class CreditsState extends Phaser.Scene {
 
         let newSelected = this.curSelected + change;
         
-        // Implementación de selección circular
         if (newSelected < 0) {
-            // Si estamos en el primer elemento y vamos hacia arriba, ir al último
             newSelected = this.selectableItems.length - 1;
         } else if (newSelected >= this.selectableItems.length) {
-            // Si estamos en el último elemento y vamos hacia abajo, ir al primero
             newSelected = 0;
         }
         
@@ -284,11 +374,9 @@ class CreditsState extends Phaser.Scene {
 
         if (!selectedItem || this.menuItems.length === 0) return;
 
-        // Actualizar posición del contenedor para centrar el elemento seleccionado
         const targetY = centerY - (selectedItem.y + selectedItem.height / 2);
         this.creditContainer.y = Phaser.Math.Linear(this.creditContainer.y, targetY, 0.1);
 
-        // Actualizar opacidad de los elementos
         this.selectableItems.forEach((item, index) => {
             const isSelected = index === this.curSelected;
             item.list.forEach(child => {

@@ -1,0 +1,122 @@
+{
+    "stage": [
+        {
+            "layer": 0,
+            "scale": 1.5,
+            "namePath": "limoSunset",
+            "visible": true,
+            "opacity": 0.7,
+            "position": [
+                -13,
+                -115
+            ],
+            "type": "image"
+        },
+        {
+            "layer": 1,
+            "scale": 1,
+            "namePath": "limoOverlay",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                53,
+                -386
+            ],
+            "type": "image"
+        },
+        {
+            "layer": 4,
+            "scale": 1,
+            "namePath": "bgLimo (Sprite)",
+            "visible": true,
+            "opacity": 0.7,
+            "position": [
+                250,
+                279
+            ],
+            "type": "sprite",
+            "beatAnimation": true,
+            "frameRate": 24,
+            "spriteData": {
+                "totalFrames": 4,
+                "currentFrame": 0,
+                "frames": [
+                    {
+                        "name": "background limo pink0000",
+                        "x": 0,
+                        "y": 0,
+                        "width": 2199,
+                        "height": 379
+                    },
+                    {
+                        "name": "background limo pink0001",
+                        "x": 0,
+                        "y": 389,
+                        "width": 2218,
+                        "height": 380
+                    },
+                    {
+                        "name": "background limo pink0002",
+                        "x": 0,
+                        "y": 779,
+                        "width": 2199,
+                        "height": 384
+                    },
+                    {
+                        "name": "background limo pink0003",
+                        "x": 0,
+                        "y": 1173,
+                        "width": 2199,
+                        "height": 384
+                    }
+                ]
+            }
+        },
+        {
+            "layer": 5,
+            "scale": 1,
+            "namePath": "limoDrive (Sprite)",
+            "visible": true,
+            "opacity": 0.7,
+            "position": [
+                342,
+                427
+            ],
+            "type": "sprite",
+            "spriteData": {
+                "totalFrames": 4,
+                "currentFrame": 0,
+                "frames": [
+                    {
+                        "name": "Limo stage0000",
+                        "x": 0,
+                        "y": 0,
+                        "width": 2048,
+                        "height": 646
+                    },
+                    {
+                        "name": "Limo stage0001",
+                        "x": 0,
+                        "y": 656,
+                        "width": 2048,
+                        "height": 646
+                    },
+                    {
+                        "name": "Limo stage0002",
+                        "x": 0,
+                        "y": 1312,
+                        "width": 2048,
+                        "height": 646
+                    },
+                    {
+                        "name": "Limo stage0003",
+                        "x": 0,
+                        "y": 0,
+                        "width": 2048,
+                        "height": 646
+                    }
+                ]
+            }
+        }
+    ]
+}

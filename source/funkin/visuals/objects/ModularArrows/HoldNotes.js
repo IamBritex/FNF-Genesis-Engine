@@ -53,17 +53,15 @@ export class HoldNotes {
                         note.holdSprites[i] = null;
                         note.holdSegmentsDestroyed = i + 1;
 
-                        // Mostrar animación de cover
-                        if (i === 0) {
-                            // Primera pieza - mostrar animación de inicio
-                            this.notesController.sustainCover.showCover(note.noteDirection, 'start');
-                        } else if (i === numPieces - 1) {
+                        // Mostrar animación de cover (saltamos la animación de inicio)
+                        if (i === numPieces - 1) {
                             // Última pieza - mostrar animación de fin
                             this.notesController.sustainCover.showCover(note.noteDirection, 'end');
-                        } else {
-                            // Piezas intermedias - mostrar animación normal
+                        } else if (i > 0) {
+                            // Piezas intermedias (excluyendo la primera) - mostrar animación normal
                             this.notesController.sustainCover.showCover(note.noteDirection, 'cover');
                         }
+                        // No mostrar animación para la primera pieza (i === 0)
                     } else {
                         // Solo eliminar una pieza por frame
                         break;
@@ -163,6 +161,7 @@ export class HoldNotes {
 
             // Si la nota termina o todas las piezas fueron destruidas, limpiar
             if (currentTime >= holdEndTime || note.holdSegmentsDestroyed >= numPieces) {
+
                 this.cleanUpHoldNote(note);
                 this.notesController.activeEnemyHoldNotes[directionIndex] = null;
                 note.holdEndPassed = true;

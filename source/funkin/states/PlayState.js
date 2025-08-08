@@ -185,6 +185,14 @@ export class PlayState extends Phaser.Scene {
     this.load.atlasXML("NOTE_hold_assets", skinAssets.HOLD_ASSETS.TEXTURE, skinAssets.HOLD_ASSETS.ATLAS);
     this.load.atlasXML("noteSplashes", skinAssets.SPLASHES.TEXTURE, skinAssets.SPLASHES.ATLAS);
 
+    // Cargar hold covers
+    if (skinAssets.HOLD_COVERS) {
+        Object.keys(skinAssets.HOLD_COVERS).forEach(color => {
+            const coverAssets = skinAssets.HOLD_COVERS[color];
+            this.load.atlasXML(`holdCover${color}`, coverAssets.TEXTURE, coverAssets.ATLAS);
+        });
+    }
+
     // Cargar textura de hitbox para dispositivos móviles
     if (this._isMobileDevice()) {
         this.load.atlasXML('hitboxTexture', 
@@ -662,12 +670,14 @@ export class PlayState extends Phaser.Scene {
         await this.stageManager.loadStage('stage'); // Stage por defecto
     }
 
+    // 5. Configurar BPM para animaciones del stage
+    if (this.songData.song.bpm) {
+        this.stageManager.setBPM(this.songData.song.bpm);
+    }
+
     // Inicializar ScriptHandler y cargar eventos del chart
     this.scriptHandler = new ScriptHandler(this);
     this.scriptHandler.cameraController = this.cameraController;
-
-    // Registrar scripts específicos del stage
-    // await this.registerStageScripts();  // Eliminar esta línea
 
     // Inicializar GameOver
     this.gameOver = new GameOver(this);
@@ -870,10 +880,7 @@ export class PlayState extends Phaser.Scene {
     this.scriptHandler?.update(time, delta);
   }
 
-  _updateSongPosition(delta) {
-    // Ya se actualiza desde currentInst.seek en el método update principal
-    // this.songPosition += delta; // Acumular delta puede llevar a desincronización.
-  }
+
 
   _updateGameComponents(time, delta) {
     const elapsedSeconds = delta / 1000 // Para animaciones y físicas basadas en tiempo real
@@ -885,7 +892,6 @@ export class PlayState extends Phaser.Scene {
 
     // arrowsManager necesita songPosition para saber qué notas mostrar/activar
     this.arrowsManager?.update(this.songPosition)
-    // this.arrowsManager?.updateEnemyNotes(this.songPosition); // Si es una lógica separada
   }
 
   _updateBeatDetection() {
@@ -899,8 +905,7 @@ export class PlayState extends Phaser.Scene {
 
     if (currentBeat > this.lastBeat) {
       this.characters?.onBeat(currentBeat)
-      // Aquí también podrían ir otros efectos de beat como el de la cámara o healthbar,
-      // si no se manejan con su propia lógica de bop/songPosition en sus updates.
+      this.stageManager?.onBeat(currentBeat)
       this.lastBeat = currentBeat
     }
   }
@@ -913,11 +918,8 @@ export class PlayState extends Phaser.Scene {
         console.log(`BPM Change: From ${this.currentBPM} to ${change.bpm} at time ${this.songPosition}`);
         this.currentBPM = change.bpm;
 
-        // Actualizar BPM en todos los componentes necesarios
         this.cameraController?.updateBPM(this.currentBPM);
-        this.arrowsManager?.updateScrollSpeed(this.currentBPM);
-        this.characters?.updateBPM(this.currentBPM); // Añadir este método a Characters
-
+        this.stageManager?.setBPM(this.currentBPM);
         const beatTime = 60000 / this.currentBPM;
         this.lastBeat = Math.floor(this.songPosition / beatTime) - 1;
         break;
@@ -929,7 +931,7 @@ export class PlayState extends Phaser.Scene {
     if (this.dataManager.isDataVisible) {
       this.dataManager.updateData(this.songPosition, this.currentBPM, this.lastBeat)
     }
-    this.ratingText?.updateMainText(time) // Asumiendo que updateMainText maneja su propia lógica de tiempo
+    this.ratingText?.updateMainText(time)
   }
 
   async startMusic() {
@@ -939,20 +941,19 @@ export class PlayState extends Phaser.Scene {
     if (!audioInstances || !audioInstances.inst) {
       console.error("No se pudo reproducir la música, instancia de audio no válida.")
       this.isMusicPlaying = false
-      // Considerar manejar este error, ej. reintentar o ir al siguiente estado.
       return
     }
 
     this.currentInst = audioInstances.inst
-    this.currentVoices = audioInstances.voices // Puede ser null/undefined si no hay voces
+    this.currentVoices = audioInstances.voices
 
     this.isMusicPlaying = true
     this.cameraController?.startBoping()
-    this.dataManager.setStartTime(this.time.now - (this.currentInst.seek * 1000 || 0)) // Sincronizar con el tiempo actual de la música si ya empezó (seek > 0)
+    this.dataManager.setStartTime(this.time.now - (this.currentInst.seek * 1000 || 0))
 
     // Crear y configurar TimeBar
     this.timeBar = new TimeBar(this)
-    this.timeBar.create() // Asumiendo que create es async o devuelve una promesa
+    this.timeBar.create()
 
     // Asignar nombre al contenedor de TimeBar
     if (this.timeBar.container) {
@@ -962,9 +963,7 @@ export class PlayState extends Phaser.Scene {
     if (this.currentInst.duration > 0) {
       this.timeBar.setTotalDuration(this.currentInst.duration * 1000)
     } else {
-      // Si la duración no está disponible inmediatamente, escuchar evento 'durationchange' o similar
       this.currentInst.once("play", () => {
-        // o 'canplaythrough' o cuando la duración esté disponible
         if (this.currentInst.duration > 0) {
           this.timeBar.setTotalDuration(this.currentInst.duration * 1000)
         }
@@ -972,17 +971,13 @@ export class PlayState extends Phaser.Scene {
     }
 
     if (this.timeBar.container) {
-      this.timeBar.container.setDepth(150) // Profundidad alta para estar sobre otros elementos UI
+      this.timeBar.container.setDepth(150)
       this.cameraController?.addToUILayer(this.timeBar.container)
-      this.timeBar.container.setVisible(true) // Asegurar que sea visible
+      this.timeBar.container.setVisible(true)
     }
 
     this.currentInst.once("complete", () => this._handleSongCompletion())
-    this.currentInst.once("stop", () => {
-      // En caso de que se detenga por otra razón
-      // console.log("Instancia de música detenida.");
-      // this.isMusicPlaying = false; // Ya se maneja en _handleSongCompletion o shutdown
-    })
+    this.currentInst.once("stop", () => {})
   }
 
   async _cleanupBeforeRestart() {
@@ -1088,37 +1083,30 @@ export class PlayState extends Phaser.Scene {
       const scoreData = this.ratingManager.saveScoreData(currentSong, difficulty);
 
       if (this.dataManager.isStoryMode) {
-        // Actualizar puntuación de campaña
         this.dataManager.campaignScore += scoreData.score;
         this.dataManager.campaignMisses += scoreData.misses;
 
-        // Si es la última canción de la semana
         if (this.dataManager.currentSongIndex >= this.dataManager.storyPlaylist.length - 1) {
           const weekKey = `weekScore_${this.dataManager.weekName}_${difficulty}`;
           const totalScore = this.dataManager.campaignScore;
 
-          // Guardar solo si es mejor que el puntaje anterior
           const existingScore = localStorage.getItem(weekKey);
           if (!existingScore || totalScore > parseInt(existingScore)) {
             localStorage.setItem(weekKey, totalScore.toString());
           }
 
-          // Redirigir a StoryMode
           this.playFreakyMenuAndRedirect();
         } else {
-          // Pasar a la siguiente canción
           this.dataManager.currentSongIndex++;
           this.scene.restart({
-            ...this.dataManager.getSceneData(), // Changed from getData to getSceneData
+            ...this.dataManager.getSceneData(),
             currentSongIndex: this.dataManager.currentSongIndex,
-            // Ensure mod data is passed along
             isMod: this.dataManager.isMod,
             modPath: this.dataManager.modPath,
             modName: this.dataManager.modName
           });
         }
       } else {
-        // Modo Freeplay: volver al menú de selección
         this.playFreakyMenuAndRedirect();
       }
     } catch (error) {
@@ -1132,10 +1120,8 @@ export class PlayState extends Phaser.Scene {
         // Detener todos los sonidos primero
         this.sound.stopAll();
 
-        // Limpiar la escena actual
         this._cleanupBeforeRestart();
 
-        // Determinar la siguiente escena y los datos
         const nextScene = this.dataManager.isStoryMode ? 'StoryModeState' : 'FreeplayState';
         const sceneData = this.dataManager.isStoryMode ? {
             weekName: this.dataManager.weekName,
@@ -1143,27 +1129,22 @@ export class PlayState extends Phaser.Scene {
             weekCharacters: this.dataManager.weekCharacters,
             campaignScore: this.dataManager.campaignScore,
             campaignMisses: this.dataManager.campaignMisses,
-            selectedWeekIndex: this.dataManager.weekIndex // Añadir esto para mantener la selección
+            selectedWeekIndex: this.dataManager.weekIndex
           } : {
-            selectedIndex: this.dataManager.currentSongIndex, // Añadir esto para mantener la selección
+            selectedIndex: this.dataManager.currentSongIndex,
             selectedDifficulty: this.dataManager.storyDifficulty
           };
 
-        // Primero detener la escena actual
         this.scene.stop();
 
-        // Check if audio exists before playing
         if (this.cache.audio.exists('freakyMenu')) {
             const freakyMusic = this.sound.add('freakyMenu', {
                 volume: 0.7,
                 loop: true
             });
             freakyMusic.play();
-        } else {
-            console.warn('freakyMenu audio not found, continuing without music');
         }
 
-        // Cambiar de escena con los datos correspondientes
         this.scene.start(nextScene, sceneData);
     } catch (error) {
       console.error('Error during scene transition:', error);
@@ -1171,7 +1152,6 @@ export class PlayState extends Phaser.Scene {
     }
   }
 
-  // Modificar redirectToNextState para que use la misma lógica
   redirectToNextState() {
     try {
       this.playFreakyMenuAndRedirect();
@@ -1202,14 +1182,9 @@ export class PlayState extends Phaser.Scene {
       });
     }
 
-    // Sort BPM changes by time
     this.bpmChangePoints.sort((a, b) => a.time - b.time);
-
-    console.log("Initial BPM:", this.currentBPM);
-    console.log("BPM change points:", this.bpmChangePoints);
   }
 
-  // Add this method to the PlayState class
   _safeStopAudio(audioInstance) {
     if (audioInstance && typeof audioInstance.stop === 'function') {
       try {
@@ -1225,32 +1200,26 @@ export class PlayState extends Phaser.Scene {
   }
 
   _pauseGame() {
-    // No pausar si el jugador está muerto
     if (this.gameOver?.isActive) {
       return;
     }
 
     if (!this.pauseMenu?.isActive) {
-      // Pausar la música
       this.currentInst?.pause();
       this.currentVoices?.pause();
 
-      // Pausar animaciones y tweens
       this.anims.pauseAll();
       this.tweens.pauseAll();
 
-      // Mostrar menú de pausa
       this.pauseMenu.alpha = 1;
       this.pauseMenu.visible = true;
       this.pauseMenu.setVisible(true);
       this.pauseMenu.isActive = true;
 
-      // Desactivar inputs del juego
       if (this.arrowsManager) {
         this.arrowsManager.disableInputs();
       }
 
-      // Detener el tiempo del juego pero mantener los inputs activos
       this.time.paused = true;
     }
   }
