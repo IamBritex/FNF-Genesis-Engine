@@ -27,40 +27,54 @@ class StoryModeState extends Phaser.Scene {
     preload() {
         console.log("StoryModeState preload started");
 
-        // Cargas existentes
+        // Cache para evitar cargas duplicadas
+        this.loadedAssets = new Set();
+        
+        // Cargas esenciales primero
         this.load.text('weekList', 'public/assets/data/weekList.txt');
         this.load.image('tracksLabel', 'public/assets/images/states/storyMenu/Menu_Tracks.png');
         this.load.audio('scrollSound', 'public/assets/audio/sounds/scrollMenu.ogg');
-        this.load.image('easy', 'public/assets/images/states/storyMenu/difficults/easy.png');
-        this.load.image('normal', 'public/assets/images/states/storyMenu/difficults/normal.png');
-        this.load.image('hard', 'public/assets/images/states/storyMenu/difficults/hard.png');
+        
+        // Cargar dificultades de forma optimizada
+        const difficulties = ['easy', 'normal', 'hard'];
+        difficulties.forEach(diff => {
+            this.load.image(diff, `public/assets/images/states/storyMenu/difficults/${diff}.png`);
+        });
+        
+        // Cargar botón móvil solo si es necesario
         if (this.isMobile) {
-        this.load.atlasXML('backButton', 
+            this.load.atlasXML('backButton', 
                 'public/assets/images/UI/mobile/backButton.png', 
                 'public/assets/images/UI/mobile/backButton.xml'
             );
         }
 
-        // Precargar datos de personajes base
+        // Precargar datos de personajes base de forma optimizada
         const baseCharacters = ['bf', 'gf', 'dad'];
         baseCharacters.forEach(char => {
-            this.load.json(
-                `${char}Data`,
-                `public/assets/images/states/storyMenu/menucharacters/${char}.json`
-            );
-            this.load.atlasXML(
-                char,
-                `public/assets/images/states/storyMenu/menucharacters/Menu_${char}.png`,
-                `public/assets/images/states/storyMenu/menucharacters/Menu_${char}.xml`
-            );
+            // Solo cargar si no existe ya
+            if (!this.cache.json.exists(`${char}Data`)) {
+                this.load.json(
+                    `${char}Data`,
+                    `public/assets/images/states/storyMenu/menucharacters/${char}.json`
+                );
+            }
+            
+            // Cargar atlas solo si no existe
+            if (!this.textures.exists(char)) {
+                this.load.atlasXML(
+                    char,
+                    `public/assets/images/states/storyMenu/menucharacters/Menu_${char}.png`,
+                    `public/assets/images/states/storyMenu/menucharacters/Menu_${char}.xml`
+                );
+            }
         });
 
+        // Listeners optimizados
         this.load.on('filecomplete', (key, type, data) => {
-            console.log(`File loaded: ${key}, Type: ${type}`);
-        });
-
-        this.load.on('filecomplete-xml', (key, type, data) => {
-            console.log(`XML file loaded: ${key}`);
+            if (type === 'json' && key.endsWith('Data')) {
+                console.log(`Character data loaded: ${key}`);
+            }
         });
 
         this.load.on('loaderror', (file) => {
@@ -76,47 +90,84 @@ class StoryModeState extends Phaser.Scene {
     }
 
     async loadWeekData() {
-        let weekList = [];
+        const weekList = [];
+        const loadPromises = [];
 
         // 1. Cargar semanas del juego base
         const baseWeekList = this.cache.text.get('weekList').trim().split('\n')
             .map(week => week.trim())
             .filter(week => week.length > 0);
 
-        // 2. Obtener todas las semanas de los mods
-        const modWeeks = ModManager.getModWeekList();
-        console.log('Semanas de mods encontradas:', modWeeks);
+        // 2. Crear promesas para cargar semanas base en paralelo
+        baseWeekList.forEach(weekName => {
+            loadPromises.push(this._loadSingleWeek(weekName, false));
+        });
 
-        // 3. Procesar todas las semanas
-        for (const weekData of [...baseWeekList, ...modWeeks]) {
-            const weekName = typeof weekData === 'string' ? weekData : weekData.week;
-            const isMod = typeof weekData === 'object';
-            const modPath = isMod ? weekData.modPath : null;
-
-            try {
-                const weekPath = isMod
-                    ? `${modPath}/data/weekList/${weekName}.json`
-                    : `public/assets/data/weekList/${weekName}.json`;
-
-                const response = await fetch(weekPath);
-                if (response.ok) {
-                    const data = await response.json();
-                    // Añadir información del mod si es necesario
-                    if (isMod) {
-                        data.isMod = true;
-                        data.modPath = modPath;
-                        data.modName = weekData.modName;
-                    }
-                    this.cache.json.add(weekName, data);
-                    weekList.push(weekName);
-                }
-            } catch (error) {
-                console.warn(`Error loading week ${weekName}:`, error);
-            }
+        // 3. Obtener semanas de mods si hay mods activos
+        if (ModManager.isModActive()) {
+            const modWeeks = ModManager.getModWeekList();
+            console.log('Semanas de mods encontradas:', modWeeks);
+            
+            modWeeks.forEach(weekData => {
+                loadPromises.push(this._loadSingleWeek(weekData, true));
+            });
         }
 
-        // 4. Procesar las semanas cargadas
-        this.processWeeks(weekList);
+        // 4. Cargar todas las semanas en paralelo
+        try {
+            const results = await Promise.allSettled(loadPromises);
+            
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value) {
+                    weekList.push(result.value);
+                } else {
+                    console.warn(`Failed to load week at index ${index}:`, result.reason);
+                }
+            });
+
+            // 5. Procesar las semanas cargadas
+            this.processWeeks(weekList);
+        } catch (error) {
+            console.error('Error loading week data:', error);
+            this.processWeeks(weekList);
+        }
+    }
+
+    async _loadSingleWeek(weekData, isMod = false) {
+        try {
+            let weekName, weekPath, week;
+            
+            if (isMod) {
+                weekName = typeof weekData === 'string' ? weekData : weekData.week;
+                weekPath = `${weekData.modPath}/data/weekList/${weekName}.json`;
+            } else {
+                weekName = weekData;
+                weekPath = `public/assets/data/weekList/${weekName}.json`;
+            }
+
+            const response = await fetch(weekPath);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            week = await response.json();
+            
+            // Añadir metadatos
+            if (isMod) {
+                week.isMod = true;
+                week.modPath = weekData.modPath;
+                week.modName = weekData.modName;
+            }
+            
+            // Cachear en Phaser
+            this.cache.json.add(weekName, week);
+            
+            return weekName;
+            
+        } catch (error) {
+            console.warn(`Error loading ${isMod ? 'mod' : 'base'} week ${weekData}:`, error);
+            return null;
+        }
     }
 
     async loadAssets(weekList) {

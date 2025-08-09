@@ -6,8 +6,9 @@ class FreeplayState extends Phaser.Scene {
     super({ key: "FreeplayState" });
     this.songList = [];
     this.selectedIndex = 0;
-    this.selectedDifficulty = 1;
-    this.difficulties = ["easy", "normal", "hard"];
+    this.selectedDifficulty = 1; // Por defecto normal (posición 1)
+    this.difficulties = ["easy", "normal", "hard"]; // Orden estándar
+    this.currentSongDifficulties = ["normal"]; // Dificultades específicas de la canción actual
     this.bg = null;
     this.textContainer = null;
     this.difficultyContainer = null;
@@ -37,17 +38,38 @@ class FreeplayState extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("menuBGMagenta", "public/assets/images/menuBGMagenta.png");
-    this.load.audio("scrollMenu", "public/assets/audio/sounds/scrollMenu.ogg");
-    this.load.audio("confirmMenu", "public/assets/audio/sounds/confirmMenu.ogg");
-    this.load.audio("cancelMenu", "public/assets/audio/sounds/cancelMenu.ogg");
-    this.load.text("weekList", "public/assets/data/weekList.txt");
-    this.load.atlas("bold", "public/assets/images/UI/bold.png", "public/assets/images/UI/bold.json");
-    if (this.isMobile) {
+    // Cache para evitar cargas duplicadas
+    this.loadedAssets = new Set();
+
+    // Assets esenciales primero
+    const essentialAssets = [
+      { type: 'image', key: 'menuBGMagenta', path: 'public/assets/images/menuBGMagenta.png' },
+      { type: 'audio', key: 'scrollMenu', path: 'public/assets/audio/sounds/scrollMenu.ogg' },
+      { type: 'audio', key: 'confirmMenu', path: 'public/assets/audio/sounds/confirmMenu.ogg' },
+      { type: 'audio', key: 'cancelMenu', path: 'public/assets/audio/sounds/cancelMenu.ogg' },
+      { type: 'text', key: 'weekList', path: 'public/assets/data/weekList.txt' },
+      { type: 'atlas', key: 'bold', path: 'public/assets/images/UI/bold.png', data: 'public/assets/images/UI/bold.json' }
+    ];
+
+    // Cargar assets esenciales
+    essentialAssets.forEach(asset => {
+      if (!this.loadedAssets.has(asset.key)) {
+        if (asset.type === 'atlas') {
+          this.load.atlas(asset.key, asset.path, asset.data);
+        } else {
+          this.load[asset.type](asset.key, asset.path);
+        }
+        this.loadedAssets.add(asset.key);
+      }
+    });
+
+    // Cargar botón móvil solo si es necesario
+    if (this.isMobile && !this.loadedAssets.has('backButton')) {
       this.load.atlasXML('backButton',
         'public/assets/images/UI/mobile/backButton.png',
         'public/assets/images/UI/mobile/backButton.xml'
       );
+      this.loadedAssets.add('backButton');
     }
   }
 
@@ -70,6 +92,11 @@ class FreeplayState extends Phaser.Scene {
       this.setupMobileBackButton();
     }
 
+    // Inicializar dificultades dinámicas para la canción inicial
+    if (this.songList.length > 0) {
+      await this.updateSongDifficulties();
+    }
+
     this.cameras.main.fadeIn(500);
   }
 
@@ -88,59 +115,111 @@ class FreeplayState extends Phaser.Scene {
 
   async loadWeekData() {
     const allSongs = [];
+    const loadPromises = [];
+
+    // Cargar semanas base
     const baseWeekList = this.cache.text.get("weekList")
       .trim().split("\n").filter(week => week.trim());
 
-    for (const week of baseWeekList) {
-      try {
-        const response = await fetch(`public/assets/data/weekList/${week}.json`);
-        if (response.ok) {
-          const weekData = await response.json();
-          if (weekData.tracks) {
-            weekData.tracks.flat().forEach(song => {
-              allSongs.push({
-                name: song,
-                weekName: weekData.weekName,
-                color: weekData.color || "#FFFFFF",
-                isMod: false,
-                modPath: null
-              });
-            });
-          }
-        }
-      } catch (error) {
-        console.warn(`Error loading week ${week}:`, error);
-      }
-    }
+    // Crear promesas para cargar semanas base
+    baseWeekList.forEach(week => {
+      loadPromises.push(this._loadWeekSongs(week, false));
+    });
 
+    // Cargar semanas de mods si están activos
     if (ModManager.isModActive()) {
       const modWeeks = ModManager.getModWeekList();
-      for (const weekData of modWeeks) {
-        try {
-          const response = await fetch(`${weekData.modPath}/data/weekList/${weekData.week}.json`);
-          if (response.ok) {
-            const weekJson = await response.json();
-            if (weekJson.tracks) {
-              weekJson.tracks.flat().forEach(song => {
-                allSongs.push({
-                  name: song,
-                  weekName: weekJson.weekName,
-                  color: weekJson.color || "#FFFFFF",
-                  isMod: true,
-                  modPath: weekData.modPath,
-                  modName: weekData.modName
-                });
-              });
-            }
-          }
-        } catch (error) {
-          console.warn(`Error loading mod week ${weekData.week}:`, error);
+      modWeeks.forEach(weekData => {
+        loadPromises.push(this._loadWeekSongs(weekData, true));
+      });
+    }
+
+    // Ejecutar todas las cargas en paralelo
+    try {
+      const results = await Promise.allSettled(loadPromises);
+
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          allSongs.push(...result.value);
         }
-      }
+      });
+    } catch (error) {
+      // Error silencioso en producción
     }
 
     this.songList = allSongs;
-    if (!this.songList.length) console.warn("No songs loaded");
+
+    if (!this.songList.length) {
+      // Intentar cargar al menos una canción de prueba
+      this.songList = [{
+        name: "Tutorial",
+        weekName: "tutorial",
+        isMod: false,
+        modPath: null,
+        modName: null
+      }];
+    }
+  }
+
+  async _loadWeekSongs(weekData, isMod = false) {
+    try {
+      let week, weekName;
+
+      if (isMod) {
+        weekName = typeof weekData === 'string' ? weekData : weekData.week;
+        const weekPath = `${weekData.modPath}/data/weekList/${weekName}.json`;
+        const response = await fetch(weekPath);
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        week = await response.json();
+
+        week.isMod = true;
+        week.modPath = weekData.modPath;
+        week.modName = weekData.modName;
+      } else {
+        weekName = weekData;
+        const weekPath = `public/assets/data/weekList/${weekName}.json`;
+
+        const response = await fetch(weekPath);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} - No se pudo cargar ${weekPath}`);
+        }
+
+        week = await response.json();
+      }
+
+      // Extraer canciones de la semana
+      const songs = [];
+
+      // Verificar tanto "songs" como "tracks" para compatibilidad
+      let songList = [];
+      if (week.songs && Array.isArray(week.songs)) {
+        songList = week.songs;
+      } else if (week.tracks && Array.isArray(week.tracks)) {
+        // Si tracks es un array de arrays (como en el formato original)
+        songList = week.tracks.flat();
+      }
+
+      if (songList.length > 0) {
+        songList.forEach(songName => {
+          if (typeof songName === 'string' && songName.trim()) {
+            songs.push({
+              name: songName.trim(),
+              weekName: week.weekName || weekName,
+              isMod: isMod,
+              modPath: week.modPath,
+              modName: week.modName
+            });
+          }
+        });
+      }
+
+      return songs;
+
+    } catch (error) {
+      return [];
+    }
   }
 
   createVCRText(x, y, text, size = 32, color = "#FFFFFF") {
@@ -149,6 +228,109 @@ class FreeplayState extends Phaser.Scene {
       fontSize: size,
       color: color
     }).setOrigin(0.5, 0.5);
+  }
+
+  async detectSongDifficulties(song) {
+    const difficulties = [];
+
+    // 1. Verificar el chart base (normal sin sufijo)
+    const baseChartPath = song.isMod
+      ? `${song.modPath}/audio/songs/${song.name}/charts/${song.name}.json`
+      : `public/assets/audio/songs/${song.name}/charts/${song.name}.json`;
+
+    try {
+      const response = await fetch(baseChartPath, { method: 'HEAD' });
+      if (response.ok) {
+        difficulties.push("normal");
+      }
+    } catch (e) {
+      // Chart base no existe
+    }
+
+    // 2. Leer dificultades personalizadas desde diff.txt (cacheado)
+    let customDifficulties = [];
+    const cacheKey = song.isMod ? `${song.modName}-difficulties` : 'base-difficulties';
+
+    if (!this[cacheKey]) {
+      try {
+        const diffPath = song.isMod
+          ? `${song.modPath}/data/diff.txt`
+          : `public/assets/data/diff.txt`;
+
+        const diffResponse = await fetch(diffPath);
+        if (diffResponse.ok) {
+          const diffText = await diffResponse.text();
+          customDifficulties = diffText.trim()
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+        }
+        this[cacheKey] = customDifficulties; // Cachear para reutilizar
+      } catch (e) {
+        this[cacheKey] = []; // Cachear resultado vacío
+      }
+    } else {
+      customDifficulties = this[cacheKey];
+    }
+
+    // 3. Orden correcto: easy, normal (ya añadida), hard, personalizadas
+    const standardDifficulties = ["easy", "hard"];
+    const allDifficulties = [...standardDifficulties, ...customDifficulties];
+
+    // 4. Verificar cada dificultad
+    const checkPromises = allDifficulties.map(async (diff) => {
+      const chartPath = song.isMod
+        ? `${song.modPath}/audio/songs/${song.name}/charts/${song.name}-${diff}.json`
+        : `public/assets/audio/songs/${song.name}/charts/${song.name}-${diff}.json`;
+
+      try {
+        const response = await fetch(chartPath, { method: 'HEAD' });
+        return response.ok ? diff : null;
+      } catch (e) {
+        return null;
+      }
+    });
+
+    const results = await Promise.allSettled(checkPromises);
+    results.forEach(result => {
+      if (result.status === 'fulfilled' && result.value !== null) {
+        difficulties.push(result.value);
+      }
+    });
+
+    // 5. Reordenar según el orden correcto: easy, normal, hard, personalizadas
+    const orderedDifficulties = [];
+    if (difficulties.includes("easy")) orderedDifficulties.push("easy");
+    if (difficulties.includes("normal")) orderedDifficulties.push("normal");
+    if (difficulties.includes("hard")) orderedDifficulties.push("hard");
+
+    // Añadir personalizadas en el orden que aparecen
+    customDifficulties.forEach(diff => {
+      if (difficulties.includes(diff)) orderedDifficulties.push(diff);
+    });
+
+    // 6. Si no se encontró nada, usar normal como fallback
+    return orderedDifficulties.length > 0 ? orderedDifficulties : ["normal"];
+  }
+
+  async updateSongDifficulties() {
+    if (!this.songList[this.selectedIndex]) return;
+
+    const song = this.songList[this.selectedIndex];
+
+    // Si ya tenemos las dificultades cacheadas, usarlas
+    if (song._difficulties) {
+      this.currentSongDifficulties = song._difficulties;
+    } else {
+      // Detectar dificultades para esta canción
+      this.currentSongDifficulties = await this.detectSongDifficulties(song);
+      song._difficulties = this.currentSongDifficulties; // Cachear para uso futuro
+    }
+
+    // Asegurar que el índice de dificultad sea válido
+    if (this.selectedDifficulty >= this.currentSongDifficulties.length) {
+      this.selectedDifficulty = 0;
+    }
   }
 
   async setupUI(width, height) {
@@ -257,31 +439,38 @@ class FreeplayState extends Phaser.Scene {
 
     if (this.songList.length === 0 || !this.songList[this.selectedIndex]) return;
 
-    const difficulty = this.difficulties[this.selectedDifficulty];
+    // Usar dificultades dinámicas de la canción actual
+    const difficulty = this.currentSongDifficulties[this.selectedDifficulty] || this.currentSongDifficulties[0] || "normal";
     const song = this.songList[this.selectedIndex];
     const savedData = this.loadSongScore(song.name, difficulty);
 
-    this.difficultyText = this.createVCRText(0, 0, `DIFFICULTY: ${difficulty.toUpperCase()}`, 36);
+    // Mostrar accuracy percentage en lugar del contador de dificultades
+    const accuracyPercentage = savedData ? Math.round(savedData.accuracy * 100) : 0;
+    const difficultyDisplayText = `DIFFICULTY: ${difficulty.toUpperCase()} (${accuracyPercentage}%)`;
+
+    this.difficultyText = this.createVCRText(0, 0, difficultyDisplayText, 36);
     this.difficultyContainer.add(this.difficultyText);
 
-    this.difficultyInteractiveArea = this.add.zone(0, 0, this.difficultyText.width + 40, this.difficultyText.height + 20)
-      .setOrigin(0.5)
-      .setInteractive();
-    this.difficultyContainer.add(this.difficultyInteractiveArea);
+    // Solo mostrar área interactiva si hay múltiples dificultades
+    if (this.currentSongDifficulties.length > 1) {
+      this.difficultyInteractiveArea = this.add.zone(0, 0, this.difficultyText.width + 40, this.difficultyText.height + 20)
+        .setOrigin(0.5)
+        .setInteractive();
+      this.difficultyContainer.add(this.difficultyInteractiveArea);
 
-    this.difficultyInteractiveArea.on('pointerdown', () => {
-      this.changeDifficulty(1);
-      this.scrollSound?.play();
-    });
+      this.difficultyInteractiveArea.on('pointerdown', () => {
+        this.changeDifficulty(1);
+        this.scrollSound?.play();
+      });
+    }
 
     if (savedData) {
       const statsContainer = this.add.container(0, 50);
 
-      const scoreText = this.createVCRText(0, 0, `SCORE: ${savedData.score}`, 28);
-      const accuracyText = this.createVCRText(0, 30, `ACCURACY: ${Math.round(savedData.accuracy * 100)}%`, 28);
-      const missesText = this.createVCRText(0, 60, `MISSES: ${savedData.misses}`, 28);
+      const scoreText = this.createVCRText(0, 0, `MAX SCORE: ${savedData.score}`, 28);
+      const missesText = this.createVCRText(0, 30, `MISSES: ${savedData.misses}`, 28);
 
-      statsContainer.add([scoreText, accuracyText, missesText]);
+      statsContainer.add([scoreText, missesText]);
       this.difficultyContainer.add(statsContainer);
     }
   }
@@ -429,22 +618,29 @@ class FreeplayState extends Phaser.Scene {
   }
 
   changeDifficulty(change) {
+    // Solo cambiar dificultad si hay más de una disponible
+    if (this.currentSongDifficulties.length <= 1) return;
+
     this.scrollSound?.play();
     this.selectedDifficulty = Phaser.Math.Wrap(
       this.selectedDifficulty + change,
       0,
-      this.difficulties.length
+      this.currentSongDifficulties.length
     );
     this.updateDifficultyText();
   }
 
-  changeSelection(change) {
+  async changeSelection(change) {
     this.scrollSound?.play();
     this.selectedIndex = Phaser.Math.Wrap(
       this.selectedIndex + change,
       0,
       this.songList.length
     );
+
+    // Actualizar dificultades para la nueva canción seleccionada
+    await this.updateSongDifficulties();
+
     this.updateSelection();
     this.updateScroll();
     this.updateDifficultyText();
@@ -511,14 +707,17 @@ class FreeplayState extends Phaser.Scene {
     this.confirmSound?.play();
     const song = this.songList[this.selectedIndex];
 
+    // Usar la dificultad dinámica actual
+    const selectedDifficulty = this.currentSongDifficulties[this.selectedDifficulty] || this.currentSongDifficulties[0] || "normal";
+
     this.scene.start("PlayState", {
       storyPlaylist: [song.name],
       songList: [song.name],
       currentSongIndex: 0,
-      storyDifficulty: this.difficulties[this.selectedDifficulty],
+      storyDifficulty: selectedDifficulty,
       isStoryMode: false,
       weekName: song.weekName,
-      selectedDifficulty: this.difficulties[this.selectedDifficulty],
+      selectedDifficulty: selectedDifficulty,
       isMod: song.isMod,
       modPath: song.modPath
     });

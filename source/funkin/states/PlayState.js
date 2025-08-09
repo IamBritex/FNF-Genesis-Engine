@@ -587,21 +587,22 @@ export class PlayState extends Phaser.Scene {
       if (!currentSong) throw new Error("No hay canción actual para cargar en create.")
       await this._loadSongChart(currentSong)
 
-      // 2. Cargar assets de personajes primero
-      this.loadingScreen.setCurrentItem("Loading Characters")
-      await this.preloadCharacterAssets(this.songData)
+      // 2-4. Cargar assets críticos en paralelo para mejor rendimiento
+      this.loadingScreen.setCurrentItem("Loading Critical Assets")
+      const [charactersResult, audioResult, uiResult] = await Promise.allSettled([
+        this.preloadCharacterAssets(this.songData),
+        this.audioManager.loadSongAudio(currentSong),
+        this._ensureUIAssetsLoaded()
+      ])
 
-      // 3. Cargar audio después de que los personajes estén listos
-      this.loadingScreen.setCurrentItem("Loading Audio")
-      await this.audioManager.loadSongAudio(currentSong)
+      // Verificar si alguna carga crítica falló
+      if (charactersResult.status === 'rejected') console.warn('Characters loading failed:', charactersResult.reason)
+      if (audioResult.status === 'rejected') console.warn('Audio loading failed:', audioResult.reason)
+      if (uiResult.status === 'rejected') console.warn('UI assets loading failed:', uiResult.reason)
 
-      // 4. Cargar iconos DESPUÉS de que los personajes estén cargados
+      // 5. Cargar iconos después de que los personajes estén cargados
       this.loadingScreen.setCurrentItem("Loading Icons")
       await this._loadHealthIcons()
-
-      // 4.5. Asegurar que los assets de UI estén cargados antes de crear componentes
-      this.loadingScreen.setCurrentItem("Loading UI Assets")
-      await this._ensureUIAssetsLoaded()
 
       // Iniciar la carga de assets en Phaser si hay algo en la cola
       if (this.load.totalToLoad > 0) {
@@ -612,7 +613,7 @@ export class PlayState extends Phaser.Scene {
         })
       }
 
-      // 5. Inicializar componentes del juego
+      // 6. Inicializar componentes del juego
       this.loadingScreen.setCurrentItem("Game Components")
       await this._initializeGameComponents()
 
@@ -635,19 +636,11 @@ export class PlayState extends Phaser.Scene {
       this.events.emit("createcomplete")
 
       if (this.cameraController) {
-        this.cameraController.gameCamera.setVisible(true)
-        this.cameraController.uiCamera.setVisible(true)
+        this.cameraController.classifyAllSceneElements()
       }
 
       if(this._isMobileDevice()) {
-        this.add.image("pauseButton", {
-          frameWidth: 100,
-          frameHeight: 100,
-          x: this.cameras.main.centerX,
-          y: this.cameras.main.centerY,
-          origin: { x: 0.5, y: 0.5 }
-        }).setDepth(4000)
-        console.log("PauseButton successfully added for mobile devices.")
+        console.log("Dispositivo móvil detectado, aplicando configuraciones específicas")
       }
     } catch (error) {
       console.error("Error detallado en PlayState create():", error)
@@ -655,6 +648,26 @@ export class PlayState extends Phaser.Scene {
       this.redirectToNextState()
     }
   }
+
+  async _initializeComponentsSequence() {
+    const steps = [
+      { name: "User Interface", fn: () => this._setupUICameraElements() },
+      { name: "Organizing Elements", fn: () => this.cameraController.classifyAllSceneElements() },
+      { name: "Controls", fn: () => this._setupInputHandlers() },
+      { name: "Preparing Game", fn: () => this._startCountdown() }
+    ];
+
+    for (const step of steps) {
+      this.loadingScreen.setCurrentItem(step.name);
+      await step.fn();
+    }
+  }
+
+  
+
+  _setupInitialState() {
+  }
+
 
   
 
@@ -898,12 +911,13 @@ export class PlayState extends Phaser.Scene {
 
     if (!this.isMusicPlaying || !this.currentInst || !this.songData) return;
 
-    // Actualizar posición de la canción
+    // Optimización: actualizar posición de la canción solo una vez por frame
     this.songPosition = this.currentInst.seek * 1000
     if (this.timeBar) {
       this.timeBar.update(this.songPosition)
     }
 
+    // Batch de actualizaciones para mejor rendimiento
     this._updateGameComponents(time, delta)
     this._updateBeatDetection()
     this._updateBPMChanges()
@@ -928,18 +942,21 @@ export class PlayState extends Phaser.Scene {
   }
 
   _updateBeatDetection() {
-    // Asegurar que songData y bpm estén disponibles
-    const bpm = this.currentBPM || this.songData?.song?.bpm || 100
-    const beatTime = 60000 / bpm // Duración de un beat en ms
+    // Cache BPM calculation para mejor rendimiento
+    if (!this._cachedBeatTime || this._lastBPM !== this.currentBPM) {
+      const bpm = this.currentBPM || this.songData?.song?.bpm || 100;
+      this._cachedBeatTime = 60000 / bpm; // Duración de un beat en ms
+      this._lastBPM = bpm;
+    }
 
-    if (beatTime <= 0) return // Evitar división por cero o BPM inválido
+    if (this._cachedBeatTime <= 0) return; // Evitar división por cero o BPM inválido
 
-    const currentBeat = Math.floor(this.songPosition / beatTime)
+    const currentBeat = Math.floor(this.songPosition / this._cachedBeatTime);
 
     if (currentBeat > this.lastBeat) {
-      this.characters?.onBeat(currentBeat)
-      this.stageManager?.onBeat(currentBeat)
-      this.lastBeat = currentBeat
+      this.characters?.onBeat(currentBeat);
+      this.stageManager?.onBeat(currentBeat);
+      this.lastBeat = currentBeat;
     }
   }
 
