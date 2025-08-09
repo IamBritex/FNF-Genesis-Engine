@@ -19,7 +19,7 @@ export class NotesController {
     this.offsets = {
       static: { x: 0, y: 0 },
       press: { x: 28, y: 28 },
-      confirm: { x: 11, y: 12 },
+      confirm: { x: 0, y: 0 },
       note: { x: 21, y: 0 },
       hold: { x: 74, y: 30 },
     }
@@ -74,7 +74,7 @@ export class NotesController {
     this.holdNotes = new HoldNotes(scene, this)
     this.strumlines = new StrumlinesNotes(scene, this)
     this.noteSplashes = new NoteSplashes(scene, this, 62, 72)
-    this.sustainCover = new SustainCover(scene, this, 62, 72)
+    this.sustainCover = new SustainCover(scene, this) // Usar offsets por defecto del constructor
 
     this.lastSingTime = {
       player: 0,
@@ -186,7 +186,6 @@ export class NotesController {
    */
   setupInputHandlers() {
     if (!this.initialized) {
-      console.log("NotesController not initialized yet")
       return
     }
 
@@ -221,17 +220,6 @@ export class NotesController {
             return
           }
 
-          const pos = this.getStrumlinePositions(true)[index]
-          const pressOffset = this.offsets.press
-          const confirmOffset = this.offsets.confirm
-          const pressPos = {
-            x: pos.x + (pressOffset.x || 0),
-            y: pos.y + (pressOffset.y || 0),
-          }
-          const confirmPos = {
-            x: pos.x + (confirmOffset.x || 0),
-            y: pos.y + (confirmOffset.y || 0),
-          }
 
           let hasHittableNote = false
           const currentTime = this.scene.songPosition
@@ -248,16 +236,18 @@ export class NotesController {
           }
 
           if (hasHittableNote) {
-            arrow.x = confirmPos.x
-            arrow.y = confirmPos.y
-            arrow.setTexture("noteStrumline", `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-            arrow.setScale(this.strumlines.defaultScale.confirm)
+            this.events.emit("strumlineStateChange", {
+              direction: index,
+              isPlayerNote: true,
+              state: "confirm",
+            })
             this.checkNoteHit(index)
           } else {
-            arrow.x = pressPos.x
-            arrow.y = pressPos.y
-            arrow.setTexture("noteStrumline", `press${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-            arrow.setScale(this.strumlines.defaultScale.press)
+            this.events.emit("strumlineStateChange", {
+              direction: index,
+              isPlayerNote: true,
+              state: "press",
+            })
 
             const ghostTapping = localStorage.getItem("GAMEPLAY.NOTE SETTINGS.GHOST TAPPING")
             if (ghostTapping === "false") {
@@ -279,17 +269,12 @@ export class NotesController {
         if (!this.initialized || !this.strumlines.playerStrumline[index] || this.scene.isPaused()) return
 
         this.keysHeld[direction] = false
-        const arrow = this.strumlines.playerStrumline[index]
 
-        if (!arrow || !arrow.active || typeof arrow.originalX === "undefined") {
-          console.warn(`Arrow ${direction} no está disponible o no tiene posición original`)
-          return
-        }
-
-        arrow.x = arrow.originalX
-        arrow.y = arrow.originalY
-        arrow.setTexture("noteStrumline", `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-        arrow.setScale(this.strumlines.defaultScale.static)
+        this.events.emit("strumlineStateChange", {
+          direction: index,
+          isPlayerNote: true,
+          state: "static",
+        })
 
         this.events.emit("noteReleased", {
           direction: index,
@@ -308,7 +293,8 @@ export class NotesController {
             holdNote.holdReleased = true
             this.ratingManager.recordMiss()
           }
-        }
+        }            
+
       }
 
       keys.forEach((key) => {
@@ -356,19 +342,8 @@ export class NotesController {
   hitNote(note, timeDiff) {
     note.wasHit = true
     const direction = this.directions[note.noteDirection]
-    const arrow = this.strumlines.playerStrumline[note.noteDirection]
-    const pos = this.getStrumlinePositions(true)[note.noteDirection]
-    const confirmOffset = this.offsets.confirm
-    const confirmPos = {
-      x: pos.x + (confirmOffset.x || 0),
-      y: pos.y + (confirmOffset.y || 0),
-    }
 
-    arrow.x = confirmPos.x
-    arrow.y = confirmPos.y
-    arrow.setTexture("noteStrumline", `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-    arrow.setScale(this.strumlines.defaultScale.confirm)
-
+    // Solo emitir el evento de cambio de estado, sin manipular posición ni escala directamente
     this.events.emit("strumlineStateChange", {
       direction: note.noteDirection,
       isPlayerNote: note.isPlayerNote,
@@ -377,11 +352,7 @@ export class NotesController {
 
     this.scene.time.delayedCall(103, () => {
       if (!this.keysHeld[direction]) {
-        arrow.x = arrow.originalX
-        arrow.y = arrow.originalY
-        arrow.setTexture("noteStrumline", `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-        arrow.setScale(this.strumlines.defaultScale.static)
-
+        // Solo emitir evento de cambio de estado, sin manipular posición ni escala
         this.events.emit("strumlineStateChange", {
           direction: note.noteDirection,
           isPlayerNote: note.isPlayerNote,
@@ -395,6 +366,9 @@ export class NotesController {
         this.activeHoldNotes[note.noteDirection] = note
         note.isBeingHeld = true
         note.holdReleased = false
+        
+        // Mostrar cover de inicio cuando comienza una hold note
+        this.sustainCover.showCover(note.noteDirection, 'start', note.isPlayerNote)
       }
 
       if (note.sprite?.active) {
@@ -555,7 +529,7 @@ export class NotesController {
       this.noteSplashes._ensureAnimations();
 
       // Initialize sustain covers
-      this.sustainCover = new SustainCover(this.scene, this, 62, 72);
+      this.sustainCover = new SustainCover(this.scene, this); // Usar offsets por defecto del constructor
 
       // Procesar la información de rotación después de que todo esté cargado
       const colors = ['Purple', 'Blue', 'Green', 'Red'];
@@ -736,13 +710,11 @@ export class NotesController {
 
         if (currentTime > holdEndTime || note.cleanedUp) {
           this.activeHoldNotes[i] = null
-          const arrow = this.strumlines.playerStrumline[note.noteDirection]
-          if (arrow) {
-            arrow.x = arrow.originalX
-            arrow.y = arrow.originalY
-            arrow.setTexture("noteStrumline", `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-            arrow.setScale(this.strumlines.defaultScale.static)
-          }
+          this.events.emit("strumlineStateChange", {
+            direction: note.noteDirection,
+            isPlayerNote: true,
+            state: "static",
+          })
         }
       }
     }
@@ -783,19 +755,11 @@ export class NotesController {
             this.enemyHoldTimers[i] = null
           }
 
-          const arrow = this.strumlines.enemyStrumline[note.noteDirection]
-          if (arrow) {
-            const enemyVisuals = this.enemyStrumlineVisuals
-            const scaleStatic = this.strumlines.defaultScale.static * (enemyVisuals ? enemyVisuals.scale : 1)
-            const alpha = enemyVisuals ? enemyVisuals.alpha : 1
-
-            // Restaurar a posición original
-            arrow.x = arrow.originalX
-            arrow.y = arrow.originalY
-            arrow.setTexture("noteStrumline", `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-            arrow.setScale(scaleStatic)
-            arrow.setAlpha(alpha)
-          }
+          this.events.emit("strumlineStateChange", {
+            direction: note.noteDirection,
+            isPlayerNote: false,
+            state: "static",
+          })
         }
       }
     }
@@ -855,18 +819,11 @@ export class NotesController {
       } else {
         if (this.keysHeld[direction]) {
           this.keysHeld[direction] = false
-          const arrow = this.strumlines.playerStrumline[dirIndex]
-          if (arrow) {
-            arrow.x = arrow.originalX
-            arrow.y = arrow.originalY
-            arrow.setTexture("noteStrumline", `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-            arrow.setScale(this.strumlines.defaultScale.static)
-            this.events.emit("strumlineStateChange", {
-              direction: dirIndex,
-              isPlayerNote: true,
-              state: "static",
-            })
-          }
+          this.events.emit("strumlineStateChange", {
+            direction: dirIndex,
+            isPlayerNote: true,
+            state: "static",
+          })
         }
       }
     }
@@ -878,14 +835,15 @@ export class NotesController {
    */
   playEnemyNote(note) {
     note.wasHit = true
-    const direction = this.directions[note.noteDirection]
-    const arrow = this.strumlines.enemyStrumline[note.noteDirection]
 
     if (note.isHoldNote) {
       if (!this.activeEnemyHoldNotes[note.noteDirection]) {
         this.activeEnemyHoldNotes[note.noteDirection] = note
         note.isBeingHeld = true
         note.holdReleased = false
+
+        // Mostrar cover de inicio cuando el enemigo comienza una hold note
+        this.sustainCover.showCover(note.noteDirection, 'start', false)
 
         // Configurar la animación de la strumline para toda la duración
         const holdDuration = note.sustainLength
@@ -908,18 +866,6 @@ export class NotesController {
 
         // Programar el retorno al estado static SOLO UNA VEZ
         this.enemyHoldTimers[note.noteDirection] = this.scene.time.delayedCall(holdDuration, () => {
-          if (arrow) {
-            const enemyVisuals = this.enemyStrumlineVisuals
-            const scaleStatic = this.strumlines.defaultScale.static * (enemyVisuals ? enemyVisuals.scale : 1)
-            const alpha = enemyVisuals ? enemyVisuals.alpha : 1
-
-            arrow.x = arrow.originalX
-            arrow.y = arrow.originalY
-            arrow.setTexture("noteStrumline", `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-            arrow.setScale(scaleStatic)
-            arrow.setAlpha(alpha)
-          }
-
           this.events.emit("strumlineStateChange", {
             direction: note.noteDirection,
             isPlayerNote: false,
@@ -941,61 +887,26 @@ export class NotesController {
         note.sprite.destroy()
         note.sprite = null
       }
+      
+      // Para notas normales, activar confirm y luego volver a static
+      this.events.emit("strumlineStateChange", {
+        direction: note.noteDirection,
+        isPlayerNote: false,
+        state: "confirm",
+      })
+
+      this.scene.time.delayedCall(103, () => {
+        this.events.emit("strumlineStateChange", {
+          direction: note.noteDirection,
+          isPlayerNote: false,
+          state: "static",
+        })
+      })
     }
 
-    const singAnims = {
-      0: "singLEFT",
-      1: "singDOWN",
-      2: "singUP",
-      3: "singRIGHT",
-    }
 
     // Asegurarse de registrar el tiempo de animación para el enemigo
-    this.events.emit("strumlineStateChange", {
-      direction: note.noteDirection,
-      isPlayerNote: false,
-      state: "confirm",
-      sustainNote: note.isHoldNote,
-      perfect: true,
-      animation: singAnims[note.noteDirection],
-      startTime: this.scene.songPosition // Añadir el tiempo de inicio
-    });
-
-    const enemyVisuals = this.enemyStrumlineVisuals
-    const scaleConfirm = this.strumlines.defaultScale.confirm * (enemyVisuals ? enemyVisuals.scale : 1)
-    const scaleStatic = this.strumlines.defaultScale.static * (enemyVisuals ? enemyVisuals.scale : 1)
-    const alpha = enemyVisuals ? enemyVisuals.alpha : 1
-
-    if (arrow) {
-      // Para notas normales, hacer la animación de confirm y luego volver a static
-      if (!note.isHoldNote) {
-        const pos = this.getStrumlinePositions(false)[note.noteDirection]
-        const confirmOffset = this.offsets.confirm
-        const confirmPos = {
-          x: pos.x + (confirmOffset.x || 0),
-          y: pos.y + (confirmOffset.y || 0),
-        }
-
-        arrow.x = confirmPos.x
-        arrow.y = confirmPos.y
-        arrow.setTexture("noteStrumline", `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-        arrow.setScale(scaleConfirm)
-        arrow.setAlpha(alpha)
-
-        this.scene.time.delayedCall(103, () => {
-          arrow.x = arrow.originalX
-          arrow.y = arrow.originalY
-          arrow.setTexture("noteStrumline", `static${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-          arrow.setScale(scaleStatic)
-          arrow.setAlpha(alpha)
-        })
-      } else {
-        // Para notas largas, solo cambiar la textura y escala, mantener posición
-        arrow.setTexture("noteStrumline", `confirm${direction.charAt(0).toUpperCase() + direction.slice(1)}0001`)
-        arrow.setScale(scaleConfirm)
-        arrow.setAlpha(alpha)
-      }
-    }
+    this.lastSingTime.enemy = this.scene.time.now
 
     if (this.scene.events && typeof this.scene.events.emit === "function") {
       this.scene.events.emit("enemyNoteHit", note)

@@ -43,7 +43,6 @@ export class StageManager {
      */
     setBPM(bpm) {
         this.beatInterval = (60 / bpm) * 1000; // Convertir BPM a milisegundos por beat
-        console.log(`🎵 Stage BPM set to ${bpm} (${this.beatInterval}ms per beat)`);
     }
 
     /**
@@ -53,13 +52,10 @@ export class StageManager {
     onBeat() {
         if (!this.beatAnimationMode) return;
 
-        console.log(`🎵 Beat triggered! Animating ${this.layers.filter(l => l.isSprite).length} sprite layers`);
-
         this.layers.forEach((layer, index) => {
             if (layer.isSprite && layer.spriteData && layer.spriteData.totalFrames > 1) {
                 // Solo animar si la capa tiene configurado animación por beats
                 if (layer.layerData.beatAnimation !== false) {
-                    console.log(`🎬 Starting beat animation for sprite: ${layer.layerData.namePath}`);
                     this.playBeatAnimation(index);
                 }
             }
@@ -70,7 +66,6 @@ export class StageManager {
      * Manually trigger beat animation (useful for testing)
      */
     triggerBeatTest() {
-        console.log('🧪 Triggering test beat animation...');
         this.onBeat();
     }
 
@@ -80,7 +75,6 @@ export class StageManager {
      */
     setBeatAnimationMode(enabled) {
         this.beatAnimationMode = enabled;
-        console.log(`🎵 Beat animation mode: ${enabled ? 'enabled' : 'disabled'}`);
         
         if (!enabled) {
             // Si se desactiva el modo beat, iniciar animaciones continuas
@@ -280,8 +274,6 @@ export class StageManager {
     async _createSpriteFramesSynchronously(baseKey, spriteData) {
         if (!spriteData.frames || spriteData.frames.length === 0) return;
 
-        console.log(`🎨 Creating ${spriteData.frames.length} sprite frames for ${baseKey} (synchronous)`);
-
         const baseTexture = this.scene.textures.get(baseKey);
         if (!baseTexture) {
             console.error(`Base texture not found: ${baseKey}`);
@@ -314,8 +306,6 @@ export class StageManager {
 
                     // Añadir como nueva textura
                     this.scene.textures.addCanvas(frameKey, canvas);
-
-                    console.log(`📋 Frame created: ${frameKey} (${frame.width}x${frame.height})`);
                 } catch (error) {
                     console.error(`Error creating frame ${frameKey}:`, error);
                 }
@@ -331,8 +321,6 @@ export class StageManager {
      */
     _createSpriteFrames(baseKey, spriteData, imagePath) {
         if (!spriteData.frames || spriteData.frames.length === 0) return;
-
-        console.log(`🎨 Creating ${spriteData.frames.length} sprite frames for ${baseKey}`);
 
         // Crear frames individuales usando canvas
         spriteData.frames.forEach((frame, index) => {
@@ -357,7 +345,6 @@ export class StageManager {
 
                     // Agregar como textura
                     this.scene.textures.addCanvas(frameKey, canvas);
-                    console.log(`📋 Frame created: ${frameKey} (${frame.width}x${frame.height})`);
                 };
                 img.src = imagePath;
             }
@@ -571,8 +558,6 @@ export class StageManager {
             isSprite: true,
             spriteData: spriteData
         });
-
-        console.log(`🎞️ Sprite layer created: ${layer.namePath} (frame ${currentFrame + 1}/${spriteData.totalFrames}) - Beat animation: ${layer.beatAnimation !== false ? 'enabled' : 'disabled'}`);
     }
 
     /**
@@ -701,7 +686,6 @@ export class StageManager {
 
         // Si el modo de animación por beats está activado, no iniciar animación continua
         if (this.beatAnimationMode && layer.layerData.beatAnimation !== false) {
-            console.log(`🎵 Sprite layer ${layerIndex} configured for beat animation, skipping continuous animation`);
             return false;
         }
 
@@ -741,7 +725,6 @@ export class StageManager {
             loop: true
         });
 
-        console.log(`▶️ Started sprite animation: Layer ${layerIndex} (${frameRate} FPS, loop: ${loop})`);
         return true;
     }
 
@@ -752,13 +735,11 @@ export class StageManager {
      */
     playBeatAnimation(layerIndex) {
         if (layerIndex < 0 || layerIndex >= this.layers.length) {
-            console.warn(`Invalid layer index for beat animation: ${layerIndex}`);
             return false;
         }
 
         const layer = this.layers[layerIndex];
         if (!layer.isSprite || !layer.spriteData) {
-            console.warn(`Layer ${layerIndex} is not a sprite layer`);
             return false;
         }
 
@@ -768,7 +749,6 @@ export class StageManager {
         // Verificar que los frames existan antes de animar
         const frame0Key = `${baseKey}_frame_0`;
         if (!this.scene.textures.exists(frame0Key)) {
-            console.warn(`Beat animation failed: frame textures not found for ${layer.layerData.namePath}`);
             return false;
         }
 
@@ -777,8 +757,6 @@ export class StageManager {
 
         const frameRate = layer.layerData.frameRate || 24; // FPS más rápido para beat animations
         const frameDuration = 1000 / frameRate;
-
-        console.log(`🎵 Beat animation started: ${layer.layerData.namePath} (${spriteData.totalFrames} frames, ${frameRate} FPS)`);
 
         // Resetear al primer frame
         this.changeSpriteFrame(layerIndex, 0);
@@ -798,14 +776,10 @@ export class StageManager {
                         layer.beatAnimationTimer.destroy();
                         layer.beatAnimationTimer = null;
                     }
-                    console.log(`✅ Beat animation completed: ${layer.layerData.namePath}`);
                     return;
                 }
 
-                const success = this.changeSpriteFrame(layerIndex, currentFrameIndex);
-                if (!success) {
-                    console.warn(`Failed to change frame ${currentFrameIndex} for ${layer.layerData.namePath}`);
-                }
+                this.changeSpriteFrame(layerIndex, currentFrameIndex);
             },
             repeat: spriteData.totalFrames - 1 // Repetir hasta completar todos los frames
         });
@@ -833,7 +807,6 @@ export class StageManager {
             }
         });
 
-        console.log(`🎬 Initialized ${animationsStarted} sprite animations`);
         return animationsStarted;
     }
 
@@ -863,7 +836,7 @@ export class StageManager {
         }
 
         if (stopped) {
-            console.log(`⏹️ Stopped sprite animation: Layer ${layerIndex}`);
+            return true;
         }
 
         return stopped;
@@ -917,9 +890,8 @@ export class StageManager {
      */
     logSpritesState() {
         const sprites = this.getSpritesDebugInfo();
-        console.log('🎞️ Current sprites state:');
         sprites.forEach(sprite => {
-            console.log(`  - ${sprite.name}: Frame ${sprite.currentFrame + 1}/${sprite.totalFrames}, Beat anim: ${sprite.beatAnimationEnabled ? 'enabled' : 'disabled'}, Animating: ${sprite.isBeatAnimating ? 'beat' : sprite.isAnimating ? 'continuous' : 'none'}`);
+            console.log(`${sprite.name}: Frame ${sprite.currentFrame + 1}/${sprite.totalFrames}, Beat anim: ${sprite.beatAnimationEnabled ? 'enabled' : 'disabled'}, Animating: ${sprite.isBeatAnimating ? 'beat' : sprite.isAnimating ? 'continuous' : 'none'}`);
         });
     }
 
@@ -986,10 +958,7 @@ export class StageManager {
                         if (!layer.autoAnimationStarted) {
                             this.startSpriteAnimation(index, frameRate, loop);
                             layer.autoAnimationStarted = true;
-                            console.log(`🎬 Auto-started animation for sprite: ${layer.layerData.namePath}`);
                         }
-                    } else {
-                        console.log(`⏳ Waiting for sprite frames to load: ${layer.layerData.namePath}`);
                     }
                 }
             }

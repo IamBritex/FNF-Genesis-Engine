@@ -53,15 +53,14 @@ export class HoldNotes {
                         note.holdSprites[i] = null;
                         note.holdSegmentsDestroyed = i + 1;
 
-                        // Mostrar animación de cover (saltamos la animación de inicio)
+                        // Mostrar animación de cover
                         if (i === numPieces - 1) {
                             // Última pieza - mostrar animación de fin
-                            this.notesController.sustainCover.showCover(note.noteDirection, 'end');
-                        } else if (i > 0) {
-                            // Piezas intermedias (excluyendo la primera) - mostrar animación normal
-                            this.notesController.sustainCover.showCover(note.noteDirection, 'cover');
+                            this.notesController.sustainCover.showCover(note.noteDirection, 'end', note.isPlayerNote);
+                        } else {
+                            // Piezas intermedias y primera pieza - mostrar animación normal
+                            this.notesController.sustainCover.showCover(note.noteDirection, 'cover', note.isPlayerNote);
                         }
-                        // No mostrar animación para la primera pieza (i === 0)
                     } else {
                         // Solo eliminar una pieza por frame
                         break;
@@ -141,6 +140,15 @@ export class HoldNotes {
                         isPlayerNote: false,
                         state: 'confirm'
                     });
+
+                    // Mostrar animación de cover para el enemigo
+                    if (i === numPieces - 1) {
+                        // Última pieza - mostrar animación de fin
+                        this.notesController.sustainCover.showCover(note.noteDirection, 'end', false);
+                    } else {
+                        // Piezas intermedias y primera pieza - mostrar animación normal
+                        this.notesController.sustainCover.showCover(note.noteDirection, 'cover', false);
+                    }
 
                     // Si es la última pieza, poner static tras destruirla
                     if (i === numPieces - 1 && arrow) {

@@ -12,9 +12,7 @@ export class NoteSplashes {
         this.offsetX = offsetX;
         this.offsetY = offsetY;
         this.splashPool = new Map();
-        
-        console.log(`[NoteSplashes] Initialized with offsets: X=${offsetX}, Y=${offsetY}`);
-        
+                
         // Initialize immediately if textures are already loaded
         if (this.scene.textures.exists('noteSplashes')) {
             this._ensureAnimations();
@@ -29,14 +27,12 @@ export class NoteSplashes {
         try {
             const colors = ['purple', 'blue', 'green', 'red'];
             const frames = this.scene.textures.get('noteSplashes').getFrameNames();
-            
-            console.log("[NoteSplashes] Setting up animations for frames:", frames);
-            
+                        
             if (!frames || frames.length === 0) {
                 throw new Error('No frames found in noteSplashes texture atlas');
             }
 
-            colors.forEach((color, index) => {
+            colors.forEach((color) => {
                 // Match frames with exact spacing and case for both impact types
                 const impact1Frames = frames.filter(frame => 
                     frame.startsWith(`note impact 1  ${color}`)
@@ -75,7 +71,6 @@ export class NoteSplashes {
                             repeat: 0,
                             hideOnComplete: true
                         });
-                        console.log(`[NoteSplashes] Created animation ${key1} with frames:`, sortedImpact1);
                     }
                 }
 
@@ -91,7 +86,6 @@ export class NoteSplashes {
                             repeat: 0,
                             hideOnComplete: true
                         });
-                        console.log(`[NoteSplashes] Created animation ${key2} with frames:`, sortedImpact2);
                     }
                 }
             });

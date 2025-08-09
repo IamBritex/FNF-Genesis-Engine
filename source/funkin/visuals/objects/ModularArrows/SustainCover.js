@@ -4,23 +4,23 @@ export class SustainCover {
     /**
      * @param {Phaser.Scene} scene - Escena de Phaser
      * @param {NotesController} notesController - Controlador de notas
-     * @param {number} [offsetX=62] - Desplazamiento horizontal (píxeles)
-     * @param {number} [offsetY=72] - Desplazamiento vertical (píxeles)
+     * @param {number} [offsetX=-140] - Desplazamiento horizontal desde la strumline (píxeles)
+     * @param {number} [offsetY=-172] - Desplazamiento vertical desde la strumline (píxeles)
      */
-    constructor(scene, notesController, offsetX = 62, offsetY = 72) {
+    constructor(scene, notesController, offsetX = 5, offsetY = 2) {
         this.scene = scene;
         this.notesController = notesController;
         this.offsetX = offsetX;
         this.offsetY = offsetY;
         this.coverPool = new Map();
         this.colors = ['Purple', 'Blue', 'Green', 'Red'];
-        this.defaultScale = 1;
+        this.defaultScale = 1.3;
         this.animationsCreated = false;
         
-        // Sistema de prevención de duplicados
+        // Sistema de prevención de duplicados mejorado
         this.activeCoversByDirection = new Map(); // Tracks active covers per direction
         this.lastCoverTime = new Map(); // Tracks last cover time per direction
-        this.coverCooldown = 100; // Minimum time between covers (ms)
+        this.coverCooldown = 50; // Tiempo mínimo entre covers reducido (ms)
         
         // Verificar si las texturas están disponibles
         this.texturesAvailable = this.colors.some(color => 
@@ -91,7 +91,6 @@ export class SustainCover {
                             repeat: 0,
                             hideOnComplete: true
                         });
-                        console.log(`[SustainCover] Created simple animation: ${key}`);
                     }
                 };
 
@@ -144,7 +143,6 @@ export class SustainCover {
             });
             
             this.animationsCreated = true;
-            console.log('[SustainCover] Animations setup completed');
             
         } catch (error) {
             console.error("[SustainCover] Error setting up animations:", error);
@@ -156,35 +154,39 @@ export class SustainCover {
      * Muestra una animación de cover
      * @param {number} direction - Dirección de la nota (0-3)
      * @param {string} type - Tipo de cover ('start', 'cover', 'end')
+     * @param {boolean} isPlayerNote - Si es true usa posiciones del jugador, si es false usa posiciones del enemigo
      */
-    showCover(direction, type = 'cover') {
+    showCover(direction, type = 'cover', isPlayerNote = true) {
         // Si no hay texturas disponibles, salir silenciosamente
         if (!this.texturesAvailable) {
             return;
         }
 
-        // Prevenir covers duplicados
+        // Prevenir covers duplicados solo para el mismo tipo
         const currentTime = this.scene.time.now;
-        const lastTime = this.lastCoverTime.get(direction) || 0;
+        const coverKey = `${direction}-${type}`;
+        const lastTime = this.lastCoverTime.get(coverKey) || 0;
         
         if (currentTime - lastTime < this.coverCooldown) {
-            console.log(`[SustainCover] Cover cooldown active for direction ${direction}, skipping`);
             return;
         }
 
-        // Limpiar cualquier cover activo previo en esta dirección
+        // Limpiar cualquier cover activo previo del mismo tipo en esta dirección
         const activeCovers = this.activeCoversByDirection.get(direction) || [];
-        activeCovers.forEach(cover => {
-            if (cover && cover.active) {
-                console.log(`[SustainCover] Cleaning up previous active cover for direction ${direction}`);
-                this._returnCoverToPool(cover, this.colors[direction]);
+        const conflictingCovers = activeCovers.filter(coverData => 
+            coverData && coverData.active && coverData.type === type
+        );
+        
+        conflictingCovers.forEach(coverData => {
+            if (coverData.sprite && coverData.sprite.active) {
+                this._returnCoverToPool(coverData.sprite, this.colors[direction]);
             }
         });
-        this.activeCoversByDirection.set(direction, []);
 
-        this.lastCoverTime.set(direction, currentTime);
+        this.lastCoverTime.set(coverKey, currentTime);
 
-        const strumlinePos = this.notesController.getStrumlinePositions(true)[direction];
+        // Usar las posiciones correctas según si es jugador o enemigo
+        const strumlinePos = this.notesController.getStrumlinePositions(isPlayerNote)[direction];
         if (!strumlinePos) return;
 
         const color = this.colors[direction];
@@ -208,9 +210,15 @@ export class SustainCover {
             return;
         }
 
-        // Registrar el cover como activo
+        // Registrar el cover como activo con su tipo
+        const activeCoverData = {
+            sprite: cover,
+            type: type,
+            active: true
+        };
+        
         const activeCoversArray = this.activeCoversByDirection.get(direction) || [];
-        activeCoversArray.push(cover);
+        activeCoversArray.push(activeCoverData);
         this.activeCoversByDirection.set(direction, activeCoversArray);
 
         // Configurar el sprite con posición inicial
@@ -218,12 +226,12 @@ export class SustainCover {
         cover.setActive(true);
         cover.setAlpha(1);
         
-        // Aplicar posición inicial antes de iniciar la animación
-        const baseX = strumlinePos.x - this.offsetX;
-        const baseY = strumlinePos.y - this.offsetY;
+        // Aplicar posición inicial usando SOLO los offsets del constructor
+        const baseX = strumlinePos.x + this.offsetX;
+        const baseY = strumlinePos.y + this.offsetY;
         
-        // Aplicar offset adicional para covers normales (ESTOS VALORES SE USARÁN EN _applyFrameTransform)
-        this.currentCoverType = type; // Guardar el tipo para usar en _applyFrameTransform
+        // Guardar el tipo para usar en _applyFrameTransform
+        this.currentCoverType = type;
         
         // Posición inicial (será ajustada por _applyFrameTransform si hay XML)
         cover.setPosition(baseX, baseY);
@@ -259,17 +267,25 @@ export class SustainCover {
                 this._applyFrameTransform(cover, xmlData, baseX, baseY);
             });
         } else {
-            // Sin XML, asegurar que se mantiene la escala y posición
-            const targetScale = type === 'cover' ? this.defaultScale * 0.6 : this.defaultScale;
-            const targetX = type === 'cover' ? baseX + 55 : baseX; // Usar los mismos valores
-            const targetY = type === 'cover' ? baseY + 60 : baseY; // Usar los mismos valores
+            // Sin XML, usar SOLO la posición base y escala según tipo
+            let targetScale = this.defaultScale;
+            
+            // Aplicar escala según el tipo, SIN offsets adicionales
+            if (type === 'start') {
+                targetScale = this.defaultScale * 0.7;
+            } else if (type === 'end') {
+                targetScale = this.defaultScale * 0.8;
+            } else if (type === 'cover') {
+                targetScale = this.defaultScale * 0.6;
+            }
             
             cover.on('animationupdate', () => {
                 if (cover.scaleX !== targetScale || cover.scaleY !== targetScale) {
                     cover.setScale(targetScale);
                 }
-                if (cover.x !== targetX || cover.y !== targetY) {
-                    cover.setPosition(targetX, targetY);
+                // Mantener la posición base (ya incluye los offsets del constructor)
+                if (cover.x !== baseX || cover.y !== baseY) {
+                    cover.setPosition(baseX, baseY);
                 }
             });
         }
@@ -280,7 +296,7 @@ export class SustainCover {
             
             // Remover de la lista de covers activos
             const activeCoversArray = this.activeCoversByDirection.get(direction) || [];
-            const index = activeCoversArray.indexOf(cover);
+            const index = activeCoversArray.findIndex(coverData => coverData.sprite === cover);
             if (index > -1) {
                 activeCoversArray.splice(index, 1);
                 this.activeCoversByDirection.set(direction, activeCoversArray);
@@ -298,23 +314,22 @@ export class SustainCover {
         const currentFrame = cover.anims?.currentFrame;
         if (!currentFrame) return;
 
-        // Determinar la escala y offset según el tipo de frame
+        // Usar SOLO la escala, sin offsets adicionales
         let scale = this.defaultScale;
-        let offsetX = baseX;
-        let offsetY = baseY;
         const frameName = currentFrame.frame.name;
         
-        // Modificar escala y offset solo para frames holdCover normales (no Start ni End)
-        // O usar el tipo guardado si está disponible
-        const isCoverType = (frameName.includes('holdCover') && 
-            !frameName.includes('holdCoverStart') && 
-            !frameName.includes('holdCoverEnd')) || this.currentCoverType === 'cover';
-            
-        if (isCoverType) {
-            scale = this.defaultScale * 0.6; // Reducir escala a 60%
-            // AQUÍ PUEDES CAMBIAR LOS VALORES DE OFFSET QUE SÍ SE APLICARÁN
-            offsetX = baseX + 60; // Usar los mismos valores que pusiste arriba
-            offsetY = baseY + 60; // Usar los mismos valores que pusiste arriba
+        // Aplicar escalas específicas según el tipo de frame
+        const isStartFrame = frameName.includes('holdCoverStart');
+        const isEndFrame = frameName.includes('holdCoverEnd');
+        const isCoverFrame = frameName.includes('holdCover') && !isStartFrame && !isEndFrame;
+        
+        // Solo ajustar escala, NO posición (ya se maneja con los offsets del constructor)
+        if (isStartFrame) {
+            scale = this.defaultScale * 0.7;
+        } else if (isEndFrame) {
+            scale = this.defaultScale * 0.8;
+        } else if (isCoverFrame || this.currentCoverType === 'cover') {
+            scale = this.defaultScale * 0.6;
         }
 
         if (xmlData) {
@@ -322,27 +337,27 @@ export class SustainCover {
             const frameData = TextureAtlasUtils.getFrameData(xmlData, currentFrame.frame.name);
             
             if (frameData) {
-                // Aplicar transformación usando la utilidad con la escala y offset apropiados
+                // Aplicar transformación usando la utilidad con SOLO la posición base y escala
                 TextureAtlasUtils.applySpriteTransform(
                     cover,
                     frameData,
-                    offsetX,
-                    offsetY,
+                    baseX,
+                    baseY,
                     scale
                 );
                 
-                console.log(`[SustainCover] Applied transform to frame: ${frameName}, scale: ${scale}, offset: (${offsetX}, ${offsetY}), rotated: ${frameData.isRotated}`);
+                console.log(`[SustainCover] Applied XML transform to frame: ${frameName}, scale: ${scale}, base position: (${baseX}, ${baseY})`);
             } else {
                 // Fallback si no se encuentra el frame en XML
-                cover.setPosition(offsetX, offsetY);
+                cover.setPosition(baseX, baseY);
                 cover.setScale(scale);
-                console.log(`[SustainCover] Applied fallback transform to frame: ${frameName}, scale: ${scale}, offset: (${offsetX}, ${offsetY})`);
+                console.log(`[SustainCover] Applied fallback transform to frame: ${frameName}, scale: ${scale}, position: (${baseX}, ${baseY})`);
             }
         } else {
-            // Sin XML, aplicar transformación directa
-            cover.setPosition(offsetX, offsetY);
+            // Sin XML, aplicar transformación directa usando SOLO posición base
+            cover.setPosition(baseX, baseY);
             cover.setScale(scale);
-            console.log(`[SustainCover] Applied direct transform to frame: ${frameName}, scale: ${scale}, offset: (${offsetX}, ${offsetY}) (no XML)`);
+            console.log(`[SustainCover] Applied direct transform to frame: ${frameName}, scale: ${scale}, position: (${baseX}, ${baseY}) (no XML)`);
         }
     }
 
@@ -403,11 +418,9 @@ export class SustainCover {
         cover.setAlpha(0);
         cover.setScale(1);
         cover.setRotation(0);
-        cover.setOrigin(0, 0);
+        cover.setOrigin(0.5, 0.5); // Centrar origen
         cover.setPosition(0, 0);
-        cover.setDisplaySize(cover.width, cover.height); // Resetear tamaño a original
-        
-        console.log(`[SustainCover] Sprite returned to pool and reset`);
+        cover.setDisplaySize(cover.width, cover.height); // Resetear tamaño a original       
     }
 
     /**
@@ -415,10 +428,10 @@ export class SustainCover {
      */
     cleanup() {
         // Limpiar covers activos
-        this.activeCoversByDirection.forEach((covers, direction) => {
-            covers.forEach(cover => {
-                if (cover && cover.active) {
-                    cover.destroy();
+        this.activeCoversByDirection.forEach((coverDataArray, direction) => {
+            coverDataArray.forEach(coverData => {
+                if (coverData && coverData.sprite && coverData.sprite.active) {
+                    coverData.sprite.destroy();
                 }
             });
         });

@@ -544,6 +544,35 @@ export class PlayState extends Phaser.Scene {
     return isMobile || hasTouch || isEmulated;
   }
 
+  async _ensureUIAssetsLoaded() {
+    // Check if core UI audio assets are loaded, if not, load them
+    const requiredAudio = [
+      { key: 'breakfast', path: 'public/assets/audio/sounds/breakfast.ogg' },
+      { key: 'scrollMenu', path: 'public/assets/audio/sounds/scrollMenu.ogg' },
+      { key: 'confirmMenu', path: 'public/assets/audio/sounds/confirmMenu.ogg' },
+      { key: 'freakyMenu', path: 'public/assets/audio/sounds/FreakyMenu.mp3' }
+    ];
+
+    const missingAudio = requiredAudio.filter(audio => !this.cache.audio.exists(audio.key));
+    
+    if (missingAudio.length > 0) {
+      console.log('Loading missing UI audio assets:', missingAudio.map(a => a.key));
+      
+      // Load missing audio assets
+      missingAudio.forEach(audio => {
+        this.load.audio(audio.key, audio.path);
+      });
+
+      // Wait for loading to complete if there are assets to load
+      if (this.load.totalToLoad > 0) {
+        await new Promise((resolve) => {
+          this.load.on("complete", resolve);
+          this.load.start();
+        });
+      }
+    }
+  }
+
   async create() {
     console.log("PlayState iniciado.")
     this._setupInitialState()
@@ -569,6 +598,10 @@ export class PlayState extends Phaser.Scene {
       // 4. Cargar iconos DESPUÉS de que los personajes estén cargados
       this.loadingScreen.setCurrentItem("Loading Icons")
       await this._loadHealthIcons()
+
+      // 4.5. Asegurar que los assets de UI estén cargados antes de crear componentes
+      this.loadingScreen.setCurrentItem("Loading UI Assets")
+      await this._ensureUIAssetsLoaded()
 
       // Iniciar la carga de assets en Phaser si hay algo en la cola
       if (this.load.totalToLoad > 0) {

@@ -24,25 +24,12 @@ export class PauseMenu extends Phaser.GameObjects.Container {
         this.songInfoAlpha = 1;
         this.isChangingText = false;
 
-        // Sonidos - Add error checking
-        if (this.scene.cache.audio.exists('scrollMenu')) {
-            this.scrollSound = this.scene.sound.add('scrollMenu');
-        } else {
-            console.warn('scrollMenu audio not found');
-            this.scrollSound = null;
-        }
+        // Sonidos - Initialize as null and load when available
+        this.scrollSound = null;
+        this.pauseMusic = null;
         
-        // Música de pausa - Add error checking
-        if (this.scene.cache.audio.exists('breakfast')) {
-            this.pauseMusic = this.scene.sound.add('breakfast', {
-                volume: 0,
-                loop: true,
-                ignorePause: true
-            });
-        } else {
-            console.warn('breakfast audio not found');
-            this.pauseMusic = null;
-        }
+        // Try to initialize audio immediately, but don't warn if not found yet
+        this._initializeAudio();
 
         this.lastRealTime = Date.now();
 
@@ -58,6 +45,22 @@ export class PauseMenu extends Phaser.GameObjects.Container {
         this.setVisible(false);
         this.setActive(false);
         this.alpha = 0;
+    }
+
+    _initializeAudio() {
+        // Initialize scroll sound if available
+        if (!this.scrollSound && this.scene.cache.audio.exists('scrollMenu')) {
+            this.scrollSound = this.scene.sound.add('scrollMenu');
+        }
+        
+        // Initialize pause music if available
+        if (!this.pauseMusic && this.scene.cache.audio.exists('breakfast')) {
+            this.pauseMusic = this.scene.sound.add('breakfast', {
+                volume: 0,
+                loop: true,
+                ignorePause: true
+            });
+        }
     }
 
     _createBackground() {
@@ -180,6 +183,11 @@ export class PauseMenu extends Phaser.GameObjects.Container {
     }
 
     _moveSelection(direction) {
+        // Try to initialize audio if not already done
+        if (!this.scrollSound) {
+            this._initializeAudio();
+        }
+        
         if (this.scrollSound) {
             this.scrollSound.play();
         }
@@ -256,6 +264,12 @@ export class PauseMenu extends Phaser.GameObjects.Container {
     }
 
     _handlePauseMusic() {
+        // Try to initialize audio if not already done
+        if (!this.pauseMusic) {
+            this._initializeAudio();
+        }
+
+        // If still not available after initialization attempt, try to create it manually
         if (!this.pauseMusic && this.scene.cache.audio.exists('breakfast')) {
             this.pauseMusic = this.scene.sound.add('breakfast', {
                 volume: 0,
@@ -446,6 +460,9 @@ export class PauseMenu extends Phaser.GameObjects.Container {
 
     show() {
         if (!this.visible) {
+            // Ensure audio is initialized when showing the menu
+            this._initializeAudio();
+            
             this.setVisible(true);
             this.setActive(true);
             this.isActive = true;
