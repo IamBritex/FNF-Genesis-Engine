@@ -14,7 +14,6 @@ import { Paths } from "../../utils/Paths.js"
 import { PauseMenu } from "../visuals/objects/components/Pause.js"
 import { ScriptHandler } from '../visuals/objects/components/ScriptHandler.js'
 import { GameOver } from '../visuals/objects/components/GameOver.js'
-import { Hitbox } from "../visuals/objects/components/Hitbox.js"
 
 export class PlayState extends Phaser.Scene {
   constructor() {
@@ -138,91 +137,59 @@ export class PlayState extends Phaser.Scene {
 
     // Cargar assets de pausa móvil
     if (this._isMobileDevice()) {
-        this.load.image('pauseCircle', 'public/assets/images/UI/mobile/pauseCircle.png');
-        this.load.atlasXML('pauseButton', 
-            'public/assets/images/UI/mobile/pauseButton.png',
-            'public/assets/images/UI/mobile/pauseButton.xml'
-        );
+      this.load.image('pauseCircle', 'public/assets/images/UI/mobile/pauseCircle.png');
+      this.load.atlasXML('pauseButton',
+        'public/assets/images/UI/mobile/pauseButton.png',
+        'public/assets/images/UI/mobile/pauseButton.xml'
+      );
 
-        // Crear la animación del botón de pausa
-        this.load.once('complete', () => {
-            this.anims.create({
-                key: 'pauseAnim',
-                frames: this.anims.generateFrameNames('pauseButton', {
-                    prefix: 'pause',
-                    zeroPad: 4,
-                    start: 0,
-                    end: 32
-                }),
-                frameRate: 24,
-                repeat: 0
-            });
-    })
+      // Crear la animación del botón de pausa
+      this.load.once('complete', () => {
+        this.anims.create({
+          key: 'pauseAnim',
+          frames: this.anims.generateFrameNames('pauseButton', {
+            prefix: 'pause',
+            zeroPad: 4,
+            start: 0,
+            end: 32
+          }),
+          frameRate: 24,
+          repeat: 0
+        });
+      })
 
-    // Load required UI sounds
-    this.load.audio('breakfast', 'public/assets/audio/sounds/breakfast.ogg');
-    this.load.audio('freakyMenu', 'public/assets/audio/sounds/FreakyMenu.mp3');
-    this.load.audio('scrollMenu', 'public/assets/audio/sounds/scrollMenu.ogg');
-    this.load.audio('confirmMenu', 'public/assets/audio/sounds/confirmMenu.ogg');
+      // Load required UI sounds
+      this.load.audio('breakfast', 'public/assets/audio/sounds/breakfast.ogg');
+      this.load.audio('freakyMenu', 'public/assets/audio/sounds/FreakyMenu.mp3');
+      this.load.audio('scrollMenu', 'public/assets/audio/sounds/scrollMenu.ogg');
+      this.load.audio('confirmMenu', 'public/assets/audio/sounds/confirmMenu.ogg');
 
-    // Ensure audio is loaded before creating PauseMenu
-    this.load.once('complete', () => {
+      // Ensure audio is loaded before creating PauseMenu
+      this.load.once('complete', () => {
         if (!this.cache.audio.exists('breakfast')) {
-            console.error("Failed to load breakfast audio");
+          console.error("Failed to load breakfast audio");
         }
         if (!this.cache.audio.exists('freakyMenu')) {
-            console.error("Failed to load freakyMenu audio");
+          console.error("Failed to load freakyMenu audio");
         }
-    });
+      });
 
-    // Determinar qué skin usar basado en el chart
-    const noteSkin = this.songData?.song?.skin || 'Funkin';
-    const skinAssets = Paths.getNoteSkinAssets(noteSkin);
+      // Determinar qué skin usar basado en el chart
+      const noteSkin = this.songData?.song?.skin || 'Funkin';
+      const skinAssets = Paths.getNoteSkinAssets(noteSkin);
 
-    // Cargar assets de notas con el skin correcto
-    this.load.atlasXML("notes", skinAssets.NOTES.TEXTURE, skinAssets.NOTES.ATLAS);
-    this.load.atlasXML("noteStrumline", skinAssets.STRUMLINE.TEXTURE, skinAssets.STRUMLINE.ATLAS);
-    this.load.atlasXML("NOTE_hold_assets", skinAssets.HOLD_ASSETS.TEXTURE, skinAssets.HOLD_ASSETS.ATLAS);
-    this.load.atlasXML("noteSplashes", skinAssets.SPLASHES.TEXTURE, skinAssets.SPLASHES.ATLAS);
+      // Cargar assets de notas con el skin correcto
+      this.load.atlasXML("notes", skinAssets.NOTES.TEXTURE, skinAssets.NOTES.ATLAS);
+      this.load.atlasXML("noteStrumline", skinAssets.STRUMLINE.TEXTURE, skinAssets.STRUMLINE.ATLAS);
+      this.load.atlasXML("NOTE_hold_assets", skinAssets.HOLD_ASSETS.TEXTURE, skinAssets.HOLD_ASSETS.ATLAS);
+      this.load.atlasXML("noteSplashes", skinAssets.SPLASHES.TEXTURE, skinAssets.SPLASHES.ATLAS);
 
-    // Cargar hold covers
-    if (skinAssets.HOLD_COVERS) {
+      // Cargar hold covers
+      if (skinAssets.HOLD_COVERS) {
         Object.keys(skinAssets.HOLD_COVERS).forEach(color => {
-            const coverAssets = skinAssets.HOLD_COVERS[color];
-            this.load.atlasXML(`holdCover${color}`, coverAssets.TEXTURE, coverAssets.ATLAS);
+          const coverAssets = skinAssets.HOLD_COVERS[color];
+          this.load.atlasXML(`holdCover${color}`, coverAssets.TEXTURE, coverAssets.ATLAS);
         });
-    }
-
-    // Cargar textura de hitbox para dispositivos móviles
-    if (this._isMobileDevice()) {
-        this.load.atlasXML('hitboxTexture', 
-            'public/assets/images/UI/mobile/Hitbox.png',
-            'public/assets/images/UI/mobile/Hitbox.xml'
-        );
-        
-        // Agregar esto para asegurar que las animaciones se creen
-        this.load.once('complete', () => {
-            this.anims.create({
-                key: 'hitbox-static',
-                frames: [{ key: 'hitboxTexture', frame: 'static' }],
-                frameRate: 24
-            });
-            this.anims.create({
-                key: 'hitbox-press',
-                frames: [{ key: 'hitboxTexture', frame: 'press' }],
-                frameRate: 24
-            });
-            this.anims.create({
-                key: 'hitbox-confirm',
-                frames: [{ key: 'hitboxTexture', frame: 'confirm' }],
-                frameRate: 24
-            });
-            this.anims.create({
-                key: 'hitbox-hold',
-                frames: [{ key: 'hitboxTexture', frame: 'confirm-hold' }],
-                frameRate: 24
-            });
-          });
       }
     }
   }
@@ -540,7 +507,7 @@ export class PlayState extends Phaser.Scene {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     const isEmulated = window.innerWidth <= 800 || this.scale.isPortrait;
-    
+
     return isMobile || hasTouch || isEmulated;
   }
 
@@ -554,10 +521,10 @@ export class PlayState extends Phaser.Scene {
     ];
 
     const missingAudio = requiredAudio.filter(audio => !this.cache.audio.exists(audio.key));
-    
+
     if (missingAudio.length > 0) {
       console.log('Loading missing UI audio assets:', missingAudio.map(a => a.key));
-      
+
       // Load missing audio assets
       missingAudio.forEach(audio => {
         this.load.audio(audio.key, audio.path);
@@ -639,7 +606,7 @@ export class PlayState extends Phaser.Scene {
         this.cameraController.classifyAllSceneElements()
       }
 
-      if(this._isMobileDevice()) {
+      if (this._isMobileDevice()) {
         console.log("Dispositivo móvil detectado, aplicando configuraciones específicas")
       }
     } catch (error) {
@@ -663,13 +630,13 @@ export class PlayState extends Phaser.Scene {
     }
   }
 
-  
+
 
   _setupInitialState() {
   }
 
 
-  
+
 
   _setupInitialState() {
     this.sound.stopAll();
@@ -706,19 +673,28 @@ export class PlayState extends Phaser.Scene {
 
     await this.characters.loadCharacterFromSong(this.songData)
 
+    // Configurar las posiciones de cámara desde los datos de los personajes
+    if (this.cameraController) {
+      this.cameraController.setupCharacterCameraPositions(this.characters);
+
+      // Leer configuración de cámara dinámica desde localStorage
+      const dynamicCameraEnabled = localStorage.getItem('GAMEPLAY.Dynamic Camera') !== 'false';
+      this.cameraController.setDynamicCameraEnabled(dynamicCameraEnabled);
+    }
+
     // 3. Configurar el StageManager con los personajes
     this.stageManager.setCharacters(this.characters)
 
     // 4. Cargar el stage después de que los personajes estén listos
     if (this.songData.song.stage) {
-        await this.stageManager.loadStage(this.songData.song.stage);
+      await this.stageManager.loadStage(this.songData.song.stage);
     } else {
-        await this.stageManager.loadStage('stage'); // Stage por defecto
+      await this.stageManager.loadStage('stage'); // Stage por defecto
     }
 
     // 5. Configurar BPM para animaciones del stage
     if (this.songData.song.bpm) {
-        this.stageManager.setBPM(this.songData.song.bpm);
+      this.stageManager.setBPM(this.songData.song.bpm);
     }
 
     // Inicializar ScriptHandler y cargar eventos del chart
@@ -830,39 +806,39 @@ export class PlayState extends Phaser.Scene {
 
     // Inicializar hitbox ANTES del botón de pausa para dispositivos móviles
     if (this._isMobileDevice()) {
-        console.log("Creando hitbox para dispositivo móvil");
-        
-        // Destruir hitbox existente si hay una
-        if (this.hitbox) {
-            this.hitbox.destroy();
-            this.hitbox = null;
-        }
-        
-        // Crear nueva hitbox
-        this.hitbox = new Hitbox(this);
-        
-        // Forzar visibilidad y configuración
-        if (this.hitbox && this.hitbox.container) {
-            // Asegurar que esté en la capa UI y visible
-            this.cameraController.addToUILayer(this.hitbox.container);
-            this.hitbox.container.setDepth(900);
-            this.hitbox.setVisible(true);
-            this.hitbox.setAlpha(0.2);
-            
-            // Forzar que esté por encima de otros elementos
-            this.children.bringToTop(this.hitbox.container);
-        }
-        
-        console.log("Hitbox creada y configurada:", {
-            visible: this.hitbox.visible,
-            alpha: this.hitbox.alpha,
-            depth: this.hitbox.container.depth
-        });
+      console.log("Creando hitbox para dispositivo móvil");
+
+      // Destruir hitbox existente si hay una
+      if (this.hitbox) {
+        this.hitbox.destroy();
+        this.hitbox = null;
+      }
+
+      // Crear nueva hitbox
+      this.hitbox = new Hitbox(this);
+
+      // Forzar visibilidad y configuración
+      if (this.hitbox && this.hitbox.container) {
+        // Asegurar que esté en la capa UI y visible
+        this.cameraController.addToUILayer(this.hitbox.container);
+        this.hitbox.container.setDepth(900);
+        this.hitbox.setVisible(true);
+        this.hitbox.setAlpha(0.2);
+
+        // Forzar que esté por encima de otros elementos
+        this.children.bringToTop(this.hitbox.container);
+      }
+
+      console.log("Hitbox creada y configurada:", {
+        visible: this.hitbox.visible,
+        alpha: this.hitbox.alpha,
+        depth: this.hitbox.container.depth
+      });
     }
 
     // Añadir botón de pausa móvil después de la hitbox
     if (this._isMobileDevice()) {
-        this._createMobilePauseButton();
+      this._createMobilePauseButton();
     }
 
     // Forzar actualización de las capas de la cámara
@@ -890,6 +866,53 @@ export class PlayState extends Phaser.Scene {
         } else {
           this._pauseGame();
         }
+      }
+    });
+
+    // Teclas de debug para el sistema de cámara dinámica
+    this.input.keyboard.on('keydown-ONE', () => {
+      if (this.cameraController) {
+        console.log('Debug: Enfoque al jugador');
+        this.cameraController.forceCameraTarget(this.cameraController.playerCameraPos, 1.0, 500);
+      }
+    });
+
+    this.input.keyboard.on('keydown-TWO', () => {
+      if (this.cameraController) {
+        console.log('Debug: Enfoque al enemigo');
+        this.cameraController.forceCameraTarget(this.cameraController.enemyCameraPos, 1.0, 500);
+      }
+    });
+
+    this.input.keyboard.on('keydown-THREE', () => {
+      if (this.cameraController) {
+        console.log('Debug: Enfoque a GF');
+        this.cameraController.forceCameraTarget(this.cameraController.gfCameraPos, 1.0, 500);
+      }
+    });
+
+    this.input.keyboard.on('keydown-FOUR', () => {
+      if (this.cameraController) {
+        console.log('Debug: Modo dueto (punto medio)');
+        const midpoint = this.cameraController._calculateMidpoint(
+          this.cameraController.playerCameraPos,
+          this.cameraController.enemyCameraPos
+        );
+        this.cameraController.forceCameraTarget(midpoint, 0.7, 500);
+      }
+    });
+
+    this.input.keyboard.on('keydown-FIVE', () => {
+      if (this.cameraController) {
+        const enabled = !this.cameraController.dynamicCameraEnabled;
+        this.cameraController.setDynamicCameraEnabled(enabled);
+        console.log('Debug: Cámara dinámica', enabled ? 'activada' : 'desactivada');
+      }
+    });
+
+    this.input.keyboard.on('keydown-SIX', () => {
+      if (this.cameraController) {
+        console.log('Debug: Estado de la cámara dinámica', this.cameraController.getDynamicCameraState());
       }
     });
   }
@@ -1027,7 +1050,7 @@ export class PlayState extends Phaser.Scene {
     }
 
     this.currentInst.once("complete", () => this._handleSongCompletion())
-    this.currentInst.once("stop", () => {})
+    this.currentInst.once("stop", () => { })
   }
 
   async _cleanupBeforeRestart() {
@@ -1167,35 +1190,35 @@ export class PlayState extends Phaser.Scene {
 
   playFreakyMenuAndRedirect() {
     try {
-        // Detener todos los sonidos primero
-        this.sound.stopAll();
+      // Detener todos los sonidos primero
+      this.sound.stopAll();
 
-        this._cleanupBeforeRestart();
+      this._cleanupBeforeRestart();
 
-        const nextScene = this.dataManager.isStoryMode ? 'StoryModeState' : 'FreeplayState';
-        const sceneData = this.dataManager.isStoryMode ? {
-            weekName: this.dataManager.weekName,
-            weekBackground: this.dataManager.weekBackground,
-            weekCharacters: this.dataManager.weekCharacters,
-            campaignScore: this.dataManager.campaignScore,
-            campaignMisses: this.dataManager.campaignMisses,
-            selectedWeekIndex: this.dataManager.weekIndex
-          } : {
-            selectedIndex: this.dataManager.currentSongIndex,
-            selectedDifficulty: this.dataManager.storyDifficulty
-          };
+      const nextScene = this.dataManager.isStoryMode ? 'StoryModeState' : 'FreeplayState';
+      const sceneData = this.dataManager.isStoryMode ? {
+        weekName: this.dataManager.weekName,
+        weekBackground: this.dataManager.weekBackground,
+        weekCharacters: this.dataManager.weekCharacters,
+        campaignScore: this.dataManager.campaignScore,
+        campaignMisses: this.dataManager.campaignMisses,
+        selectedWeekIndex: this.dataManager.weekIndex
+      } : {
+        selectedIndex: this.dataManager.currentSongIndex,
+        selectedDifficulty: this.dataManager.storyDifficulty
+      };
 
-        this.scene.stop();
+      this.scene.stop();
 
-        if (this.cache.audio.exists('freakyMenu')) {
-            const freakyMusic = this.sound.add('freakyMenu', {
-                volume: 0.7,
-                loop: true
-            });
-            freakyMusic.play();
-        }
+      if (this.cache.audio.exists('freakyMenu')) {
+        const freakyMusic = this.sound.add('freakyMenu', {
+          volume: 0.7,
+          loop: true
+        });
+        freakyMusic.play();
+      }
 
-        this.scene.start(nextScene, sceneData);
+      this.scene.start(nextScene, sceneData);
     } catch (error) {
       console.error('Error during scene transition:', error);
       this.scene.start('MainMenuState');
@@ -1301,11 +1324,11 @@ export class PlayState extends Phaser.Scene {
       // Recrear el botón de pausa móvil si es necesario
       if (this._isMobileDevice()) {
         const newPauseButton = this._createMobilePauseButton();
-        
+
         // Efecto de fadein
         newPauseButton.alpha = 0;
         newPauseButton.scale = 0.8;
-        
+
         this.tweens.add({
           targets: newPauseButton,
           alpha: 1,
@@ -1318,12 +1341,12 @@ export class PlayState extends Phaser.Scene {
 
   async registerStageScripts() {
     if (this.songData?.song?.stage === 'philly') {
-        try {
-            await this.scriptHandler.loadScript('windowsChanges.js');
-            await this.scriptHandler.loadScript('TrainStreet.js');
-        } catch (error) {
-            console.error('Error loading stage scripts:', error);
-        }
+      try {
+        await this.scriptHandler.loadScript('windowsChanges.js');
+        await this.scriptHandler.loadScript('TrainStreet.js');
+      } catch (error) {
+        console.error('Error loading stage scripts:', error);
+      }
     }
   }
 
@@ -1331,21 +1354,21 @@ export class PlayState extends Phaser.Scene {
   _createMobilePauseButton() {
     // Crear un contenedor para el botón de pausa
     const pauseContainer = this.add.container(0, 0);
-    
+
     // Añadir el círculo de fondo primero
     const circle = this.add.image(
-        this.scale.width - 35, 
-        35,                    
-        'pauseCircle'
+      this.scale.width - 35,
+      35,
+      'pauseCircle'
     );
     circle.setScale(0.4);
-    circle.setAlpha(0.3);     
-    
+    circle.setAlpha(0.3);
+
     // Añadir el botón de pausa 
     const pauseButton = this.add.sprite(
-        circle.x - 4,          
-        circle.y,             
-        'pauseButton'
+      circle.x - 4,
+      circle.y,
+      'pauseButton'
     );
     pauseButton.setScale(0.4);
     pauseButton.setAlpha(1);
@@ -1355,44 +1378,44 @@ export class PlayState extends Phaser.Scene {
 
     // Configurar la animación del botón de pausa si existe
     if (this.anims.exists('pauseButton')) {
-        pauseButton.play('pauseButton');
+      pauseButton.play('pauseButton');
     }
-    
+
     // Añadir ambos elementos al contenedor
     pauseContainer.add([circle, pauseButton]);
-    
+
     // Hacer el círculo interactivo
     circle.setInteractive();
-    
+
     // Añadir evento de click/touch
     circle.on('pointerdown', () => {
-        if (!this.gameOver?.isActive) {
-            // Reproducir animación del botón
-            pauseButton.play('pauseAnim');
-            
-            // Efecto de fadeout
-            this.tweens.add({
-                targets: [circle, pauseButton],
-                alpha: 0,
-                scale: '*=0.8',
-                duration: 200,
-                onComplete: () => {
-                    pauseContainer.destroy();
-                    if (!this.pauseMenu?.isActive) {
-                        this._pauseGame();
-                    }
-                }
-            });
-        }
+      if (!this.gameOver?.isActive) {
+        // Reproducir animación del botón
+        pauseButton.play('pauseAnim');
+
+        // Efecto de fadeout
+        this.tweens.add({
+          targets: [circle, pauseButton],
+          alpha: 0,
+          scale: '*=0.8',
+          duration: 200,
+          onComplete: () => {
+            pauseContainer.destroy();
+            if (!this.pauseMenu?.isActive) {
+              this._pauseGame();
+            }
+          }
+        });
+      }
     });
 
     // Asignar al contenedor un nombre para identificarlo
     pauseContainer.setName('MobilePauseButton_container');
-    
+
     // Añadir a la capa UI y establecer profundidad
     this.cameraController.addToUILayer(pauseContainer);
     pauseContainer.setDepth(1000);
-    
+
     return pauseContainer;
   }
 }

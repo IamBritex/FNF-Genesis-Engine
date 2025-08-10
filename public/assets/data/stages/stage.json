@@ -1,41 +1,40 @@
 {
-    "stage":
-    [
-        {
-            "layer": 2,
-            "scale": 1.0,
-            "namePath": "stagefront",
-            "visible": true,
-            "opacity": 1.0,
-            "position": [-650, 500]
-        },
+    "stage": [
         {
             "layer": 1,
-            "scale": 0.8,
+            "scale": 1,
             "namePath": "stageback",
             "visible": true,
             "opacity": 1,
-            "position": [-400, -199]
+            "position": [
+                -642,
+                -467
+            ],
+            "type": "image"
         },
         {
-            "player": 1,
-            "layer": 4
-        },
-        {
-            "player": 2,
-            "layer": 4
-        },
-        {
-            "player": "gf",
-            "layer": 3
+            "layer": 2,
+            "scale": 1,
+            "namePath": "stagefront",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -650,
+                500
+            ],
+            "type": "image"
         },
         {
             "layer": 6,
-            "scale": 0.8,
+            "scale": 1,
             "namePath": "stagecurtains",
             "visible": true,
             "opacity": 1,
-            "position": [-370, -550]
+            "position": [
+                -642,
+                -461
+            ],
+            "type": "image"
         }
     ]
 }

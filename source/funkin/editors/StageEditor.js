@@ -8,6 +8,8 @@ class StageEditor extends Phaser.Scene {
         this.isLayerDragging = false;
         this.dragStartX = 0;
         this.dragStartY = 0;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
         this.cameraDragStartX = 0;
         this.cameraDragStartY = 0;
         this.gridSize = 50;
@@ -29,6 +31,14 @@ class StageEditor extends Phaser.Scene {
         this.actionHistory = [];
         this.maxHistorySize = 10;
         this.currentHistoryIndex = -1;
+
+        // Sistema de animación de sprites
+        this.activeAnimations = new Map(); // Para controlar animaciones activas
+        this.defaultBPM = 120; // BPM por defecto
+
+        // ⭐ IMPORTANTE: Usar el mismo sistema de coordenadas que StageManager
+        // StageManager usa setOrigin(0, 0) para todas las imágenes
+        // Esto asegura que las posiciones se vean igual en editor y juego
 
 
     }
@@ -85,13 +95,8 @@ class StageEditor extends Phaser.Scene {
         this.hudCamera = this.cameras.add(0, 0, width, height);
         this.hudCamera.setScroll(0, 0);
 
-        // Fondo del editor (en la cámara del juego)
-        this.editorBg = this.add.image(0, 0, 'editorBg')
-            .setOrigin(0)
-            .setScale(0.8);
-
-        // Hacer que el fondo no sea visible en la cámara HUD
-        this.hudCamera.ignore(this.editorBg);
+        // Cargar stage.json como template base
+        this.loadDefaultStageTemplate();
 
         // Crear input file invisible
         this.createFileInput();
@@ -115,6 +120,90 @@ class StageEditor extends Phaser.Scene {
 
         // Inicializar historial
         this.saveState('initial');
+    }
+
+    // ===== SISTEMA DE ANIMACIÓN DE SPRITES =====
+    startSpriteAnimation(spriteObject, mode, bpm = null) {
+        if (!spriteObject || spriteObject.getData('type') !== 'spriteObject') return;
+
+        const frames = spriteObject.getData('frames');
+        if (!frames || frames.length <= 1) return;
+
+        // Detener animación anterior si existe
+        this.stopSpriteAnimation(spriteObject);
+
+        const baseKey = spriteObject.getData('baseKey');
+        let frameRate, interval;
+
+        if (mode === 'bpm') {
+            const actualBPM = bpm || this.defaultBPM;
+            // Convertir BPM a frames por segundo (asumiendo que queremos 1 frame por beat)
+            frameRate = actualBPM / 60; // beats por segundo
+            interval = 1000 / frameRate; // milisegundos por frame
+        } else if (mode === 'loop') {
+            frameRate = 12; // 12 FPS para loop suave
+            interval = 1000 / frameRate;
+        }
+
+        let currentFrame = spriteObject.getData('currentFrame') || 0;
+
+        const animationTimer = this.time.addEvent({
+            delay: interval,
+            callback: () => {
+                currentFrame = (currentFrame + 1) % frames.length;
+                const frameKey = `${baseKey}_frame_${currentFrame}`;
+                
+                if (this.textures.exists(frameKey)) {
+                    spriteObject.setTexture(frameKey);
+                    spriteObject.setData('currentFrame', currentFrame);
+                    
+                    // Actualizar panel si este objeto está seleccionado
+                    if (this.selectedObject === spriteObject) {
+                        this.updatePropertiesPanel();
+                    }
+                }
+            },
+            loop: true
+        });
+
+        // Guardar la animación activa
+        this.activeAnimations.set(spriteObject, {
+            timer: animationTimer,
+            mode: mode,
+            bpm: bpm
+        });
+
+        // Marcar como modificado
+        this.markAsModified(spriteObject);
+    }
+
+    stopSpriteAnimation(spriteObject) {
+        if (!spriteObject) return;
+
+        const animationData = this.activeAnimations.get(spriteObject);
+        if (animationData) {
+            animationData.timer.destroy();
+            this.activeAnimations.delete(spriteObject);
+        }
+    }
+
+    getSpriteAnimationStatus(spriteObject) {
+        return this.activeAnimations.get(spriteObject) || null;
+    }
+
+    // ===== FUNCIÓN AUXILIAR PARA MARCAR ELEMENTOS COMO MODIFICADOS =====
+    markAsModified(gameObject) {
+        if (!gameObject) return;
+        
+        // Si es un elemento del template, marcarlo como modificado
+        if (gameObject.getData('isTemplate')) {
+            gameObject.setData('isTemplate', false);
+            // También actualizar en la lista de imágenes cargadas
+            const imgData = this.loadedImages.find(img => img.object === gameObject);
+            if (imgData) {
+                imgData.isTemplate = false;
+            }
+        }
     }
 
     // ===== SISTEMA DE UNDO/REDO =====
@@ -182,13 +271,14 @@ class StageEditor extends Phaser.Scene {
             this.selectedObject.setTexture(frameKey);
             this.selectedObject.setData('currentFrame', newFrame);
 
+            // Si es un elemento del template, marcarlo como modificado
+            this.markAsModified(this.selectedObject);
+
             // Actualizar el panel de propiedades
             this.updatePropertiesPanel();
 
             this.selectSound.play();
-            console.log(`🎞️ Sprite frame changed to: ${newFrame + 1}/${frames.length} (${frameData.name})`);
         } else {
-            console.error(`❌ Frame texture not found: ${frameKey}`);
             this.showErrorMessage(`Frame ${newFrame + 1} not found`);
         }
     }
@@ -233,8 +323,11 @@ class StageEditor extends Phaser.Scene {
     }
 
     restoreState(state) {
-        // Limpiar objetos actuales
-        this.stageObjects.forEach(obj => obj.destroy());
+        // Limpiar objetos actuales y sus animaciones
+        this.stageObjects.forEach(obj => {
+            this.stopSpriteAnimation(obj);
+            obj.destroy();
+        });
         this.stageObjects = [];
         this.loadedImages = [];
         this.selectedObject = null;
@@ -249,7 +342,7 @@ class StageEditor extends Phaser.Scene {
                     imgData.key
                 );
 
-                newObject.setOrigin(0.5, 0.5); // Usar el mismo origen que en loadImageFromData
+                newObject.setOrigin(0, 0); // ⭐ CAMBIO: Usar el mismo origen que StageManager
                 newObject.setInteractive();
                 newObject.setData('type', 'stageObject');
                 newObject.setData('imageKey', imgData.key);
@@ -468,7 +561,7 @@ class StageEditor extends Phaser.Scene {
             try {
                 console.log(`🔄 Creando textura con canvas para: ${imageKey}`);
                 const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
                 canvas.width = width;
                 canvas.height = height;
 
@@ -554,9 +647,9 @@ class StageEditor extends Phaser.Scene {
             const maxLayer = this.loadedImages.length > 0 ?
                 Math.max(...this.loadedImages.map(img => img.layer)) + 1 : 0;
 
-            // Crear la imagen en el escenario inmediatamente
+            // Crear la imagen en el escenario inmediatamente usando el mismo sistema que StageManager
             const newObject = this.add.image(0, 0, imageKey);
-            newObject.setOrigin(0.5, 0.5);
+            newObject.setOrigin(0, 0); // ⭐ CAMBIO: Usar el mismo origin que StageManager
             newObject.setInteractive();
             newObject.setData('type', 'stageObject');
             newObject.setData('imageKey', imageKey);
@@ -569,9 +662,13 @@ class StageEditor extends Phaser.Scene {
             // Hacer que la imagen NO sea visible en la cámara HUD, pero SÍ en la cámara del juego
             this.hudCamera.ignore(newObject);
 
-            // Asegurar que la imagen esté visible y debug info
+            // Configurar interactividad y eventos inmediatamente
+            this.setupObjectEvents(newObject);
+
+            // Asegurar que la imagen esté visible y configurar opacidad original
             newObject.setVisible(true);
             newObject.setAlpha(1);
+            newObject.setData('originalAlpha', 1); // ⭐ Establecer opacidad original
 
             console.log(`✅ Objeto creado exitosamente:`, {
                 name: nameWithoutExtension,
@@ -893,7 +990,7 @@ class StageEditor extends Phaser.Scene {
 
             // Crear canvas para la imagen completa
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
             canvas.width = imageBitmap.width;
             canvas.height = imageBitmap.height;
             ctx.drawImage(imageBitmap, 0, 0);
@@ -907,7 +1004,7 @@ class StageEditor extends Phaser.Scene {
 
                 // Crear canvas para el frame individual
                 const frameCanvas = document.createElement('canvas');
-                const frameCtx = frameCanvas.getContext('2d');
+                const frameCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
                 frameCanvas.width = frame.width;
                 frameCanvas.height = frame.height;
 
@@ -949,9 +1046,9 @@ class StageEditor extends Phaser.Scene {
 
         // Crear el objeto sprite (usando el primer frame como preview)
         const firstFrameKey = `${spriteKey}_frame_0`; // Usar nomenclatura de índice
-        const spriteObject = this.add.image(0, 0, firstFrameKey);
+        const spriteObject = this.add.sprite(0, 0, firstFrameKey);
 
-        spriteObject.setOrigin(0.5, 0.5);
+        spriteObject.setOrigin(0, 0); // ⭐ CAMBIO: Usar el mismo origen que StageManager
         spriteObject.setInteractive();
         spriteObject.setData('type', 'spriteObject');
         spriteObject.setData('spriteKey', spriteKey);
@@ -966,6 +1063,12 @@ class StageEditor extends Phaser.Scene {
 
         // Hacer que NO sea visible en la cámara HUD
         this.hudCamera.ignore(spriteObject);
+
+        // Configurar interactividad y eventos inmediatamente
+        this.setupObjectEvents(spriteObject);
+        
+        // Configurar opacidad original para sprites
+        spriteObject.setData('originalAlpha', 1); // ⭐ Establecer opacidad original
 
         console.log(`✅ Sprite object created: ${nameWithoutExtension} with ${frames.length} frames`);
 
@@ -1025,35 +1128,136 @@ class StageEditor extends Phaser.Scene {
     }
 
     setupObjectEvents(gameObject) {
-        // Eventos de drag
-        gameObject.on('dragstart', (pointer, dragX, dragY) => {
-            this.isDragging = true;
-            this.dragStartX = dragX;
-            this.dragStartY = dragY;
-            this.selectedObject = gameObject;
-            this.highlightSelectedObject();
-            this.updatePropertiesPanel();
-        });
+        // Verificar si ya se configuraron los eventos para evitar duplicados
+        if (gameObject.getData('eventsConfigured')) {
+            return;
+        }
+        
+        // Verificar si es un objeto del template
+        const isTemplate = gameObject.getData('isTemplate');
+        
+        if (isTemplate) {
+            // Los objetos del template NO deben ser interactivos
+            gameObject.setData('eventsConfigured', true);
+            return;
+        }
+        
+        try {
+            // Asegurar que el objeto tenga input configurado
+            if (!gameObject.input) {
+                gameObject.setInteractive();
+            }
+            
+            // Configurar drag para todos los tipos de objetos usando scene.input
+            this.input.setDraggable(gameObject, true);
+            
+            // Configurar eventos de drag para TODOS los objetos
+            gameObject.on('dragstart', (pointer, dragX, dragY) => {
+                this.isDragging = true;
+                
+                // Calcular offset para mantener la posición relativa del mouse
+                this.dragOffsetX = gameObject.x - pointer.worldX;
+                this.dragOffsetY = gameObject.y - pointer.worldY;
+                
+                this.selectedObject = gameObject;
+                this.highlightSelectedObject();
+                this.updatePropertiesPanel();
+                
+                // Si es un elemento del template, marcarlo como modificado
+                this.markAsModified(gameObject);
+            });
 
-        gameObject.on('drag', (pointer, dragX, dragY) => {
-            gameObject.x = dragX;
-            gameObject.y = dragY;
-            this.updatePropertiesPanel();
-        });
+            gameObject.on('drag', (pointer, dragX, dragY) => {
+                // Usar las coordenadas del mundo del pointer más el offset
+                gameObject.x = pointer.worldX + this.dragOffsetX;
+                gameObject.y = pointer.worldY + this.dragOffsetY;
+                this.updatePropertiesPanel();
+            });
 
-        gameObject.on('dragend', () => {
-            this.isDragging = false;
-            this.saveState('move_object');
-        });
+            gameObject.on('dragend', () => {
+                this.isDragging = false;
+                this.saveState('move_object');
+            });
+            
+        } catch (error) {
+            this.setupBasicEvents(gameObject);
+            return;
+        }
 
-        // Evento de selección con click
+        // Evento de selección con click (para objetos nuevos únicamente)
         gameObject.on('pointerdown', (pointer) => {
             if (!this.isDragging) {
                 this.selectedObject = gameObject;
                 this.highlightSelectedObject();
                 this.updatePropertiesPanel();
+                this.selectSound.play();
             }
         });
+        
+        // Evento hover para indicar que es seleccionable
+        gameObject.on('pointerover', () => {
+            if (!this.isDragging) {
+                document.body.style.cursor = 'pointer';
+            }
+        });
+        
+        gameObject.on('pointerout', () => {
+            document.body.style.cursor = 'default';
+        });
+
+        gameObject.setData('eventsConfigured', true);
+    }
+
+    setupBasicEvents(gameObject) {
+        // Configurar solo eventos básicos sin drag
+        if (gameObject.getData('eventsConfigured')) {
+            return;
+        }
+
+        // Verificar si es un objeto del template
+        const isTemplate = gameObject.getData('isTemplate');
+        
+        if (isTemplate) {
+            // Los objetos del template NO deben tener eventos
+            console.log('🎭 Template object - no events configured:', gameObject.getData('imageName'));
+            gameObject.setData('eventsConfigured', true);
+            return;
+        }
+
+        try {
+            // Solo para objetos NO template: asegurar que el objeto tenga input básico
+            if (!gameObject.input) {
+                gameObject.setInteractive();
+            }
+
+            // Solo evento de click para selección (objetos nuevos únicamente)
+            gameObject.on('pointerdown', (pointer) => {
+                if (!this.isDragging) {
+                    this.selectedObject = gameObject;
+                    this.highlightSelectedObject();
+                    this.updatePropertiesPanel();
+                    this.selectSound.play();
+                }
+            });
+            
+            // Evento hover para indicar que es seleccionable
+            gameObject.on('pointerover', () => {
+                if (!this.isDragging) {
+                    document.body.style.cursor = 'pointer';
+                }
+            });
+            
+            gameObject.on('pointerout', () => {
+                document.body.style.cursor = 'default';
+            });
+            
+            gameObject.setData('eventsConfigured', true);
+            console.log(`✅ Basic events configured for: ${gameObject.getData('imageName') || 'unnamed'}`);
+        } catch (error) {
+            console.error('❌ Failed to configure basic events:', error);
+            // Marcar como configurado incluso si falla para evitar loops
+            gameObject.setData('eventsConfigured', true);
+        }
     }
 
     createGrid() {
@@ -1102,12 +1306,28 @@ class StageEditor extends Phaser.Scene {
         });
         this.gameCamera.ignore(this.loadButton);
 
-        const loadButtonText = this.add.text(width - 300, 30, 'LOAD IMAGES', {
+        const loadButtonText = this.add.text(width - 300, 30, 'ADD IMAGE', {
             fontSize: '14px',
             fill: '#FFFFFF',
             fontFamily: 'Arial'
         }).setOrigin(0.5);
         this.gameCamera.ignore(loadButtonText);
+
+        // Botón para agregar sprite (spritesheet + XML)
+        this.addSpriteButton = this.add.rectangle(width - 300, 80, 120, 40, 0xFF6600, 0.8);
+        this.addSpriteButton.setStrokeStyle(2, 0xFFFFFF);
+        this.addSpriteButton.setInteractive();
+        this.addSpriteButton.on('pointerdown', () => {
+            this.openSpriteLoader();
+        });
+        this.gameCamera.ignore(this.addSpriteButton);
+
+        const addSpriteButtonText = this.add.text(width - 300, 80, 'ADD SPRITE', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        this.gameCamera.ignore(addSpriteButtonText);
 
         // Botón para guardar stage
         this.saveButton = this.add.rectangle(width - 150, 30, 120, 40, 0x00CC66, 0.8);
@@ -1125,21 +1345,21 @@ class StageEditor extends Phaser.Scene {
         }).setOrigin(0.5);
         this.gameCamera.ignore(saveButtonText);
 
-        // Botón para agregar sprite (spritesheet + XML)
-        this.addSpriteButton = this.add.rectangle(width - 450, 30, 120, 40, 0xFF6600, 0.8);
-        this.addSpriteButton.setStrokeStyle(2, 0xFFFFFF);
-        this.addSpriteButton.setInteractive();
-        this.addSpriteButton.on('pointerdown', () => {
-            this.openSpriteLoader();
+        // Botón para limpiar template
+        this.clearTemplateButton = this.add.rectangle(width - 450, 30, 120, 40, 0xFF3366, 0.8);
+        this.clearTemplateButton.setStrokeStyle(2, 0xFFFFFF);
+        this.clearTemplateButton.setInteractive();
+        this.clearTemplateButton.on('pointerdown', () => {
+            this.clearTemplate();
         });
-        this.gameCamera.ignore(this.addSpriteButton);
+        this.gameCamera.ignore(this.clearTemplateButton);
 
-        const addSpriteButtonText = this.add.text(width - 450, 30, 'ADD SPRITE', {
+        const clearTemplateButtonText = this.add.text(width - 450, 30, 'CLEAR STAGE', {
             fontSize: '14px',
             fill: '#FFFFFF',
             fontFamily: 'Arial'
         }).setOrigin(0.5);
-        this.gameCamera.ignore(addSpriteButtonText);
+        this.gameCamera.ignore(clearTemplateButtonText);
 
         // Panel lateral izquierdo - Layer Manager
         this.createLayerManager();
@@ -1148,6 +1368,108 @@ class StageEditor extends Phaser.Scene {
         this.createPropertiesPanel();
 
         this.updateUI();
+    }
+
+    clearTemplate() {
+        // Mostrar confirmación antes de limpiar
+        const { width, height } = this.scale;
+        
+        const confirmContainer = this.add.container(width / 2, height / 2);
+        
+        const bg = this.add.rectangle(0, 0, 400, 200, 0x000000, 0.9);
+        bg.setStrokeStyle(3, 0xFF3366);
+        
+        const titleText = this.add.text(0, -50, '🗑️ Limpiar Stage', {
+            fontSize: '20px',
+            fill: '#FF3366',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        
+        const questionText = this.add.text(0, -10, '¿Eliminar todos los elementos\ny empezar desde cero?', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontFamily: 'Arial',
+            align: 'center'
+        }).setOrigin(0.5);
+        
+        // Botón Confirmar
+        const confirmBtn = this.add.rectangle(-80, 40, 120, 30, 0xFF3366, 0.8);
+        confirmBtn.setStrokeStyle(2, 0xFFFFFF);
+        confirmBtn.setInteractive();
+        
+        const confirmText = this.add.text(-80, 40, 'CONFIRMAR', {
+            fontSize: '12px',
+            fill: '#FFFFFF',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        
+        // Botón Cancelar  
+        const cancelBtn = this.add.rectangle(80, 40, 120, 30, 0x666666, 0.8);
+        cancelBtn.setStrokeStyle(2, 0xFFFFFF);
+        cancelBtn.setInteractive();
+        
+        const cancelText = this.add.text(80, 40, 'CANCELAR', {
+            fontSize: '12px',
+            fill: '#FFFFFF',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        
+        confirmContainer.add([bg, titleText, questionText, confirmBtn, confirmText, cancelBtn, cancelText]);
+        this.gameCamera.ignore(confirmContainer);
+        
+        // Eventos
+        confirmBtn.on('pointerdown', () => {
+            this.performClearTemplate();
+            confirmContainer.destroy();
+        });
+        
+        cancelBtn.on('pointerdown', () => {
+            this.cancelSound.play();
+            confirmContainer.destroy();
+        });
+    }
+
+    performClearTemplate() {
+        // Guardar estado antes de limpiar
+        this.saveState('clear_template');
+        
+        // Limpiar todos los objetos y sus animaciones
+        this.stageObjects.forEach(obj => {
+            this.stopSpriteAnimation(obj);
+            obj.destroy();
+        });
+        this.stageObjects = [];
+        this.loadedImages = [];
+        this.selectedObject = null;
+        
+        // Actualizar UI
+        this.updateLayerManager();
+        this.updateUI();
+        
+        // Mostrar confirmación
+        const { width, height } = this.scale;
+        const notice = this.add.container(width / 2, height / 2);
+        
+        const bg = this.add.rectangle(0, 0, 300, 80, 0x001122, 0.9);
+        bg.setStrokeStyle(2, 0x00FF88);
+        
+        const text = this.add.text(0, 0, '✅ Stage limpiado\nListo para nuevos elementos', {
+            fontSize: '14px',
+            fill: '#00FF88',
+            fontFamily: 'Arial',
+            align: 'center'
+        }).setOrigin(0.5);
+        
+        notice.add([bg, text]);
+        this.gameCamera.ignore(notice);
+        
+        // Auto-ocultar después de 2 segundos
+        this.time.delayedCall(2000, () => {
+            if (notice) notice.destroy();
+        });
+        
+        this.confirmSound.play();
+        console.log('✅ Template limpiado correctamente');
     }
 
     createPropertiesPanel() {
@@ -1356,11 +1678,12 @@ class StageEditor extends Phaser.Scene {
                 scaleInputText.setText(clampedScale.toString());
                 isScaleInputActive = false;
 
+                // ⭐ IMPORTANTE: Si es un elemento del template, marcarlo como modificado
+                this.markAsModified(this.selectedObject);
+
                 this.updatePropertiesPanel();
                 this.saveState('change_scale');
                 this.selectSound.play();
-
-                console.log(`🔄 Scale changed to: ${clampedScale}`);
             } else if (key === 'Escape') {
                 // Cancelar edición
                 scaleInputText.setText(currentScale.toString());
@@ -1387,6 +1710,7 @@ class StageEditor extends Phaser.Scene {
         if (isSprite) {
             const frames = this.selectedObject.getData('frames') || [];
             const currentFrame = this.selectedObject.getData('currentFrame') || 0;
+            const animationStatus = this.getSpriteAnimationStatus(this.selectedObject);
 
             // Control de frame para sprites
             const frameLabel = this.add.text(0, yOffset, 'FRAME:', {
@@ -1428,7 +1752,74 @@ class StageEditor extends Phaser.Scene {
                 fontFamily: 'Arial'
             }).setOrigin(0.5);
 
-            spriteControls = [frameLabel, frameValue, framePrevBtn, framePrevText, frameNextBtn, frameNextText];
+            yOffset += 25;
+
+            // Controles de animación
+            const animLabel = this.add.text(0, yOffset, 'ANIMATION:', {
+                fontSize: '12px',
+                fill: '#FF6600',
+                fontFamily: 'Arial'
+            }).setOrigin(0, 0);
+
+            // Botón BPM
+            const bpmBtn = this.add.rectangle(80, yOffset + 6, 35, 14, 
+                animationStatus && animationStatus.mode === 'bpm' ? 0x00FF00 : 0x666666, 0.8);
+            bpmBtn.setStrokeStyle(1, 0xFFFFFF);
+            bpmBtn.setInteractive();
+            bpmBtn.on('pointerdown', () => {
+                if (animationStatus && animationStatus.mode === 'bpm') {
+                    this.stopSpriteAnimation(this.selectedObject);
+                } else {
+                    this.startSpriteAnimation(this.selectedObject, 'bpm', this.defaultBPM);
+                }
+                this.updatePropertiesPanel();
+            });
+
+            const bpmText = this.add.text(97.5, yOffset + 6, 'BPM', {
+                fontSize: '8px',
+                fill: '#FFFFFF',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+
+            // Botón Loop
+            const loopBtn = this.add.rectangle(120, yOffset + 6, 35, 14, 
+                animationStatus && animationStatus.mode === 'loop' ? 0x00FF00 : 0x666666, 0.8);
+            loopBtn.setStrokeStyle(1, 0xFFFFFF);
+            loopBtn.setInteractive();
+            loopBtn.on('pointerdown', () => {
+                if (animationStatus && animationStatus.mode === 'loop') {
+                    this.stopSpriteAnimation(this.selectedObject);
+                } else {
+                    this.startSpriteAnimation(this.selectedObject, 'loop');
+                }
+                this.updatePropertiesPanel();
+            });
+
+            const loopText = this.add.text(137.5, yOffset + 6, 'LOOP', {
+                fontSize: '8px',
+                fill: '#FFFFFF',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+
+            // Botón Stop
+            const stopBtn = this.add.rectangle(160, yOffset + 6, 25, 14, 0xFF0000, 0.8);
+            stopBtn.setStrokeStyle(1, 0xFFFFFF);
+            stopBtn.setInteractive();
+            stopBtn.on('pointerdown', () => {
+                this.stopSpriteAnimation(this.selectedObject);
+                this.updatePropertiesPanel();
+            });
+
+            const stopText = this.add.text(172.5, yOffset + 6, '■', {
+                fontSize: '8px',
+                fill: '#FFFFFF',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+
+            spriteControls = [
+                frameLabel, frameValue, framePrevBtn, framePrevText, frameNextBtn, frameNextText,
+                animLabel, bpmBtn, bpmText, loopBtn, loopText, stopBtn, stopText
+            ];
         }
 
         // Agregar todos los controles al container
@@ -1447,6 +1838,10 @@ class StageEditor extends Phaser.Scene {
         if (imgData) {
             imgData.visible = !imgData.visible;
             this.selectedObject.setVisible(imgData.visible);
+            
+            // ⭐ IMPORTANTE: Si es un elemento del template, marcarlo como modificado
+            this.markAsModified(this.selectedObject);
+            
             this.updatePropertiesPanel();
             this.updateLayerManager();
             this.saveState('toggle_visibility');
@@ -1464,12 +1859,13 @@ class StageEditor extends Phaser.Scene {
             this.selectedObject.setData('layer', newLayer);
             this.selectedObject.setDepth(newLayer);
 
+            // ⭐ IMPORTANTE: Si es un elemento del template, marcarlo como modificado
+            this.markAsModified(this.selectedObject);
+
             this.updatePropertiesPanel();
             this.updateLayerManager();
             this.saveState('change_layer');
             this.selectSound.play();
-
-            console.log(`🔄 Changed layer of "${imgData.name}" to ${newLayer}`);
         }
     }
 
@@ -1507,18 +1903,22 @@ class StageEditor extends Phaser.Scene {
         // Limpiar contenido anterior
         this.layerScrollContainer.removeAll(true);
 
-        if (this.loadedImages.length === 0) {
-            const noLayersText = this.add.text(0, 0, 'No layers loaded', {
+        // Filtrar solo objetos NO template para el layer manager
+        const nonTemplateImages = this.loadedImages.filter(img => !img.isTemplate);
+
+        if (nonTemplateImages.length === 0) {
+            const noLayersText = this.add.text(0, 0, 'No editable layers\n(Template objects are hidden)', {
                 fontSize: '14px',
                 fill: '#888888',
-                fontFamily: 'Arial'
+                fontFamily: 'Arial',
+                align: 'center'
             });
             this.layerScrollContainer.add(noLayersText);
             return;
         }
 
         // Ordenar por layer (del más alto al más bajo)
-        const sortedImages = [...this.loadedImages].sort((a, b) => b.layer - a.layer);
+        const sortedImages = [...nonTemplateImages].sort((a, b) => b.layer - a.layer);
 
         // Crear elementos para cada layer
         sortedImages.forEach((img, visualIndex) => {
@@ -1692,6 +2092,9 @@ class StageEditor extends Phaser.Scene {
         if (index >= 0 && index < this.loadedImages.length) {
             const layer = this.loadedImages[index];
 
+            // Detener animación si existe
+            this.stopSpriteAnimation(layer.object);
+
             // Remover del set de claves usadas
             this.usedImageKeys.delete(layer.key);
 
@@ -1774,9 +2177,14 @@ class StageEditor extends Phaser.Scene {
     }
 
     updateUI() {
-        // Actualizar info de cámara
+        // Calcular estadísticas de elementos
+        const templateCount = this.loadedImages.filter(img => img.isTemplate).length;
+        const customCount = this.loadedImages.filter(img => !img.isTemplate).length;
+        const totalCount = this.loadedImages.length;
+
+        // Actualizar info de cámara y elementos
         this.cameraInfoText.setText(
-            `Camera: (${Math.round(this.gameCamera.scrollX)}, ${Math.round(this.gameCamera.scrollY)}) | Zoom: ${this.zoomLevel.toFixed(1)}`
+            `Camera: (${Math.round(this.gameCamera.scrollX)}, ${Math.round(this.gameCamera.scrollY)}) | Zoom: ${this.zoomLevel.toFixed(1)}\n📦 Elements: ${totalCount} total (🎭 ${templateCount} template, ✏️ ${customCount} custom)`
         );
 
         // Actualizar panel de propiedades
@@ -1981,9 +2389,6 @@ class StageEditor extends Phaser.Scene {
 
         if (foundObject) {
             this.selectedObject = foundObject;
-            this.isDragging = true;
-            this.dragStartX = x - foundObject.x;
-            this.dragStartY = y - foundObject.y;
             this.selectSound.play();
 
             // Highlight del objeto seleccionado
@@ -1998,21 +2403,30 @@ class StageEditor extends Phaser.Scene {
     }
 
     highlightSelectedObject() {
-        // Remover highlights previos usando alpha en lugar de tint
+        // Guardar opacidades originales antes de aplicar highlight
         this.stageObjects.forEach(obj => {
-            if (obj !== this.selectedObject) {
-                obj.setAlpha(0.7);
+            if (!obj.getData('originalAlpha')) {
+                obj.setData('originalAlpha', obj.alpha);
             }
         });
 
-        // Highlight del objeto seleccionado
+        // Remover highlights previos restaurando opacidad original
+        this.stageObjects.forEach(obj => {
+            if (obj !== this.selectedObject) {
+                const originalAlpha = obj.getData('originalAlpha') || 1;
+                obj.setAlpha(originalAlpha * 0.7); // Dimming effect manteniendo la opacidad original
+            }
+        });
+
+        // Highlight del objeto seleccionado (restaurar su opacidad original)
         if (this.selectedObject) {
-            this.selectedObject.setAlpha(1);
-            // Outline visual removido según solicitud del usuario
+            const originalAlpha = this.selectedObject.getData('originalAlpha') || 1;
+            this.selectedObject.setAlpha(originalAlpha);
         } else {
-            // Restaurar alpha de todos los objetos
+            // Restaurar alpha original de todos los objetos
             this.stageObjects.forEach(obj => {
-                obj.setAlpha(1);
+                const originalAlpha = obj.getData('originalAlpha') || 1;
+                obj.setAlpha(originalAlpha);
             });
         }
     }
@@ -2053,8 +2467,11 @@ class StageEditor extends Phaser.Scene {
     }
 
     saveStage() {
+        // Filtrar solo objetos que NO son template
+        const nonTemplateObjects = this.stageObjects.filter(obj => !obj.getData('isTemplate'));
+        
         const stageData = {
-            objects: this.stageObjects.map(obj => ({
+            objects: nonTemplateObjects.map(obj => ({
                 x: obj.x,
                 y: obj.y,
                 imageKey: obj.getData('imageKey'),
@@ -2075,24 +2492,26 @@ class StageEditor extends Phaser.Scene {
 
         // Guardar en localStorage
         localStorage.setItem('stageEditorData', JSON.stringify(stageData));
-        console.log('Stage saved:', stageData);
     }
 
     saveStageAsJSON() {
-        if (this.loadedImages.length === 0) {
-            this.showErrorMessage('No images loaded to save');
+        // Filtrar solo elementos que NO son template
+        const nonTemplateImages = this.loadedImages.filter(img => !img.isTemplate);
+        
+        if (nonTemplateImages.length === 0) {
+            this.showErrorMessage('No custom elements to save (only template elements found)');
             return;
         }
 
         // Crear el JSON en el formato del stage.json
         const stageJSON = {
-            stage: this.loadedImages.map(img => {
+            stage: nonTemplateImages.map(img => {
                 const baseData = {
                     layer: img.layer,
                     scale: img.object.scaleX, // Asumiendo escala uniforme
                     namePath: img.name.replace(/\.[^/.]+$/, ""), // Remover extensión
                     visible: img.visible,
-                    opacity: img.object.alpha,
+                    opacity: img.object.getData('originalAlpha') || img.object.alpha, // ⭐ CORREGIDO: Usar opacidad original del usuario
                     position: [Math.round(img.object.x), Math.round(img.object.y)]
                 };
 
@@ -2139,31 +2558,143 @@ class StageEditor extends Phaser.Scene {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        console.log(`📁 Stage saved as ${fileName}:`, stageJSON);
-
-        // Mostrar mensaje de confirmación
-        const { width, height } = this.scale;
-        const confirmContainer = this.add.container(width / 2, height / 2);
-
-        const bg = this.add.rectangle(0, 0, 300, 80, 0x00AA00, 0.9);
-        bg.setStrokeStyle(2, 0xFFFFFF);
-
-        const text = this.add.text(0, 0, `Stage saved as:\n${fileName}`, {
-            fontSize: '14px',
-            fill: '#FFFFFF',
-            fontFamily: 'Arial',
-            align: 'center'
-        }).setOrigin(0.5);
-
-        confirmContainer.add([bg, text]);
-        this.gameCamera.ignore(confirmContainer);
-
-        // Auto-destruir después de 2 segundos
-        this.time.delayedCall(2000, () => {
-            confirmContainer.destroy();
-        });
-
         this.confirmSound.play();
+    }
+
+    // ===== CARGA DE STAGE TEMPLATE =====
+    async loadDefaultStageTemplate() {
+        try {
+            console.log('🎭 Cargando stage.json como template...');
+            
+            // Cargar el stage.json por defecto
+            const response = await fetch('public/assets/data/stages/stage.json');
+            if (!response.ok) {
+                throw new Error(`Error al cargar stage.json: ${response.status}`);
+            }
+            
+            const stageData = await response.json();
+            
+            if (!stageData || !stageData.stage) {
+                throw new Error('Formato de stage.json inválido');
+            }
+            
+            console.log('📊 Stage data cargado:', stageData);
+            
+            // Filtrar solo los elementos que tienen imágenes (no jugadores)
+            const imageElements = stageData.stage.filter(element => 
+                element.namePath && !element.player
+            );
+            
+            if (imageElements.length === 0) {
+                console.log('ℹ️ No hay elementos de imagen en el stage template');
+                return;
+            }
+            
+            // Precargar todas las texturas del stage
+            await this.preloadStageTextures(imageElements);
+            
+            // Crear los objetos del stage
+            this.createStageObjects(imageElements);
+            
+            console.log(`✅ Template cargado: ${imageElements.length} elementos`);
+            
+        } catch (error) {
+            console.error('❌ Error cargando stage template:', error);
+            this.showErrorMessage('Error cargando stage template');
+        }
+    }
+
+    async preloadStageTextures(imageElements) {
+        console.log('🖼️ Precargando texturas del stage...');
+        
+        const loadPromises = imageElements.map(element => {
+            return new Promise((resolve) => {
+                const imagePath = `public/assets/images/stages/stage/${element.namePath}.png`;
+                const textureKey = `stage_${element.namePath}`;
+                
+                // Solo cargar si no existe ya
+                if (this.textures.exists(textureKey)) {
+                    resolve();
+                    return;
+                }
+                
+                this.load.image(textureKey, imagePath);
+                resolve();
+            });
+        });
+        
+        await Promise.all(loadPromises);
+        
+        // Iniciar la carga si hay elementos nuevos
+        if (this.load.totalToLoad > 0) {
+            return new Promise((resolve) => {
+                this.load.once('complete', resolve);
+                this.load.start();
+            });
+        }
+    }
+
+    createStageObjects(imageElements) {
+        console.log('🏗️ Creando objetos del stage...');
+        
+        imageElements.forEach((element, index) => {
+            const textureKey = `stage_${element.namePath}`;
+            
+            if (!this.textures.exists(textureKey)) {
+                console.warn(`⚠️ Textura no encontrada: ${textureKey}`);
+                return;
+            }
+            
+            // Crear el objeto de imagen usando el mismo sistema que el editor
+            const [x = 0, y = 0] = Array.isArray(element.position) ? element.position : [0, 0];
+            
+            const stageObject = this.add.image(x, y, textureKey);
+            stageObject.setOrigin(0, 0); // Mismo origen que StageManager
+            stageObject.setScale(element.scale || 1.0);
+            stageObject.setAlpha(element.opacity ?? 1.0);
+            stageObject.setDepth(element.layer || 0);
+            stageObject.setVisible(element.visible !== false);
+            // NO hacer interactivo a los objetos del template
+            
+            // Configurar datos del objeto
+            stageObject.setData('type', 'stageObject');
+            stageObject.setData('imageKey', textureKey);
+            stageObject.setData('imageName', element.namePath);
+            stageObject.setData('layer', element.layer || 0);
+            stageObject.setData('baseX', stageObject.x);
+            stageObject.setData('baseY', stageObject.y);
+            stageObject.setData('isTemplate', true); // Marcar como elemento del template
+            stageObject.setData('originalAlpha', element.opacity ?? 1.0); // ⭐ Guardar opacidad original del template
+            
+            // Hacer que NO sea visible en la cámara HUD
+            this.hudCamera.ignore(stageObject);
+            
+            // NO configurar eventos para objetos del template
+            stageObject.setData('eventsConfigured', true); // Marcar como ya configurado para evitar procesamiento
+            
+            // Agregar a las arrays
+            this.stageObjects.push(stageObject);
+            
+            // Agregar a loadedImages para el layer manager
+            this.loadedImages.push({
+                key: textureKey,
+                name: element.namePath,
+                width: stageObject.width,
+                height: stageObject.height,
+                visible: stageObject.visible,
+                layer: element.layer || 0,
+                object: stageObject,
+                isTemplate: true
+            });
+            
+            console.log(`➕ Objeto creado: ${element.namePath} en (${x}, ${y})`);
+        });
+        
+        // Actualizar la UI después de cargar
+        this.time.delayedCall(100, () => {
+            this.updateLayerManager();
+            this.updateUI();
+        });
     }
 }
 

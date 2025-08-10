@@ -207,6 +207,16 @@
                                 "type": "animation",
                                 "key": "note-splash-anim"
                             }
+                        },
+                        {
+                            "name": "Dynamic Camera",
+                            "description": "Camera follows who is singing automatically",
+                            "value": true,
+                            "type": "boolean",
+                            "preview": {
+                                "true": "dynamic-camera-on",
+                                "false": "dynamic-camera-off"
+                            }
                         }
                     ]
                 },

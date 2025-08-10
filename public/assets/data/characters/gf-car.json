@@ -18,7 +18,7 @@
         -35
       ],
       "fps": 24,
-      "anim": "idle",
+      "anim": "danceRight",
       "indices": [
         15,
         16,
@@ -35,7 +35,19 @@
         27,
         28,
         29,
-        30,
+        30
+      ],
+      "name": "GF Dancing Beat Hair blowing CAR"
+    },
+        {
+      "loop": false,
+      "offsets": [
+        295,
+        -35
+      ],
+      "fps": 24,
+      "anim": "danceLeft",
+      "indices": [
         0,
         1,
         2,
@@ -58,8 +70,8 @@
   "no_antialiasing": false,
   "image": "characters/gfCar",
   "position": [
-    0,
-    0
+    50,
+    100
   ],
   "healthicon": "gf",
   "flip_x": false,

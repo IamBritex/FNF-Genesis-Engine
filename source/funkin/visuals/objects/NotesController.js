@@ -350,6 +350,15 @@ export class NotesController {
       state: "confirm",
     })
 
+    // Notificar al sistema de cámara dinámica
+    if (this.scene.cameraController?.dynamicCameraEnabled) {
+      if (note.isPlayerNote) {
+        this.scene.cameraController.onPlayerSinging();
+      } else {
+        this.scene.cameraController.onEnemySinging();
+      }
+    }
+
     this.scene.time.delayedCall(103, () => {
       if (!this.keysHeld[direction]) {
         // Solo emitir evento de cambio de estado, sin manipular posición ni escala
@@ -835,6 +844,11 @@ export class NotesController {
    */
   playEnemyNote(note) {
     note.wasHit = true
+
+    // Notificar al sistema de cámara dinámica
+    if (this.scene.cameraController?.dynamicCameraEnabled) {
+      this.scene.cameraController.onEnemySinging();
+    }
 
     if (note.isHoldNote) {
       if (!this.activeEnemyHoldNotes[note.noteDirection]) {

@@ -1,4 +1,3 @@
-import { TextureAtlasUtils } from '../../../../utils/TextureAtlasUtils.js';
 
 export class SustainCover {
     /**
@@ -388,6 +387,12 @@ export class SustainCover {
             
             cover.setDepth(1000);
             cover.setVisible(false);
+            
+            // Agregar el sprite a la UI Camera para que no se vea afectado por el movimiento de la cámara del juego
+            if (this.scene.cameraController && this.scene.cameraController.addToUILayer) {
+                this.scene.cameraController.addToUILayer(cover);
+            }
+            
             pool.push(cover);
         }
 

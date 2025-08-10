@@ -244,8 +244,8 @@
 		77
 	],
 	"camera_position": [
-		0,
-		0
+		1000,
+		300
 	],
 	"sing_duration": 4,
 	"scale": 1

@@ -162,6 +162,12 @@ export class NoteSplashes {
             splash.setVisible(false);
             splash.setActive(false);
             splash.setAlpha(0);
+            
+            // Agregar el splash a la cámara UI
+            if (this.scene.cameraController) {
+                this.scene.cameraController.addToUILayer(splash);
+            }
+            
             pool.push(splash);
         }
 
