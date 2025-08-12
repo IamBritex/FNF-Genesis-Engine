@@ -139,8 +139,8 @@ export class Characters {
             currentAnimation: null,
             isReady: false,
             basePosition: {
-                x: characterData.position[0],
-                y: characterData.position[1],
+                x: 0,
+                y: 0,
             },
             idleTimer: 0,
             animationsInitialized: false,
@@ -149,8 +149,8 @@ export class Characters {
         };
 
         gsap.set(sprite, {
-          x: characterData.position[0],
-          y: characterData.position[1],
+          x: 0,
+          y: 0,
         });
 
         await this.setupAnimations(characterInfo);
@@ -240,16 +240,16 @@ export class Characters {
             animationsInitialized: false,
             isReady: false,
             basePosition: {
-                x: characterData.position[0],
-                y: characterData.position[1],
+                x: 0,
+                y: 0,
             },
             idleTimer: 0,
             source: characterSource // Añadir la información de la fuente
         };
 
         gsap.set(sprite, {
-            x: characterData.position[0],
-            y: characterData.position[1],
+            x: 0,
+            y: 0,
         });
 
         await this.setupGFAnimation(characterInfo);
