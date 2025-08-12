@@ -36,6 +36,14 @@ class StageEditor extends Phaser.Scene {
         this.activeAnimations = new Map(); // Para controlar animaciones activas
         this.defaultBPM = 120; // BPM por defecto
 
+        // Contenedores para diferentes tipos de objetos
+        this.spritesheetContainer = null; // Contenedor para spritesheets
+        this.templateObjectsContainer = null; // Contenedor para objetos del template
+
+        // Handlers de drag personalizados
+        this.handleDragMove = null;
+        this.handleDragEnd = null;
+
         // ⭐ IMPORTANTE: Usar el mismo sistema de coordenadas que StageManager
         // StageManager usa setOrigin(0, 0) para todas las imágenes
         // Esto asegura que las posiciones se vean igual en editor y juego
@@ -95,6 +103,9 @@ class StageEditor extends Phaser.Scene {
         this.hudCamera = this.cameras.add(0, 0, width, height);
         this.hudCamera.setScroll(0, 0);
 
+        // Crear contenedores para diferentes tipos de objetos
+        this.createObjectContainers();
+
         // Cargar stage.json como template base
         this.loadDefaultStageTemplate();
 
@@ -120,6 +131,19 @@ class StageEditor extends Phaser.Scene {
 
         // Inicializar historial
         this.saveState('initial');
+    }
+
+    // ===== CREACIÓN DE CONTENEDORES =====
+    createObjectContainers() {
+        // Contenedor para spritesheets - similar al sistema de Characters
+        this.spritesheetContainer = this.add.container(0, 0);
+        this.spritesheetContainer.setDepth(100); // Depth alto para spritesheets
+        this.hudCamera.ignore(this.spritesheetContainer);
+
+        // Contenedor para objetos del template (opcional, para mejor organización)
+        this.templateObjectsContainer = this.add.container(0, 0);
+        this.templateObjectsContainer.setDepth(0); // Depth bajo para template
+        this.hudCamera.ignore(this.templateObjectsContainer);
     }
 
     // ===== SISTEMA DE ANIMACIÓN DE SPRITES =====
@@ -407,8 +431,6 @@ class StageEditor extends Phaser.Scene {
 
         if (files.length === 0) return;
 
-        console.log(`📁 Procesando ${files.length} archivos seleccionados`);
-
         // Filtrar solo archivos de imagen
         const imageFiles = files.filter(file => file.type.startsWith('image/'));
 
@@ -416,8 +438,6 @@ class StageEditor extends Phaser.Scene {
             this.showErrorMessage('No se encontraron archivos de imagen válidos');
             return;
         }
-
-        console.log(`🖼️ Encontrados ${imageFiles.length} archivos de imagen`);
 
         // Mostrar indicador de carga
         this.showLoadingIndicator(imageFiles.length);
@@ -427,7 +447,6 @@ class StageEditor extends Phaser.Scene {
 
         // Procesar cada archivo
         imageFiles.forEach((file, index) => {
-            console.log(`📄 Procesando archivo ${index + 1}/${imageFiles.length}: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)}KB)`);
 
             const reader = new FileReader();
 
@@ -520,8 +539,6 @@ class StageEditor extends Phaser.Scene {
         // Marcar la clave como en uso ANTES de cualquier operación
         this.usedImageKeys.add(imageKey);
 
-        console.log(`Iniciando carga de imagen: ${fileName} con clave: ${imageKey}`);
-
         try {
             // Usar createImageBitmap si está disponible (más moderno y confiable)
             let imageBitmap;
@@ -534,7 +551,6 @@ class StageEditor extends Phaser.Scene {
                 imageBitmap = await createImageBitmap(blob);
                 width = imageBitmap.width;
                 height = imageBitmap.height;
-                console.log(`ImageBitmap creado: ${fileName}, dimensiones: ${width}x${height}`);
             } else {
                 // Fallback al método tradicional
                 imageBitmap = await new Promise((resolve, reject) => {
@@ -545,7 +561,6 @@ class StageEditor extends Phaser.Scene {
                 });
                 width = imageBitmap.width;
                 height = imageBitmap.height;
-                console.log(`Imagen tradicional cargada: ${fileName}, dimensiones: ${width}x${height}`);
             }
 
             // Verificar que la textura no exista antes de proceder
@@ -559,7 +574,6 @@ class StageEditor extends Phaser.Scene {
             let textureCreated = false;
 
             try {
-                console.log(`🔄 Creando textura con canvas para: ${imageKey}`);
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d', { willReadFrequently: true });
                 canvas.width = width;
@@ -578,34 +592,21 @@ class StageEditor extends Phaser.Scene {
                 if (!this.textures.exists(imageKey)) {
                     this.textures.addCanvas(imageKey, canvas);
                     textureCreated = this.textures.exists(imageKey);
-                    if (textureCreated) {
-                        console.log(`✅ Textura creada con canvas: ${imageKey}`);
-                    } else {
-                        console.warn(`❌ addCanvas no creó la textura: ${imageKey}`);
-                    }
                 } else {
-                    console.warn(`⚠️ Textura ya existe al momento de addCanvas: ${imageKey}`);
                     textureCreated = true; // La textura ya existe, no necesitamos crearla
                 }
 
             } catch (canvasError) {
-                console.warn(`❌ Canvas method falló:`, canvasError);
                 textureCreated = false;
             }
 
             // Si el canvas falló, intentar con addBase64
             if (!textureCreated && !this.textures.exists(imageKey)) {
                 try {
-                    console.log(`🔄 Intentando con addBase64 como fallback...`);
                     this.textures.addBase64(imageKey, dataURL);
                     textureCreated = this.textures.exists(imageKey);
-                    if (textureCreated) {
-                        console.log(`✅ Textura creada con addBase64: ${imageKey}`);
-                    } else {
-                        console.warn(`❌ addBase64 no creó la textura: ${imageKey}`);
-                    }
                 } catch (base64Error) {
-                    console.warn(`❌ addBase64 falló:`, base64Error);
+                    // Silenciar error
                 }
             }
 
@@ -636,16 +637,15 @@ class StageEditor extends Phaser.Scene {
             // Remover extensión del nombre del archivo
             const nameWithoutExtension = fileName.replace(/\.[^/.]+$/, "");
 
-            console.log(`🔧 Creando objeto de imagen: ${nameWithoutExtension} con textura: ${imageKey}`);
-
             // Verificar que la textura existe antes de crear el objeto
             if (!this.textures.exists(imageKey)) {
                 throw new Error(`La textura ${imageKey} no existe al crear el objeto`);
             }
 
-            // Determinar la capa más alta + 1
-            const maxLayer = this.loadedImages.length > 0 ?
-                Math.max(...this.loadedImages.map(img => img.layer)) + 1 : 0;
+            // ⭐ ARREGLO: Determinar la capa basada SOLO en elementos del usuario (no template)
+            const userImages = this.loadedImages.filter(img => !img.isTemplate);
+            const maxLayer = userImages.length > 0 ?
+                Math.max(...userImages.map(img => img.layer)) + 1 : 0;
 
             // Crear la imagen en el escenario inmediatamente usando el mismo sistema que StageManager
             const newObject = this.add.image(0, 0, imageKey);
@@ -657,6 +657,7 @@ class StageEditor extends Phaser.Scene {
             newObject.setData('layer', maxLayer);
             newObject.setData('baseX', newObject.x);
             newObject.setData('baseY', newObject.y);
+            newObject.setData('isTemplate', false); // ⭐ Marcar como NO template (usuario agregado)
             newObject.setDepth(maxLayer);
 
             // Hacer que la imagen NO sea visible en la cámara HUD, pero SÍ en la cámara del juego
@@ -668,20 +669,7 @@ class StageEditor extends Phaser.Scene {
             // Asegurar que la imagen esté visible y configurar opacidad original
             newObject.setVisible(true);
             newObject.setAlpha(1);
-            newObject.setData('originalAlpha', 1); // ⭐ Establecer opacidad original
-
-            console.log(`✅ Objeto creado exitosamente:`, {
-                name: nameWithoutExtension,
-                key: imageKey,
-                position: `(${newObject.x}, ${newObject.y})`,
-                visible: newObject.visible,
-                alpha: newObject.alpha,
-                depth: newObject.depth,
-                texture: newObject.texture.key,
-                hasTexture: !!newObject.texture,
-                width: newObject.width,
-                height: newObject.height
-            });
+            newObject.setData('originalAlpha', 1);
 
             // Agregar a la lista de objetos
             this.stageObjects.push(newObject);
@@ -694,7 +682,8 @@ class StageEditor extends Phaser.Scene {
                 height: height,
                 object: newObject,
                 visible: true,
-                layer: maxLayer
+                layer: maxLayer,
+                isTemplate: false // ⭐ Marcar como NO template
             });
 
             // Seleccionar automáticamente la imagen recién cargada
@@ -705,8 +694,6 @@ class StageEditor extends Phaser.Scene {
             this.updateUI();
             this.updateLayerManager();
             this.saveState('add_image');
-
-            console.log(`🎉 Imagen completamente cargada: ${nameWithoutExtension} en layer ${maxLayer}, total objects: ${this.stageObjects.length}`);
 
         } catch (error) {
             console.error(`❌ Error creating image object for ${fileName}:`, error);
@@ -871,8 +858,6 @@ class StageEditor extends Phaser.Scene {
     async tryCreateSpritesheet(imageFile, xmlFile) {
         if (!imageFile || !xmlFile) return;
 
-        console.log('🎨 Creating spritesheet with:', imageFile.name, 'and', xmlFile.name);
-
         try {
             // Leer el archivo XML
             const xmlText = await this.readFileAsText(xmlFile);
@@ -932,8 +917,6 @@ class StageEditor extends Phaser.Scene {
             frameElements = xmlDoc.querySelectorAll('*[x][y][width][height]');
         }
 
-        console.log(`📋 Found ${frameElements.length} frames in XML`);
-
         frameElements.forEach((element, index) => {
             const name = element.getAttribute('name') ||
                 element.getAttribute('id') ||
@@ -966,7 +949,6 @@ class StageEditor extends Phaser.Scene {
             }
         });
 
-        console.log(`✅ Parsed ${frames.length} valid frames`);
         return frames;
     }
 
@@ -979,8 +961,6 @@ class StageEditor extends Phaser.Scene {
         const timestamp = Date.now();
         const baseKey = fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, '_');
         const spriteKey = `sprite_${baseKey}_${timestamp}`;
-
-        console.log(`🎨 Creating spritesheet: ${spriteKey} with ${xmlFrames.length} frames`);
 
         try {
             // Cargar la imagen base
@@ -1021,8 +1001,6 @@ class StageEditor extends Phaser.Scene {
 
                 this.textures.addCanvas(frameKeyName, frameCanvas);
                 this.textures.addCanvas(frameKeyIndex, frameCanvas);
-
-                console.log(`📋 Frame ${index + 1}: ${frame.name} (${frame.width}x${frame.height})`);
             });
 
             // Crear el objeto spritesheet en el escenario
@@ -1038,9 +1016,10 @@ class StageEditor extends Phaser.Scene {
     }
 
     createSpriteObject(spriteKey, fileName, frames, totalWidth, totalHeight) {
-        // Determinar la capa más alta + 1
-        const maxLayer = this.loadedImages.length > 0 ?
-            Math.max(...this.loadedImages.map(img => img.layer)) + 1 : 0;
+        // ⭐ ARREGLO: Determinar la capa basada SOLO en elementos del usuario (no template)
+        const userImages = this.loadedImages.filter(img => !img.isTemplate);
+        const maxLayer = userImages.length > 0 ?
+            Math.max(...userImages.map(img => img.layer)) + 1 : 0;
 
         const nameWithoutExtension = fileName.replace(/\.[^/.]+$/, "");
 
@@ -1059,7 +1038,11 @@ class StageEditor extends Phaser.Scene {
         spriteObject.setData('baseY', spriteObject.y);
         spriteObject.setData('frames', frames);
         spriteObject.setData('currentFrame', 0);
+        spriteObject.setData('isTemplate', false); // Marcar como NO template (usuario agregado)
         spriteObject.setDepth(maxLayer);
+
+        // ⭐ AÑADIR AL CONTENEDOR DE SPRITESHEETS para mejor control
+        this.spritesheetContainer.add(spriteObject);
 
         // Hacer que NO sea visible en la cámara HUD
         this.hudCamera.ignore(spriteObject);
@@ -1068,9 +1051,7 @@ class StageEditor extends Phaser.Scene {
         this.setupObjectEvents(spriteObject);
         
         // Configurar opacidad original para sprites
-        spriteObject.setData('originalAlpha', 1); // ⭐ Establecer opacidad original
-
-        console.log(`✅ Sprite object created: ${nameWithoutExtension} with ${frames.length} frames`);
+        spriteObject.setData('originalAlpha', 1);
 
         // Agregar a la lista de objetos
         this.stageObjects.push(spriteObject);
@@ -1085,7 +1066,8 @@ class StageEditor extends Phaser.Scene {
             visible: true,
             layer: maxLayer,
             isSprite: true,
-            frameCount: frames.length
+            frameCount: frames.length,
+            isTemplate: false // Marcar como NO template
         });
 
         // Seleccionar automáticamente
@@ -1096,8 +1078,6 @@ class StageEditor extends Phaser.Scene {
         this.updateUI();
         this.updateLayerManager();
         this.saveState('add_sprite');
-
-        console.log(`🎉 Spritesheet loaded: ${nameWithoutExtension}, frames: ${frames.length}`);
     }
 
     createSpriteFramesSynchronously(spriteKey, xmlFrames) {
@@ -1137,62 +1117,43 @@ class StageEditor extends Phaser.Scene {
         const isTemplate = gameObject.getData('isTemplate');
         
         if (isTemplate) {
-            // Los objetos del template NO deben ser interactivos
+            // ⭐ Los objetos del template NO deben ser interactivos ni seleccionables
+            gameObject.disableInteractive(); // Desactivar interactividad completamente
             gameObject.setData('eventsConfigured', true);
             return;
         }
         
         try {
-            // Asegurar que el objeto tenga input configurado
+            // ⭐ SOLO para objetos NO template: asegurar que el objeto tenga input configurado
             if (!gameObject.input) {
                 gameObject.setInteractive();
             }
             
-            // Configurar drag para todos los tipos de objetos usando scene.input
-            this.input.setDraggable(gameObject, true);
-            
-            // Configurar eventos de drag para TODOS los objetos
-            gameObject.on('dragstart', (pointer, dragX, dragY) => {
-                this.isDragging = true;
-                
-                // Calcular offset para mantener la posición relativa del mouse
-                this.dragOffsetX = gameObject.x - pointer.worldX;
-                this.dragOffsetY = gameObject.y - pointer.worldY;
-                
-                this.selectedObject = gameObject;
-                this.highlightSelectedObject();
-                this.updatePropertiesPanel();
-                
-                // Si es un elemento del template, marcarlo como modificado
-                this.markAsModified(gameObject);
-            });
-
-            gameObject.on('drag', (pointer, dragX, dragY) => {
-                // Usar las coordenadas del mundo del pointer más el offset
-                gameObject.x = pointer.worldX + this.dragOffsetX;
-                gameObject.y = pointer.worldY + this.dragOffsetY;
-                this.updatePropertiesPanel();
-            });
-
-            gameObject.on('dragend', () => {
-                this.isDragging = false;
-                this.saveState('move_object');
+            // ⭐ ARREGLO FINAL: Sistema de drag completamente manual sin usar setDraggable
+            gameObject.on('pointerdown', (pointer) => {
+                if (pointer.leftButtonDown()) {
+                    this.isDragging = true;
+                    
+                    // Guardar estado inicial del drag en el objeto mismo
+                    gameObject.setData('dragStartX', pointer.worldX);
+                    gameObject.setData('dragStartY', pointer.worldY);
+                    gameObject.setData('objectStartX', gameObject.x);
+                    gameObject.setData('objectStartY', gameObject.y);
+                    gameObject.setData('beingDragged', true);
+                    
+                    this.selectedObject = gameObject;
+                    this.highlightSelectedObject();
+                    this.updatePropertiesPanel();
+                    this.markAsModified(gameObject);
+                    this.selectSound.play();
+                }
             });
             
         } catch (error) {
+            console.error('❌ Error configuring drag events:', error);
             this.setupBasicEvents(gameObject);
             return;
         }
-
-        // Evento de selección con click (para objetos nuevos únicamente)
-        gameObject.on('pointerdown', (pointer) => {
-            if (!this.isDragging) {
-                this.selectedObject = gameObject;
-                this.highlightSelectedObject();
-                this.updatePropertiesPanel();
-                this.selectSound.play();
-            }
-        });
         
         // Evento hover para indicar que es seleccionable
         gameObject.on('pointerover', () => {
@@ -1218,8 +1179,9 @@ class StageEditor extends Phaser.Scene {
         const isTemplate = gameObject.getData('isTemplate');
         
         if (isTemplate) {
-            // Los objetos del template NO deben tener eventos
-            console.log('🎭 Template object - no events configured:', gameObject.getData('imageName'));
+            // ⭐ Los objetos del template NO deben tener eventos
+            console.log('🎭 Template object - no basic events configured:', gameObject.getData('imageName'));
+            gameObject.disableInteractive(); // Desactivar interactividad completamente
             gameObject.setData('eventsConfigured', true);
             return;
         }
@@ -2167,7 +2129,15 @@ class StageEditor extends Phaser.Scene {
 
     selectObjectByIndex(index) {
         if (index >= 0 && index < this.loadedImages.length) {
-            this.selectedObject = this.loadedImages[index].object;
+            const imageData = this.loadedImages[index];
+            
+            // ⭐ Verificar que NO sea un objeto del template
+            if (imageData.isTemplate) {
+                this.cancelSound.play();
+                return;
+            }
+            
+            this.selectedObject = imageData.object;
             this.highlightSelectedObject();
             this.updateUI();
             this.updateLayerManager();
@@ -2272,11 +2242,19 @@ class StageEditor extends Phaser.Scene {
                 this.cameraDragStartX = pointer.x;
                 this.cameraDragStartY = pointer.y;
                 this.updateUI();
-            } else if (this.isDragging && this.selectedObject) {
-                // Movimiento libre sin restricciones de grid
-                this.selectedObject.x = pointer.worldX;
-                this.selectedObject.y = pointer.worldY;
-                this.updateUI();
+            } else if (this.isDragging && this.selectedObject && this.selectedObject.getData('beingDragged')) {
+                // ⭐ ARREGLO: Usar el sistema de drag manual con deltas
+                const dragStartX = this.selectedObject.getData('dragStartX');
+                const dragStartY = this.selectedObject.getData('dragStartY');
+                const objectStartX = this.selectedObject.getData('objectStartX');
+                const objectStartY = this.selectedObject.getData('objectStartY');
+                
+                const deltaX = pointer.worldX - dragStartX;
+                const deltaY = pointer.worldY - dragStartY;
+                
+                this.selectedObject.x = objectStartX + deltaX;
+                this.selectedObject.y = objectStartY + deltaY;
+                this.updatePropertiesPanel();
             }
         });
 
@@ -2285,13 +2263,16 @@ class StageEditor extends Phaser.Scene {
                 this.isCameraDragging = false;
                 this.input.setDefaultCursor('default');
             } else {
-                if (this.isDragging && this.selectedObject) {
+                if (this.isDragging && this.selectedObject && this.selectedObject.getData('beingDragged')) {
+                    // ⭐ ARREGLO: Finalizar drag correctamente
+                    this.selectedObject.setData('beingDragged', false);
+                    this.isDragging = false;
+                    
                     // Actualizar posiciones base para el parallax
                     this.selectedObject.setData('baseX', this.selectedObject.x);
                     this.selectedObject.setData('baseY', this.selectedObject.y);
                     this.saveState('move_object');
                 }
-                this.isDragging = false;
             }
         });
 
@@ -2375,9 +2356,10 @@ class StageEditor extends Phaser.Scene {
         let foundObject = null;
 
         // Buscar el objeto más cercano al clic (del más alto al más bajo)
-        const sortedObjects = [...this.stageObjects].sort((a, b) =>
-            b.getData('layer') - a.getData('layer')
-        );
+        // ⭐ FILTRAR objetos del template - solo permitir selección de objetos de usuario
+        const sortedObjects = [...this.stageObjects]
+            .filter(obj => !obj.getData('isTemplate')) // ⭐ Excluir objetos template
+            .sort((a, b) => b.getData('layer') - a.getData('layer'));
 
         for (let obj of sortedObjects) {
             const bounds = obj.getBounds();
@@ -2635,7 +2617,6 @@ class StageEditor extends Phaser.Scene {
     }
 
     createStageObjects(imageElements) {
-        console.log('🏗️ Creando objetos del stage...');
         
         imageElements.forEach((element, index) => {
             const textureKey = `stage_${element.namePath}`;
@@ -2652,19 +2633,21 @@ class StageEditor extends Phaser.Scene {
             stageObject.setOrigin(0, 0); // Mismo origen que StageManager
             stageObject.setScale(element.scale || 1.0);
             stageObject.setAlpha(element.opacity ?? 1.0);
-            stageObject.setDepth(element.layer || 0);
+            
+            // ⭐ CAMBIO: Usar depth negativo para elementos del template (empezar desde -1)
+            const templateDepth = -(index + 1);
+            stageObject.setDepth(templateDepth);
             stageObject.setVisible(element.visible !== false);
-            // NO hacer interactivo a los objetos del template
             
             // Configurar datos del objeto
             stageObject.setData('type', 'stageObject');
             stageObject.setData('imageKey', textureKey);
             stageObject.setData('imageName', element.namePath);
-            stageObject.setData('layer', element.layer || 0);
+            stageObject.setData('layer', templateDepth); // ⭐ Usar depth negativo como layer
             stageObject.setData('baseX', stageObject.x);
             stageObject.setData('baseY', stageObject.y);
             stageObject.setData('isTemplate', true); // Marcar como elemento del template
-            stageObject.setData('originalAlpha', element.opacity ?? 1.0); // ⭐ Guardar opacidad original del template
+            stageObject.setData('originalAlpha', element.opacity ?? 1.0);
             
             // Hacer que NO sea visible en la cámara HUD
             this.hudCamera.ignore(stageObject);
@@ -2695,6 +2678,50 @@ class StageEditor extends Phaser.Scene {
             this.updateLayerManager();
             this.updateUI();
         });
+    }
+
+    // ===== MÉTODO DE LIMPIEZA =====
+    shutdown() {
+        // Limpiar animaciones activas
+        this.activeAnimations.forEach(animationData => {
+            if (animationData.timer) {
+                animationData.timer.destroy();
+            }
+        });
+        this.activeAnimations.clear();
+
+        // Limpiar contenedores
+        if (this.spritesheetContainer) {
+            this.spritesheetContainer.destroy();
+            this.spritesheetContainer = null;
+        }
+
+        if (this.templateObjectsContainer) {
+            this.templateObjectsContainer.destroy();
+            this.templateObjectsContainer = null;
+        }
+
+        // Limpiar input files
+        if (this.fileInput) {
+            document.body.removeChild(this.fileInput);
+            this.fileInput = null;
+        }
+
+        if (this.spriteImageInput) {
+            document.body.removeChild(this.spriteImageInput);
+            this.spriteImageInput = null;
+        }
+
+        if (this.spriteXMLInput) {
+            document.body.removeChild(this.spriteXMLInput);
+            this.spriteXMLInput = null;
+        }
+
+        // Limpiar arrays
+        this.stageObjects = [];
+        this.loadedImages = [];
+        this.usedImageKeys.clear();
+        this.actionHistory = [];
     }
 }
 
