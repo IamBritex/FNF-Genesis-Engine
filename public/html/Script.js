@@ -40,8 +40,8 @@ function applyCustomCursors() {
   style.id = 'custom-cursors-style';
   
   style.textContent = `
-    /* Reset primero */
-    * {
+    /* Reset para elementos HTML generales (no canvas) */
+    body, html, div, p, span, h1, h2, h3, h4, h5, h6 {
       cursor: ${customCursors.default} !important;
     }
     
@@ -84,6 +84,11 @@ function applyCustomCursors() {
     /* No permitido */
     .not-allowed, [disabled], [aria-disabled="true"] {
       cursor: ${customCursors.notAllowed} !important;
+    }
+    
+    /* Canvas del juego - NO sobrescribir, permitir que se mantenga el cursor asignado */
+    canvas {
+      /* Remover override para permitir texturas personalizadas */
     }
   `;
   

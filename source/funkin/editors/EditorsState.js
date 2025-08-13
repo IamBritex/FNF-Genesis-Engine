@@ -17,7 +17,7 @@ class EditorsState extends Phaser.Scene {
         this.load.audio('confirmSound', 'public/assets/audio/sounds/confirmMenu.ogg');
 
         // Cargar músicas
-        this.load.audio('editorsMusic', 'public/assets/audio/sounds/EditorMenu.mp3');
+        this.load.audio('editorsMusic', 'public/assets/audio/sounds/editor/chartEditorLoop.ogg');
         this.load.audio('menuMusic', 'public/assets/audio/sounds/FreakyMenu.mp3');
     }
 

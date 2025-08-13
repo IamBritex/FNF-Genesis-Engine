@@ -78,17 +78,67 @@ class CharacterEditor extends Phaser.Scene {
         // Variables para offset/tween de personaje
         this.currentCharacterTween = null;
         
+        // Sistema de temas
+        this.currentTheme = 'light'; // light o dark
+        
+        // Sistema de undo
+        this.undoHistory = [];
+        this.maxUndoSteps = 10;
+        
         // Sonidos (se inicializarán en create)
         this.selectSound = null;
         this.confirmSound = null;
         this.cancelSound = null;
+        this.clickDownSound = null;
+        this.clickUpSound = null;
+        this.openWindowSound = null;
+        this.exitWindowSound = null;
+        this.undoSound = null;
+    }
+    
+    // Función auxiliar para cambiar cursor tanto en Phaser como CSS
+    setCursor(cursorType) {
+        this.input.setDefaultCursor(cursorType);
+        if (this.game.canvas) {
+            // Mapear tipos de cursor a los cursores personalizados
+            const cursorMap = {
+                'default': 'default',
+                'pointer': 'pointer', 
+                'grab': 'grab',
+                'grabbing': 'grabbing',
+                'move': 'grabbing', // Usar grabbing para move también
+                'text': 'text',
+                'wait': 'wait',
+                'not-allowed': 'notAllowed'
+            };
+            
+            const mappedCursor = cursorMap[cursorType] || 'default';
+            
+            // Aplicar cursor personalizado usando las rutas del Script.js
+            const cursorPath = `public/assets/images/cursor/cursor-${mappedCursor === 'default' ? 'default' : 
+                mappedCursor === 'pointer' ? 'pointer' :
+                mappedCursor === 'grab' ? 'grabbing' :
+                mappedCursor === 'grabbing' ? 'grabbing' :
+                mappedCursor === 'text' ? 'text' :
+                mappedCursor === 'wait' ? 'hourglass' :
+                mappedCursor === 'notAllowed' ? 'cross' : 'default'}.png`;
+            
+            this.game.canvas.style.cursor = `url("${cursorPath}"), ${cursorType}`;
+        }
     }
 
     preload() {
-        // Sonidos
+        // Sonidos básicos
         this.load.audio('selectSound', 'public/assets/audio/sounds/scrollMenu.ogg');
         this.load.audio('confirmSound', 'public/assets/audio/sounds/confirmMenu.ogg');
         this.load.audio('cancelSound', 'public/assets/audio/sounds/cancelMenu.ogg');
+        
+        // Sonidos del editor
+        this.load.audio('clickDownEditor', 'public/assets/audio/sounds/editor/ClickDown.ogg');
+        this.load.audio('clickUpEditor', 'public/assets/audio/sounds/editor/ClickUp.ogg');
+        this.load.audio('openWindowEditor', 'public/assets/audio/sounds/editor/openWindow.ogg');
+        this.load.audio('exitWindowEditor', 'public/assets/audio/sounds/editor/exitWindow.ogg');
+        this.load.audio('undoSound', 'public/assets/audio/sounds/editor/undo.ogg');
     }
 
     create() {
@@ -116,6 +166,11 @@ class CharacterEditor extends Phaser.Scene {
         this.selectSound = this.sound.add('selectSound');
         this.confirmSound = this.sound.add('confirmSound');
         this.cancelSound = this.sound.add('cancelSound');
+        this.clickDownSound = this.sound.add('clickDownEditor');
+        this.clickUpSound = this.sound.add('clickUpEditor');
+        this.openWindowSound = this.sound.add('openWindowEditor');
+        this.exitWindowSound = this.sound.add('exitWindowEditor');
+        this.undoSound = this.sound.add('undoSound');
 
         // Input handlers
         this.setupInputHandlers();
@@ -153,6 +208,16 @@ class CharacterEditor extends Phaser.Scene {
     // ==========================================
 
     createCheckerboardPattern() {
+        // Verificar si la textura ya existe para evitar errores al re-entrar
+        if (this.textures.exists('checkerboardPattern')) {
+            // Si ya existe, solo crear el sprite
+            this.checkerboardSprite = this.add.tileSprite(-4000, -4000, 8000, 8000, 'checkerboardPattern');
+            this.checkerboardSprite.setOrigin(0, 0);
+            this.checkerboardSprite.setDepth(this.DEPTHS.BACKGROUND);
+            this.hudCamera.ignore(this.checkerboardSprite);
+            return;
+        }
+        
         // Optimizado: Crear una sola textura de patrón y repetirla
         const squareSize = 10;
         const patternSize = squareSize * 2; // Patrón de 2x2 cuadros = 20x20 pixels
@@ -196,6 +261,17 @@ class CharacterEditor extends Phaser.Scene {
             fontFamily: 'Arial'
         }).setOrigin(0.5);
         
+        // Agregar efectos de hover
+        button.on('pointerover', () => {
+            this.setCursor('pointer');
+            button.setFillStyle(color, 1.0); // Aumentar opacidad en hover
+        });
+        
+        button.on('pointerout', () => {
+            this.setCursor('default');
+            button.setFillStyle(color, 0.8); // Volver a opacidad normal
+        });
+        
         return { button, text: buttonText };
     }
 
@@ -230,6 +306,7 @@ class CharacterEditor extends Phaser.Scene {
             this.togglePanelsDropdown();
         });
 
+
         // Config button
         const configElements = this.createButton(170, 15, 60, 20, 'Config');
         configElements.button.setDepth(this.DEPTHS.NAV_BUTTONS);
@@ -255,7 +332,7 @@ class CharacterEditor extends Phaser.Scene {
         this.gameCamera.ignore(this.fileDropdown);
 
         // Background del dropdown
-        const dropdownBg = this.add.rectangle(0, 30, 150, 90, 0x2D1B3D, 0.95);
+        const dropdownBg = this.add.rectangle(10, 30, 150, 70, 0x2D1B3D, 0.95);
         dropdownBg.setStrokeStyle(1, 0xFFFFFF);
         dropdownBg.setInteractive();
         this.fileDropdown.add(dropdownBg);
@@ -268,21 +345,31 @@ class CharacterEditor extends Phaser.Scene {
         // Opciones del menú
         const options = [
             { text: 'Add Spritesheet', action: () => this.openCharacterLoader() },
-            { text: 'Import Character JSON', action: () => this.importCharacterJSON() },
             { text: 'Save JSON', action: () => this.saveCharacterJSON() },
             { text: 'Save All (ZIP)', action: () => this.saveAllAsZip() }
         ];
 
         options.forEach((option, index) => {
-            const optionBtn = this.add.rectangle(0, (index * 20) + 8, 110, 18, 0x4A2C66, 0.8);
+            const optionBtn = this.add.rectangle(25, (index * 20) + 8, 110, 15, 0x4A2C66, 1);
             optionBtn.setStrokeStyle(1, 0x9966CC);
             optionBtn.setInteractive();
 
-            const optionText = this.add.text(0, (index * 20) + 8, option.text, {
+            const optionText = this.add.text(25, (index * 20) + 8, option.text, {
                 fontSize: '10px',
                 fill: '#FFFFFF',
                 fontFamily: 'Arial'
             }).setOrigin(0.5);
+
+            // Hover effects
+            optionBtn.on('pointerover', () => {
+                this.setCursor('pointer');
+                optionBtn.setFillStyle(0x663399, 1); // Color más claro en hover
+            });
+            
+            optionBtn.on('pointerout', () => {
+                this.setCursor('default');
+                optionBtn.setFillStyle(0x4A2C66, 1); // Color original
+            });
 
             optionBtn.on('pointerdown', (pointer) => {
                 pointer.event.stopPropagation();
@@ -330,6 +417,17 @@ class CharacterEditor extends Phaser.Scene {
                 fontFamily: 'Arial'
             }).setOrigin(0.5);
 
+            // Hover effects
+            panelBtn.on('pointerover', () => {
+                this.setCursor('pointer');
+                panelBtn.setFillStyle(0x663399, 1); // Color más claro en hover
+            });
+            
+            panelBtn.on('pointerout', () => {
+                this.setCursor('default');
+                panelBtn.setFillStyle(0x4A2C66, 0.8); // Color original
+            });
+
             panelBtn.on('pointerdown', (pointer) => {
                 pointer.event.stopPropagation(); // Prevenir cierre automático
                 this.toggleModalWindow(panel.key);
@@ -346,8 +444,8 @@ class CharacterEditor extends Phaser.Scene {
         this.configDropdown.setVisible(false);
         this.gameCamera.ignore(this.configDropdown);
 
-        // Background del dropdown
-        const dropdownBg = this.add.rectangle(0, 30, 120, 70, 0x2D1B3D, 0.95);
+        // Background del dropdown (más grande para dos opciones)
+        const dropdownBg = this.add.rectangle(0, 10, 120, 70, 0x2D1B3D, 0.95);
         dropdownBg.setStrokeStyle(1, 0xFFFFFF);
         dropdownBg.setInteractive(); // Hacer interactivo para capturar clics
         this.configDropdown.add(dropdownBg);
@@ -360,7 +458,7 @@ class CharacterEditor extends Phaser.Scene {
         // Opciones del menú
         const configs = [
             { text: 'Shortcuts', action: () => this.showShortcutsModal() },
-            { text: 'Load BF Character', action: () => this.loadExistingCharacter('bf') }
+            { text: 'Themes', action: () => this.toggleModalWindow('themeSettings') }
         ];
 
         configs.forEach((config, index) => {
@@ -374,8 +472,20 @@ class CharacterEditor extends Phaser.Scene {
                 fontFamily: 'Arial'
             }).setOrigin(0.5);
 
+            // Hover effects
+            configBtn.on('pointerover', () => {
+                this.setCursor('pointer');
+                configBtn.setFillStyle(0x663399, 1); // Color más claro en hover
+            });
+            
+            configBtn.on('pointerout', () => {
+                this.setCursor('default');
+                configBtn.setFillStyle(0x4A2C66, 0.8); // Color original
+            });
+
             configBtn.on('pointerdown', (pointer) => {
                 pointer.event.stopPropagation(); // Prevenir cierre automático
+
                 config.action(); // Ejecutar la acción directamente
                 this.hideConfigDropdown();
             });
@@ -443,6 +553,218 @@ class CharacterEditor extends Phaser.Scene {
     }
 
     // ==========================================
+    // THEME SYSTEM
+    // ==========================================
+
+    createThemeSettingsModal() {
+        const { width, height } = this.scale;
+        
+        const modal = this.add.container(width / 2, height / 2);
+        modal.setDepth(this.windowZIndex);
+        modal.setVisible(false);
+        this.gameCamera.ignore(modal);
+
+        // Panel principal
+        const panel = this.add.rectangle(0, 0, 300, 180, 0x1A1A1A);
+
+        // Barra de título
+        const titleBar = this.add.rectangle(0, -75, 300, 30, 0x0066CC);
+        titleBar.setInteractive();
+
+        // Hover effects para la barra de título
+        titleBar.on('pointerover', () => {
+            this.setCursor('grab');
+            titleBar.setFillStyle(0x0088FF); // Color más claro en hover
+        });
+        
+        titleBar.on('pointerout', () => {
+            if (!this.isDragging) {
+                this.setCursor('default');
+                titleBar.setFillStyle(0x0066CC); // Color original
+            }
+        });
+
+        // Sistema de arrastre manual
+        titleBar.on('pointerdown', (pointer) => {
+            if (pointer.button === 0) {
+                this.isDragging = true;
+                this.draggedWindow = modal;
+                this.dragStartX = pointer.x;
+                this.dragStartY = pointer.y;
+                this.setCursor('grabbing');
+                
+                // Traer ventana al frente
+                modal.setDepth(this.windowZIndex++);
+            }
+        });
+
+        const titleText = this.add.text(-130, -75, 'THEME SETTINGS', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5);
+
+        // Botón de cerrar
+        const closeBtn = this.add.rectangle(130, -75, 25, 25, 0xFF0000);
+        closeBtn.setInteractive();
+        
+        const closeText = this.add.text(130, -75, 'X', {
+            fontSize: '12px',
+            fill: '#FFFFFF',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+
+        // Hover effects para botón de cerrar
+        closeBtn.on('pointerover', () => {
+            this.setCursor('pointer');
+            closeBtn.setFillStyle(0xFF4444); // Color más claro en hover
+        });
+        
+        closeBtn.on('pointerout', () => {
+            this.setCursor('default');
+            closeBtn.setFillStyle(0xFF0000); // Color original
+        });
+
+        closeBtn.on('pointerdown', () => {
+            this.toggleModalWindow('themeSettings');
+        });
+
+        // Título de sección
+        const sectionTitle = this.add.text(0, -40, 'Select Theme:', {
+            fontSize: '16px',
+            fill: '#00CCFF',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // Opciones de tema
+        const themes = [
+            { text: 'Light Theme', value: 'light' },
+            { text: 'Dark Theme', value: 'dark' }
+        ];
+
+        // Array para almacenar todos los elementos de temas
+        const themeElements = [];
+
+        themes.forEach((theme, index) => {
+            const yPos = -5 + (index * 40);
+            
+            // Botón del tema
+            const themeBtn = this.add.rectangle(0, yPos, 200, 30, 0x4A2C66);
+            themeBtn.setStrokeStyle(2, this.currentTheme === theme.value ? 0x00FF00 : 0x9966CC);
+            themeBtn.setInteractive();
+
+            const themeText = this.add.text(-70, yPos, theme.text, {
+                fontSize: '12px',
+                fill: '#FFFFFF',
+                fontFamily: 'Arial'
+            }).setOrigin(0, 0.5);
+
+            // Checkbox visual
+            const checkbox = this.add.rectangle(70, yPos, 16, 16, 0x333333);
+            checkbox.setStrokeStyle(1, 0xFFFFFF);
+
+            // Checkmark
+            const checkmark = this.add.text(70, yPos, '✓', {
+                fontSize: '12px',
+                fill: '#00FF00',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+            checkmark.setVisible(this.currentTheme === theme.value);
+
+            // Event handler
+            themeBtn.on('pointerdown', () => {
+                this.setTheme(theme.value);
+                this.updateThemeModalCheckboxes();
+            });
+
+            // Agregar elementos al array
+            themeElements.push(themeBtn, themeText, checkbox, checkmark);
+        });
+
+        // Agregar todos los elementos al modal de una vez
+        modal.add([panel, titleBar, titleText, closeBtn, closeText, sectionTitle, ...themeElements]);
+        
+        // Asegurar que la gameCamera ignore todos los elementos del modal
+        this.gameCamera.ignore(modal);
+        
+        this.modalWindows.themeSettings = modal;
+    }
+
+    updateThemeModalCheckboxes() {
+        if (!this.modalWindows.themeSettings) return;
+        
+        const modal = this.modalWindows.themeSettings;
+        
+        // Actualizar bordes de botones y checkmarks
+        modal.list.forEach((element) => {
+            // Si es un rectángulo de botón de tema (200x30)
+            if (element.type === 'Rectangle' && element.width === 200 && element.height === 30) {
+                const index = element.y === -5 ? 0 : 1; // Light = -5, Dark = 35
+                const themeValue = index === 0 ? 'light' : 'dark';
+                element.setStrokeStyle(2, this.currentTheme === themeValue ? 0x00FF00 : 0x9966CC);
+            }
+            
+            // Si es un checkmark
+            if (element.type === 'Text' && element.text === '✓') {
+                const index = element.y === -5 ? 0 : 1;
+                const themeValue = index === 0 ? 'light' : 'dark';
+                element.setVisible(this.currentTheme === themeValue);
+            }
+        });
+    }
+
+    setTheme(theme) {
+        this.currentTheme = theme;
+        this.applyTheme();
+    }
+
+    applyTheme() {
+        // Actualizar colores del patrón de ajedrez basado en el tema
+        this.updateCheckerboardTheme();
+    }
+
+    updateCheckerboardTheme() {
+        if (!this.checkerboardSprite) return;
+
+        // Crear nuevo patrón basado en el tema
+        const squareSize = 10;
+        const patternSize = squareSize * 2;
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = patternSize;
+        canvas.height = patternSize;
+        const ctx = canvas.getContext('2d');
+        
+        if (this.currentTheme === 'dark') {
+            // Tema oscuro
+            ctx.fillStyle = '#191919'; // Gris muy oscuro
+            ctx.fillRect(0, 0, squareSize, squareSize);
+            ctx.fillRect(squareSize, squareSize, squareSize, squareSize);
+            
+            ctx.fillStyle = '#0F0F0F'; // Más oscuro
+            ctx.fillRect(squareSize, 0, squareSize, squareSize);
+            ctx.fillRect(0, squareSize, squareSize, squareSize);
+        } else {
+            // Tema claro (por defecto)
+            ctx.fillStyle = '#FFFFFF'; // Blanco
+            ctx.fillRect(0, 0, squareSize, squareSize);
+            ctx.fillRect(squareSize, squareSize, squareSize, squareSize);
+            
+            ctx.fillStyle = '#CCCCCC'; // Gris claro
+            ctx.fillRect(squareSize, 0, squareSize, squareSize);
+            ctx.fillRect(0, squareSize, squareSize, squareSize);
+        }
+        
+        // Actualizar textura
+        if (this.textures.exists('checkerboardPattern')) {
+            this.textures.remove('checkerboardPattern');
+        }
+        this.textures.addCanvas('checkerboardPattern', canvas);
+        this.checkerboardSprite.setTexture('checkerboardPattern');
+    }
+
+    // ==========================================
     // MODAL WINDOWS
     // ==========================================
 
@@ -451,6 +773,7 @@ class CharacterEditor extends Phaser.Scene {
         this.createCharacterAnimationsModal();
         this.createSingMappingModal();
         this.createCharacterPropertiesModal();
+        this.createThemeSettingsModal(); // Crear modal de temas
     }
 
     createAnimationPlayerModal() {
@@ -476,7 +799,7 @@ class CharacterEditor extends Phaser.Scene {
                 this.draggedWindow = modal;
                 this.dragStartX = pointer.x;
                 this.dragStartY = pointer.y;
-                this.input.setDefaultCursor('grabbing');
+                this.setCursor('grabbing');
                 
                 // Traer ventana al frente
                 modal.setDepth(this.windowZIndex++);
@@ -535,15 +858,20 @@ class CharacterEditor extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Event handlers
-        playBtn.on('pointerdown', () => this.playCurrentAnimation());
-        stopBtn.on('pointerdown', () => this.stopCurrentAnimation());
+        playBtn.on('pointerdown', () => {
+            this.playCurrentAnimation();
+        });
+        
+        stopBtn.on('pointerdown', () => {
+            this.stopCurrentAnimation();
+        });
         
         minimizeBtn.on('pointerdown', () => {
             this.toggleMinimizeWindow('animationPlayer');
         });
         
         closeBtn.on('pointerdown', () => {
-            modal.setVisible(false);
+            this.toggleModalWindow('animationPlayer');
         });
 
         // Agregar elementos a la ventana
@@ -575,7 +903,7 @@ class CharacterEditor extends Phaser.Scene {
                 this.draggedWindow = modal;
                 this.dragStartX = pointer.x;
                 this.dragStartY = pointer.y;
-                this.input.setDefaultCursor('grabbing');
+                this.setCursor('grabbing');
                 
                 // Traer ventana al frente
                 modal.setDepth(this.windowZIndex++);
@@ -608,7 +936,7 @@ class CharacterEditor extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Contenedor para animaciones sin máscara
-        this.animationContainer = this.add.container(0, -20);
+        this.animationContainer = this.add.container(0, -140);
         
         // Variables para scroll
         this.animationScrollY = 0;
@@ -620,21 +948,16 @@ class CharacterEditor extends Phaser.Scene {
         });
         
         closeBtn.on('pointerdown', () => {
-            modal.setVisible(false);
+            this.toggleModalWindow('characterAnimations');
         });
 
         modal.add([panel, titleBar, titleText, minimizeBtn, minimizeText, closeBtn, closeText, this.animationContainer]);
         
         // Modificar específicamente el minimize button para characterAnimations
         minimizeBtn.off('pointerdown'); // Remover el listener anterior
+        minimizeBtn.off('pointerup'); // Remover el listener anterior
         minimizeBtn.on('pointerdown', () => {
             this.toggleMinimizeWindow('characterAnimations');
-        });
-        
-        // Agregar scroll wheel para el contenedor de animaciones - área expandida
-        modal.setInteractive(new Phaser.Geom.Rectangle(-110, -200, 220, 400), Phaser.Geom.Rectangle.Contains);
-        modal.on('wheel', (pointer, deltaX, deltaY) => {
-            this.scrollAnimationContainer(deltaY);
         });
         
         // Asegurar que el HUD ignore el modal
@@ -665,7 +988,7 @@ class CharacterEditor extends Phaser.Scene {
                 this.draggedWindow = modal;
                 this.dragStartX = pointer.x;
                 this.dragStartY = pointer.y;
-                this.input.setDefaultCursor('grabbing');
+                this.setCursor('grabbing');
                 
                 // Traer ventana al frente
                 modal.setDepth(this.windowZIndex++);
@@ -680,7 +1003,6 @@ class CharacterEditor extends Phaser.Scene {
 
         // Botones de control
         const minimizeBtn = this.add.rectangle(130, -185, 20, 20, 0x666600);
-        minimizeBtn.setStrokeStyle(1, 0xFFFFFF);
         minimizeBtn.setInteractive();
         
         const minimizeText = this.add.text(130, -185, '_', {
@@ -690,7 +1012,6 @@ class CharacterEditor extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const closeBtn = this.add.rectangle(150, -185, 20, 20, 0xFF0000);
-        closeBtn.setStrokeStyle(1, 0xFFFFFF);
         closeBtn.setInteractive();
         
         const closeText = this.add.text(150, -185, 'X', {
@@ -705,7 +1026,7 @@ class CharacterEditor extends Phaser.Scene {
         });
         
         closeBtn.on('pointerdown', () => {
-            modal.setVisible(false);
+            this.toggleModalWindow('singMapping');
         });
 
         modal.add([panel, titleBar, titleText, minimizeBtn, minimizeText, closeBtn, closeText]);
@@ -741,7 +1062,7 @@ class CharacterEditor extends Phaser.Scene {
                 this.draggedWindow = modal;
                 this.dragStartX = pointer.x;
                 this.dragStartY = pointer.y;
-                this.input.setDefaultCursor('move');
+                this.setCursor('move');
                 
                 // Traer al frente
                 modal.setDepth(this.windowZIndex++);
@@ -779,7 +1100,7 @@ class CharacterEditor extends Phaser.Scene {
         });
         
         closeBtn.on('pointerdown', () => {
-            modal.setVisible(false);
+            this.toggleModalWindow('characterProperties');
         });
 
         // Contenedor para propiedades sin scroll
@@ -840,7 +1161,6 @@ class CharacterEditor extends Phaser.Scene {
                 if (this.characterSprite) {
                     this.characterSprite.setFlipX(this.currentCharacter.flip_x);
                 }
-                this.confirmSound.play();
             }
         });
 
@@ -889,7 +1209,6 @@ class CharacterEditor extends Phaser.Scene {
                 if (this.characterSprite) {
                     this.characterSprite.setScale(this.currentCharacter.scale);
                 }
-                this.selectSound.play();
             }
         });
 
@@ -901,10 +1220,9 @@ class CharacterEditor extends Phaser.Scene {
                 if (this.characterSprite) {
                     this.characterSprite.setScale(this.currentCharacter.scale);
                 }
-                this.selectSound.play();
             }
         });
-
+        
         this.propertiesContainer.add([scaleLabel, scaleDecBtn, scaleDecText, scaleValue, scaleIncBtn, scaleIncText]);
         yOffset += 35;
 
@@ -930,7 +1248,7 @@ class CharacterEditor extends Phaser.Scene {
             this.toggleGhostMode();
             ghostCheckmark.setVisible(this.isGhostMode);
         });
-
+        
         this.propertiesContainer.add([ghostLabel, ghostCheckbox, ghostCheckmark]);
         yOffset += 40;
 
@@ -1005,11 +1323,22 @@ class CharacterEditor extends Phaser.Scene {
     toggleModalWindow(key) {
         if (this.modalWindows[key]) {
             const modal = this.modalWindows[key];
+            const wasVisible = modal.visible;
             modal.setVisible(!modal.visible);
             
             if (modal.visible) {
                 // Traer al frente
                 modal.setDepth(this.windowZIndex++);
+                
+                // Reproducir sonido de apertura de ventana
+                if (this.openWindowSound) {
+                    this.openWindowSound.play();
+                }
+            } else {
+                // Reproducir sonido de cierre de ventana
+                if (this.exitWindowSound) {
+                    this.exitWindowSound.play();
+                }
             }
         }
     }
@@ -1099,12 +1428,6 @@ class CharacterEditor extends Phaser.Scene {
         
         this.updateSingMappingButtons();
         
-        // Agregar scroll wheel para el modal de sing mapping - área expandida
-        modal.setInteractive(new Phaser.Geom.Rectangle(-160, -200, 320, 400), Phaser.Geom.Rectangle.Contains);
-        modal.on('wheel', (pointer, deltaX, deltaY) => {
-            this.scrollSingMappingContainer(deltaY);
-        });
-        
         modal.add([this.singMappingContainer]);
     }
 
@@ -1151,14 +1474,14 @@ class CharacterEditor extends Phaser.Scene {
 
                 deleteBtn.on('pointerdown', () => {
                     this.removeCustomSingAnimation(singKey);
-                });
+                });                
             }
 
             // Event handler para asignar animación
             btn.on('pointerdown', () => {
                 this.openAnimationSelector(singKey, assignedText);
             });
-
+            
             // Agregar elementos al contenedor en el orden correcto
             if (deleteBtn && deleteText) {
                 this.singMappingContainer.add([btn, btnText, assignedText, deleteBtn, deleteText]);
@@ -1185,25 +1508,49 @@ class CharacterEditor extends Phaser.Scene {
 
         this.singMappingContainer.add([addBtn, addText]);
         
-        // Calcular scroll máximo
-        this.maxSingScroll = Math.max(0, ((this.customSingAnimations.length + 1) * 30) - 300);
-        this.updateSingMappingScroll();
+        // Ajustar tamaño de la ventana modal al contenido
+        this.adjustSingMappingModalSize(this.customSingAnimations.length + 1); // +1 para el botón "+"
     }
 
-    scrollSingMappingContainer(deltaY) {
-        if (!this.singMappingContainer) return;
+    adjustSingMappingModalSize(itemCount) {
+        const modal = this.modalWindows.singMapping;
+        if (!modal) return;
         
-        const scrollSpeed = 30;
-        this.singScrollY += deltaY > 0 ? scrollSpeed : -scrollSpeed;
-        this.singScrollY = Phaser.Math.Clamp(this.singScrollY, 0, this.maxSingScroll);
+        // Calcular altura basada en el contenido
+        const minHeight = 80; // Altura mínima (header + padding)
+        const itemHeight = 30; // Altura por elemento
+        const padding = 40; // Padding extra
+        const newHeight = Math.max(minHeight, (itemCount * itemHeight) + padding);
         
-        this.updateSingMappingScroll();
-    }
-
-    updateSingMappingScroll() {
-        if (!this.singMappingContainer) return;
+        // Obtener el panel principal (primer elemento en el modal)
+        const panel = modal.getAt(0);
+        if (panel) {
+            panel.height = newHeight;
+            panel.setSize(320, newHeight);
+        }
         
-        this.singMappingContainer.setY(-50 - this.singScrollY);
+        // Ajustar posición de la barra de título
+        const titleBar = modal.getAt(1);
+        if (titleBar) {
+            titleBar.y = -(newHeight / 2) + 15;
+        }
+        
+        // Ajustar posición del texto del título
+        const titleText = modal.getAt(2);
+        if (titleText) {
+            titleText.y = -(newHeight / 2) + 15;
+        }
+        
+        // Ajustar botones de la ventana
+        const minimizeBtn = modal.getAt(3);
+        const minimizeText = modal.getAt(4);
+        const closeBtn = modal.getAt(5);
+        const closeText = modal.getAt(6);
+        
+        if (minimizeBtn) minimizeBtn.y = -(newHeight / 2) + 15;
+        if (minimizeText) minimizeText.y = -(newHeight / 2) + 15;
+        if (closeBtn) closeBtn.y = -(newHeight / 2) + 15;
+        if (closeText) closeText.y = -(newHeight / 2) + 15;
     }
 
     removeCustomSingAnimation(animKey) {
@@ -1263,9 +1610,161 @@ class CharacterEditor extends Phaser.Scene {
             this.returnToEditorsState();
         });
 
-        // Reset de cámara
+        // === SHORTCUTS DE CONTROL DE ANIMACIONES ===
+        
+        // Q → Animación anterior
+        this.input.keyboard.on('keydown-Q', () => {
+            this.playPreviousAnimation();
+        });
+
+        // E → Siguiente animación
+        this.input.keyboard.on('keydown-E', () => {
+            this.playNextAnimation();
+        });
+
+        // Enter → Repetir animación actual
+        this.input.keyboard.on('keydown-ENTER', () => {
+            this.playCurrentAnimation();
+        });
+
+        // Espacio → Reproducir animación idle
+        this.input.keyboard.on('keydown-SPACE', () => {
+            this.playIdleAnimation();
+        });
+
+        // R → Resetear cámara
         this.input.keyboard.on('keydown-R', () => {
             this.resetCamera();
+        });
+
+        // F → Voltear personaje en el eje X
+        this.input.keyboard.on('keydown-F', () => {
+            this.flipCharacterX();
+        });
+
+        // === SHORTCUTS DE MOVIMIENTO DE OFFSETS ===
+        
+        // Flechas → Mover offsets 5px
+        this.input.keyboard.on('keydown-LEFT', (event) => {
+            if (!event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(-5, 0);
+            }
+        });
+
+        this.input.keyboard.on('keydown-RIGHT', (event) => {
+            if (!event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(5, 0);
+            }
+        });
+
+        this.input.keyboard.on('keydown-UP', (event) => {
+            if (!event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(0, -5);
+            }
+        });
+
+        this.input.keyboard.on('keydown-DOWN', (event) => {
+            if (!event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(0, 5);
+            }
+        });
+
+        // Shift + Flechas → Mover offsets 10px
+        this.input.keyboard.on('keydown-LEFT', (event) => {
+            if (event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(-10, 0);
+            }
+        });
+
+        this.input.keyboard.on('keydown-RIGHT', (event) => {
+            if (event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(10, 0);
+            }
+        });
+
+        this.input.keyboard.on('keydown-UP', (event) => {
+            if (event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(0, -10);
+            }
+        });
+
+        this.input.keyboard.on('keydown-DOWN', (event) => {
+            if (event.shiftKey && !event.ctrlKey) {
+                this.moveCharacterOffset(0, 10);
+            }
+        });
+
+        // Ctrl + Flechas → Mover offsets 1px
+        this.input.keyboard.on('keydown-LEFT', (event) => {
+            if (event.ctrlKey && !event.shiftKey) {
+                this.moveCharacterOffset(-1, 0);
+            }
+        });
+
+        this.input.keyboard.on('keydown-RIGHT', (event) => {
+            if (event.ctrlKey && !event.shiftKey) {
+                this.moveCharacterOffset(1, 0);
+            }
+        });
+
+        this.input.keyboard.on('keydown-UP', (event) => {
+            if (event.ctrlKey && !event.shiftKey) {
+                this.moveCharacterOffset(0, -1);
+            }
+        });
+
+        this.input.keyboard.on('keydown-DOWN', (event) => {
+            if (event.ctrlKey && !event.shiftKey) {
+                this.moveCharacterOffset(0, 1);
+            }
+        });
+
+        // === SHORTCUTS DE GUARDADO ===
+        
+        // Esc → Guardar datos en JSON
+        this.input.keyboard.on('keydown-ESC', (event) => {
+            if (!event.ctrlKey && !event.shiftKey) {
+                this.saveCharacterJSON();
+            }
+        });
+
+        // Ctrl + Esc → Guardar archivo TXT con offsets
+        this.input.keyboard.on('keydown-ESC', (event) => {
+            if (event.ctrlKey && !event.shiftKey) {
+                this.saveOffsetsAsTXT();
+            }
+        });
+
+        // Shift + Esc → Guardar ZIP con XML, PNG y JSON del personaje
+        this.input.keyboard.on('keydown-ESC', (event) => {
+            if (event.shiftKey && !event.ctrlKey) {
+                this.saveAllAsZip();
+            }
+        });
+
+        // === SHORTCUTS DE UNDO ===
+        
+        // Ctrl + Z → Undo (retroceder 1 paso)
+        this.input.keyboard.on('keydown-Z', (event) => {
+            if (event.ctrlKey && !event.shiftKey) {
+                this.performUndo();
+            }
+        });
+
+        // === SONIDOS GLOBALES DE CLICK ===
+        
+        // Click down en cualquier parte
+        this.input.on('pointerdown', (pointer) => {
+            if (this.clickDownSound) {
+                this.clickDownSound.play();
+            }
+        });
+
+        // Click up en cualquier parte
+        this.input.on('pointerup', (pointer) => {
+            if (this.clickUpSound) {
+                this.clickUpSound.play();
+            }
         });
 
         // Mouse wheel para zoom (solo gameCamera, no en modales)
@@ -1301,7 +1800,7 @@ class CharacterEditor extends Phaser.Scene {
                 this.isCameraDragging = true;
                 this.cameraDragStartX = pointer.x;
                 this.cameraDragStartY = pointer.y;
-                this.input.setDefaultCursor('grabbing');
+                this.setCursor('grabbing');
             }
         });
 
@@ -1393,7 +1892,7 @@ class CharacterEditor extends Phaser.Scene {
         this.input.on('pointerup', (pointer) => {
             if (pointer.button === 1) { // Middle mouse button
                 this.isCameraDragging = false;
-                this.input.setDefaultCursor('default');
+                this.setCursor('default');
             }
         });
 
@@ -1405,7 +1904,7 @@ class CharacterEditor extends Phaser.Scene {
                     this.characterDragging = true;
                     this.characterDragStartX = pointer.worldX;
                     this.characterDragStartY = pointer.worldY;
-                    this.input.setDefaultCursor('move');
+                    this.setCursor('move');
                     return; // No procesar otros eventos si estamos arrastrando el personaje
                 }
                 
@@ -1431,14 +1930,14 @@ class CharacterEditor extends Phaser.Scene {
                 // Terminar arrastre del personaje
                 if (this.characterDragging) {
                     this.characterDragging = false;
-                    this.input.setDefaultCursor('default');
+                    this.setCursor('default');
                 }
                 
                 // Terminar arrastre de ventanas
                 if (this.isDragging) {
                     this.isDragging = false;
                     this.draggedWindow = null;
-                    this.input.setDefaultCursor('default');
+                    this.setCursor('default');
                 }
             }
         });
@@ -1483,6 +1982,198 @@ class CharacterEditor extends Phaser.Scene {
         this.gameCamera.scrollY = 0;
         this.gameCamera.setZoom(1);
         this.confirmSound.play();
+    }
+
+    // === MÉTODOS AUXILIARES PARA SHORTCUTS ===
+
+    playPreviousAnimation() {
+        if (!this.currentCharacter || !this.characterAnimations || this.characterAnimations.length === 0) return;
+        
+        const currentIndex = this.characterAnimations.indexOf(this.currentAnimation);
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : this.characterAnimations.length - 1;
+        const prevAnimation = this.characterAnimations[prevIndex];
+        
+        this.playCharacterAnimation(prevAnimation);
+        this.selectSound.play();
+    }
+
+    playNextAnimation() {
+        if (!this.currentCharacter || !this.characterAnimations || this.characterAnimations.length === 0) return;
+        
+        const currentIndex = this.characterAnimations.indexOf(this.currentAnimation);
+        const nextIndex = (currentIndex + 1) % this.characterAnimations.length;
+        const nextAnimation = this.characterAnimations[nextIndex];
+        
+        this.playCharacterAnimation(nextAnimation);
+        this.selectSound.play();
+    }
+
+    playIdleAnimation() {
+        if (!this.currentCharacter) return;
+        
+        // Buscar animación idle
+        const idleAnimation = this.characterAnimations?.find(anim => 
+            anim.toLowerCase().includes('idle') || anim === 'idle'
+        ) || this.characterAnimations?.[0]; // Si no hay idle, usar la primera animación
+        
+        if (idleAnimation) {
+            this.playCharacterAnimation(idleAnimation);
+            this.confirmSound.play();
+        }
+    }
+
+    flipCharacterX() {
+        if (!this.currentCharacter || !this.characterSprite) return;
+        
+        // Toggle flip X
+        this.currentCharacter.flip_x = !this.currentCharacter.flip_x;
+        this.characterSprite.setFlipX(this.currentCharacter.flip_x);
+        
+        this.confirmSound.play();
+        
+        // Actualizar panel de propiedades si está abierto
+        this.updateCharacterPropertiesPanel();
+    }
+
+    moveCharacterOffset(deltaX, deltaY) {
+        if (!this.currentCharacter || !this.characterSprite || !this.currentAnimation) return;
+        
+        // Guardar estado antes de hacer cambios
+        this.saveUndoState();
+        
+        // Mover el sprite directamente
+        this.characterSprite.x += deltaX;
+        this.characterSprite.y += deltaY;
+        
+        // Actualizar offset en los datos del personaje
+        const animationGroup = this.currentCharacter.animations[this.currentAnimation];
+        if (animationGroup && Array.isArray(animationGroup) && animationGroup.length > 0) {
+            animationGroup.forEach(frame => {
+                frame.offsetX = (frame.offsetX || 0) + deltaX;
+                frame.offsetY = (frame.offsetY || 0) + deltaY;
+            });
+        }
+        
+        // Actualizar información del offset en pantalla
+        this.updateOffsetInfo();
+        
+        // Reproducir sonido de selección
+        this.selectSound.play();
+    }
+
+    saveOffsetsAsTXT() {
+        if (!this.currentCharacter) {
+            this.showErrorMessage('No character loaded');
+            return;
+        }
+
+        try {
+            let offsetsData = `Character Offsets: ${this.currentCharacter.name || 'Unknown'}\n`;
+            offsetsData += `Generated: ${new Date().toISOString()}\n\n`;
+
+            // Generar datos de offsets para cada animación
+            for (const animName in this.currentCharacter.animations) {
+                const animationGroup = this.currentCharacter.animations[animName];
+                if (animationGroup && Array.isArray(animationGroup) && animationGroup.length > 0) {
+                    const frame = animationGroup[0]; // Tomar el primer frame como referencia
+                    const offsetX = Math.round(frame.offsetX || 0);
+                    const offsetY = Math.round(frame.offsetY || 0);
+                    offsetsData += `${animName}: [${offsetX}, ${offsetY}]\n`;
+                }
+            }
+
+            // Crear y descargar archivo TXT
+            const blob = new Blob([offsetsData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${this.currentCharacter.name || 'character'}_offsets.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.confirmSound.play();
+            this.showSuccessToast('Offsets saved as TXT');
+        } catch (error) {
+            console.error('Error saving offsets:', error);
+            this.showErrorMessage('Error saving offsets file');
+        }
+    }
+
+    // === SISTEMA DE UNDO ===
+
+    saveUndoState() {
+        if (!this.currentCharacter) return;
+        
+        // Crear una copia profunda del estado actual del personaje
+        const undoState = {
+            characterData: JSON.parse(JSON.stringify(this.currentCharacter)),
+            timestamp: Date.now()
+        };
+        
+        // Agregar al historial
+        this.undoHistory.push(undoState);
+        
+        // Mantener solo los últimos maxUndoSteps
+        if (this.undoHistory.length > this.maxUndoSteps) {
+            this.undoHistory.shift();
+        }
+    }
+
+    performUndo() {
+        if (this.undoHistory.length === 0) {
+            this.showErrorMessage('No hay acciones para deshacer');
+            return;
+        }
+
+        // Obtener el último estado
+        const lastState = this.undoHistory.pop();
+        
+        if (lastState && lastState.characterData) {
+            // Restaurar el estado del personaje
+            this.currentCharacter = lastState.characterData;
+            
+            // Actualizar la UI y el sprite
+            this.updateCharacterFromUndoState();
+            
+            // Reproducir sonido de undo
+            if (this.undoSound) {
+                this.undoSound.play();
+            }
+            
+            this.showSuccessToast('Acción deshecha');
+        }
+    }
+
+    updateCharacterFromUndoState() {
+        if (!this.currentCharacter) return;
+        
+        // Actualizar sprite del personaje
+        if (this.characterSprite) {
+            // Aplicar posición y flip
+            if (this.currentCharacter.basePosition) {
+                this.characterSprite.x = this.currentCharacter.basePosition.x;
+                this.characterSprite.y = this.currentCharacter.basePosition.y;
+            }
+            
+            if (this.currentCharacter.flip_x !== undefined) {
+                this.characterSprite.setFlipX(this.currentCharacter.flip_x);
+            }
+        }
+        
+        // Actualizar lista de animaciones
+        if (this.currentCharacter.animations) {
+            this.characterAnimations = Object.keys(this.currentCharacter.animations);
+            this.updateAnimationList();
+        }
+        
+        // Actualizar información de offset
+        this.updateOffsetInfo();
+        
+        // Actualizar paneles si están abiertos
+        this.updateCharacterPropertiesPanel();
+        this.updateSingMappingButtons();
     }
 
     returnToEditorsState() {
@@ -1654,7 +2345,6 @@ class CharacterEditor extends Phaser.Scene {
 
         // Panel del modal
         const modalPanel = this.add.rectangle(0, 0, 500, 400, 0x222222);
-        modalPanel.setStrokeStyle(3, 0x00CCFF);
 
         // Título
         const title = this.add.text(0, -170, 'ADD CHARACTER SPRITESHEET', {
@@ -1665,7 +2355,6 @@ class CharacterEditor extends Phaser.Scene {
 
         // Área de drag & drop
         const dropArea = this.add.rectangle(0, -50, 450, 200, 0x333333);
-        dropArea.setStrokeStyle(2, 0x666666, 1);
         dropArea.setInteractive();
 
         // Texto principal del drag & drop
@@ -1688,23 +2377,6 @@ class CharacterEditor extends Phaser.Scene {
             fontFamily: 'Arial'
         }).setOrigin(0.5);
 
-        // Input para nombre del personaje
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.placeholder = 'Character name (optional)';
-        nameInput.style.position = 'absolute';
-        nameInput.style.left = '50%';
-        nameInput.style.top = '50%';
-        nameInput.style.transform = 'translate(-50%, 40px)';
-        nameInput.style.padding = '8px';
-        nameInput.style.width = '200px';
-        nameInput.style.fontSize = '14px';
-        nameInput.style.backgroundColor = '#444444';
-        nameInput.style.color = '#FFFFFF';
-        nameInput.style.border = '1px solid #666666';
-        nameInput.style.borderRadius = '4px';
-        document.body.appendChild(nameInput);
-
         // Configurar drag & drop
         this.setupDragAndDrop(dropArea, dropText, fileStatus);
 
@@ -1715,7 +2387,6 @@ class CharacterEditor extends Phaser.Scene {
 
         // Botones
         const loadBtn = this.add.rectangle(-80, 140, 120, 35, 0x00AA00);
-        loadBtn.setStrokeStyle(2, 0xFFFFFF);
         loadBtn.setInteractive();
 
         const loadBtnText = this.add.text(-80, 140, 'LOAD CHARACTER', {
@@ -1725,7 +2396,6 @@ class CharacterEditor extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const cancelBtn = this.add.rectangle(80, 140, 120, 35, 0xFF3333);
-        cancelBtn.setStrokeStyle(2, 0xFFFFFF);
         cancelBtn.setInteractive();
 
         const cancelBtnText = this.add.text(80, 140, 'CANCEL', {
@@ -1739,7 +2409,7 @@ class CharacterEditor extends Phaser.Scene {
             if (this.selectedFiles.image && this.selectedFiles.xml) {
                 // Usar el nombre del archivo PNG sin extensión, o el valor del input si está especificado
                 const imageName = this.selectedFiles.image.name.replace(/\.[^/.]+$/, ''); // Quitar extensión
-                const characterName = nameInput.value.trim() || imageName;
+                const characterName = imageName;
                 
                 // Verificar si ya hay un personaje cargado
                 if (this.currentCharacter) {
@@ -1764,7 +2434,6 @@ class CharacterEditor extends Phaser.Scene {
         ]);
 
         // Referencias para cleanup
-        this.characterModal.nameInput = nameInput;
         this.characterModal.fileStatus = fileStatus;
         this.characterModal.dropText = dropText;
 
@@ -1886,7 +2555,6 @@ class CharacterEditor extends Phaser.Scene {
 
         // Panel
         const warningPanel = this.add.rectangle(0, 0, 600, 300, 0x333333);
-        warningPanel.setStrokeStyle(3, 0xFF3333);
 
         // Título
         const warningTitle = this.add.text(0, -100, 'WARNING!', {
@@ -1906,7 +2574,6 @@ class CharacterEditor extends Phaser.Scene {
 
         // Botones
         const sureBtn = this.add.rectangle(-150, 60, 120, 40, 0xFF3333);
-        sureBtn.setStrokeStyle(2, 0xFFFFFF);
         sureBtn.setInteractive();
         
         const sureBtnText = this.add.text(-150, 60, 'SURE!', {
@@ -1916,7 +2583,6 @@ class CharacterEditor extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const saveBtn = this.add.rectangle(0, 60, 120, 40, 0x00AA00);
-        saveBtn.setStrokeStyle(2, 0xFFFFFF);
         saveBtn.setInteractive();
         
         const saveBtnText = this.add.text(0, 60, 'SAVE & LOAD', {
@@ -1926,7 +2592,6 @@ class CharacterEditor extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const backBtn = this.add.rectangle(150, 60, 120, 40, 0x666666);
-        backBtn.setStrokeStyle(2, 0xFFFFFF);
         backBtn.setInteractive();
         
         const backBtnText = this.add.text(150, 60, "NO, LET'S GO BACK", {
@@ -2448,9 +3113,8 @@ class CharacterEditor extends Phaser.Scene {
             animBlock.on('pointerdown', () => {
                 this.playCharacterAnimation(animName);
                 this.highlightAnimationBlock(index);
-                this.selectSound.play();
             });
-
+            
             animBlock.on('pointerover', () => {
                 animBlock.setFillStyle(0x555555);
             });
@@ -2465,26 +3129,49 @@ class CharacterEditor extends Phaser.Scene {
             yOffset += 30;
         });
         
-        // Calcular scroll máximo
-        this.maxAnimationScroll = Math.max(0, (animationNames.length * 30) - 160);
-        this.animationScrollY = 0;
-        this.updateAnimationScroll();
+        // Ajustar tamaño de la ventana modal al contenido
+        this.adjustCharacterAnimationsModalSize(animationNames.length);
     }
 
-    scrollAnimationContainer(deltaY) {
-        if (!this.animationContainer) return;
+    adjustCharacterAnimationsModalSize(animationCount) {
+        const modal = this.modalWindows.characterAnimations;
+        if (!modal) return;
         
-        const scrollSpeed = 30;
-        this.animationScrollY += deltaY > 0 ? scrollSpeed : -scrollSpeed;
-        this.animationScrollY = Phaser.Math.Clamp(this.animationScrollY, 0, this.maxAnimationScroll);
+        // Calcular altura basada en el contenido
+        const minHeight = 80; // Altura mínima (header + padding)
+        const itemHeight = 30; // Altura por animación
+        const padding = 40; // Padding extra
+        const newHeight = Math.max(minHeight, (animationCount * itemHeight) + padding);
         
-        this.updateAnimationScroll();
-    }
-
-    updateAnimationScroll() {
-        if (!this.animationContainer) return;
+        // Obtener el panel principal (primer elemento en el modal)
+        const panel = modal.getAt(0);
+        if (panel) {
+            panel.height = newHeight;
+            panel.setSize(220, newHeight);
+        }
         
-        this.animationContainer.setY(-20 - this.animationScrollY);
+        // Ajustar posición de la barra de título
+        const titleBar = modal.getAt(1);
+        if (titleBar) {
+            titleBar.y = -(newHeight / 2) + 15;
+        }
+        
+        // Ajustar posición del texto del título
+        const titleText = modal.getAt(2);
+        if (titleText) {
+            titleText.y = -(newHeight / 2) + 15;
+        }
+        
+        // Ajustar botones de la ventana
+        const minimizeBtn = modal.getAt(3);
+        const minimizeText = modal.getAt(4);
+        const closeBtn = modal.getAt(5);
+        const closeText = modal.getAt(6);
+        
+        if (minimizeBtn) minimizeBtn.y = -(newHeight / 2) + 15;
+        if (minimizeText) minimizeText.y = -(newHeight / 2) + 15;
+        if (closeBtn) closeBtn.y = -(newHeight / 2) + 15;
+        if (closeText) closeText.y = -(newHeight / 2) + 15;
     }
 
     highlightAnimationBlock(index) {
@@ -2590,7 +3277,6 @@ class CharacterEditor extends Phaser.Scene {
         selectorModal.setDepth(6500); // Depth muy alto para estar sobre todo
         
         const bg = this.add.rectangle(0, 0, 300, 400, 0x000000, 0.9);
-        bg.setStrokeStyle(2, 0xFFFFFF);
         bg.setInteractive();
         
         const title = this.add.text(0, -180, `Assign ${singKey}`, {
@@ -2619,7 +3305,6 @@ class CharacterEditor extends Phaser.Scene {
         let yPos = -100;
         availableAnimations.forEach((animName) => {
             const animBtn = this.add.rectangle(0, yPos, 250, 25, 0x333333, 0.8);
-            animBtn.setStrokeStyle(1, 0xFFFFFF);
             animBtn.setInteractive();
             
             const animText = this.add.text(0, yPos, animName, {
@@ -2661,7 +3346,6 @@ class CharacterEditor extends Phaser.Scene {
         
         // Botón para cerrar
         const closeBtn = this.add.rectangle(0, 170, 100, 30, 0xFF0000, 0.8);
-        closeBtn.setStrokeStyle(1, 0xFFFFFF);
         closeBtn.setInteractive();
         
         const closeText = this.add.text(0, 170, 'Cancel', {
@@ -2694,12 +3378,11 @@ class CharacterEditor extends Phaser.Scene {
         const shortcutsModal = this.add.container(width / 2, height / 2);
         shortcutsModal.setDepth(7000); // Depth muy alto para estar sobre todo
         
-        // Panel principal
-        const panel = this.add.rectangle(0, 0, 400, 350, 0x1A1A1A);
-        panel.setStrokeStyle(3, 0x00CCFF);
+        // Panel principal más grande para la tabla
+        const panel = this.add.rectangle(0, 0, 500, 450, 0x1A1A1A);
         
-        // Barra de título - color azul uniforme
-        const titleBar = this.add.rectangle(0, -160, 400, 30, 0x0066CC);
+        // Barra de título
+        const titleBar = this.add.rectangle(0, -210, 500, 30, 0x0066CC);
         titleBar.setInteractive();
         
         // Sistema de arrastre manual
@@ -2709,55 +3392,82 @@ class CharacterEditor extends Phaser.Scene {
                 this.draggedWindow = shortcutsModal;
                 this.dragStartX = pointer.x;
                 this.dragStartY = pointer.y;
-                this.input.setDefaultCursor('grabbing');
+                this.setCursor('grabbing');
                 
                 // Traer ventana al frente
                 shortcutsModal.setDepth(this.windowZIndex++);
             }
         });
         
-        const titleText = this.add.text(-180, -160, 'KEYBOARD SHORTCUTS', {
+        const titleText = this.add.text(-230, -210, 'CHARACTER EDITOR - SHORTCUTS', {
             fontSize: '14px',
             fill: '#FFFFFF',
             fontFamily: 'Arial'
         }).setOrigin(0, 0.5);
         
         // Botón de cerrar
-        const closeBtn = this.add.rectangle(180, -160, 25, 25, 0xFF0000);
+        const closeBtn = this.add.rectangle(230, -210, 25, 25, 0xFF0000);
         closeBtn.setStrokeStyle(1, 0xFFFFFF);
         closeBtn.setInteractive();
         
-        const closeText = this.add.text(180, -160, 'X', {
+        const closeText = this.add.text(230, -210, 'X', {
             fontSize: '12px',
             fill: '#FFFFFF',
             fontFamily: 'Arial'
         }).setOrigin(0.5);
         
-        // Agregar primero el panel y la barra de título
-        shortcutsModal.add([panel, titleBar, titleText, closeBtn, closeText]);
+        // Header de la tabla
+        const headerText = this.add.text(0, -170, 'Keys                                          Action', {
+            fontSize: '13px',
+            fill: '#00CCFF',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
         
-        // Contenido de shortcuts - agregar después para que estén encima
+        // Línea divisoria
+        const dividerLine = this.add.rectangle(0, -155, 450, 2, 0x00CCFF);
+        
+        // Datos de la tabla
         const shortcuts = [
-            'BACKSPACE - Return to Editors Menu',
-            'R - Reset Camera',
-            'MIDDLE MOUSE - Drag Camera',
-            'WHEEL - Zoom Camera (not in modals)',
-            'LEFT CLICK - Move Character (Add Onion Mode)',
-            'FILE Menu - Load character spritesheets',
-            'PANELS Menu - Toggle editor windows',
-            'Window Title Bars - Drag to move windows'
+            ['Q', 'Previous Animation'],
+            ['E', 'Next Animation'],
+            ['Enter', 'Repeat Current Animation'],
+            ['Space', 'Play Idle Animation'],
+            ['R', 'Reset Camera'],
+            ['F', 'Flip Character X'],
+            ['Arrow', 'Move Offsets 5px'],
+            ['Shift + Arrow', 'Move Offsets 10px'],
+            ['Ctrl + Arrow', 'Move Offsets 1px'],
+            ['Ctrl + Z', 'Undo Last Change (max 10)'],
+            ['Esc', 'Save Data as JSON'],
+            ['Ctrl + Esc', 'Save Offsets as TXT'],
+            ['Shift + Esc', 'Save All as ZIP'],
+            ['Backspace', 'Return to Editors State'],
+            ['Mouse Wheel', 'Camera Zoom'],
+            ['Middle Button + Drag', 'Move Camera'],
+            ['Click + Drag', 'Move Character Freely']
         ];
+
+        // Agregar elementos base al modal
+        shortcutsModal.add([panel, titleBar, titleText, closeBtn, closeText, headerText, dividerLine]);
         
-        let yPos = -90;
-        shortcuts.forEach((shortcut) => {
-            const shortcutText = this.add.text(0, yPos, shortcut, {
+        // Renderizar filas de la tabla
+        let yPos = -135;
+        shortcuts.forEach((row) => {
+            const keyText = this.add.text(-200, yPos, row[0], {
+                fontSize: '11px',
+                fill: '#FFFF00',
+                fontFamily: 'Arial',
+                fontStyle: 'bold'
+            }).setOrigin(0, 0.5);
+            
+            const actionText = this.add.text(50, yPos, row[1], {
                 fontSize: '11px',
                 fill: '#CCCCCC',
-                fontFamily: 'Arial',
-                align: 'center'
-            }).setOrigin(0.5);
+                fontFamily: 'Arial'
+            }).setOrigin(0, 0.5);
             
-            shortcutsModal.add(shortcutText);
+            shortcutsModal.add([keyText, actionText]);
             yPos += 20;
         });
         
@@ -2774,44 +3484,43 @@ class CharacterEditor extends Phaser.Scene {
     showSuccessToast(message) {
         const { width, height } = this.scale;
 
-        const toastContainer = this.add.container(width / 2, height / 2);
+        // Posicionar en la esquina inferior izquierda
+        const toastContainer = this.add.container(200, height - 60);
         toastContainer.setDepth(6000); // Más alto que el nav bar para estar encima de todo
 
-        const bg = this.add.rectangle(0, 0, 400, 100, 0x00AA00, 0.9);
+        const bg = this.add.rectangle(0, 0, 350, 50, 0x00AA00, 0.9);
         bg.setStrokeStyle(2, 0xFFFFFF);
 
         const text = this.add.text(0, 0, message, {
-            fontSize: '14px',
+            fontSize: '12px',
             fill: '#FFFFFF',
             fontFamily: 'Arial',
             align: 'center',
-            wordWrap: { width: 380 }
+            wordWrap: { width: 330 }
         }).setOrigin(0.5);
 
         toastContainer.add([bg, text]);
         this.gameCamera.ignore(toastContainer);
 
-        // Animación de entrada
+        // Animación de entrada desde abajo
         toastContainer.setAlpha(0);
-        toastContainer.setScale(0.8);
+        toastContainer.y = height + 50; // Empezar fuera de la pantalla
         
         this.tweens.add({
             targets: toastContainer,
             alpha: 1,
-            scaleX: 1,
-            scaleY: 1,
+            y: height - 60,
             duration: 300,
             ease: 'Back.easeOut'
         });
 
-        // Auto-destruir después de 2.5 segundos con animación
-        this.time.delayedCall(2500, () => {
+        // Auto-destruir después de 2 segundos con animación
+        this.time.delayedCall(2000, () => {
             if (toastContainer) {
                 this.tweens.add({
                     targets: toastContainer,
                     alpha: 0,
-                    scaleX: 0.8,
-                    scaleY: 0.8,
+                    y: height + 50,
                     duration: 200,
                     ease: 'Power2.easeIn',
                     onComplete: () => toastContainer.destroy()
@@ -3023,44 +3732,6 @@ class CharacterEditor extends Phaser.Scene {
             
             this.load.start();
         });
-    }
-
-    // Importar JSON de personaje
-    importCharacterJSON() {
-        // Crear input para JSON
-        const jsonInput = document.createElement('input');
-        jsonInput.type = 'file';
-        jsonInput.accept = '.json,application/json';
-        jsonInput.style.display = 'none';
-        
-        jsonInput.onchange = async (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                try {
-                    const jsonText = await this.readFileAsText(file);
-                    const characterData = JSON.parse(jsonText);
-                    const characterName = file.name.replace('.json', '');
-                    
-                    // Verificar que es un JSON válido de Characters.js
-                    if (!characterData.animations || !characterData.image) {
-                        throw new Error('Invalid character JSON format');
-                    }
-                    
-                    // Mostrar diálogo de confirmación
-                    this.showImportConfirmation(characterData, characterName);
-                    
-                } catch (error) {
-                    console.error('Error importing JSON:', error);
-                    this.showErrorMessage('Invalid JSON file or format');
-                }
-            }
-            
-            // Cleanup
-            document.body.removeChild(jsonInput);
-        };
-        
-        document.body.appendChild(jsonInput);
-        jsonInput.click();
     }
 
     showImportConfirmation(characterData, characterName) {
