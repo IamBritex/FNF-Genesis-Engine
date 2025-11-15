@@ -1,0 +1,198 @@
+{
+    "stage": [
+        {
+            "type": "image",
+            "layer": 1,
+            "scale": 1.4000000000000001,
+            "namePath": "limoSunset",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                727,
+                314
+            ],
+            "flip_x": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "spritesheet",
+            "layer": 2,
+            "scale": 1.0086402910413825,
+            "namePath": "bgLimo",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                516,
+                612
+            ],
+            "flip_x": false,
+            "scrollFactor": 1,
+            "animation": {
+                "name": "background limo pink",
+                "frameRate": 24,
+                "play": "bpm"
+            }
+        },
+        {
+            "type": "image",
+            "layer": 3,
+            "scale": 1,
+            "namePath": "limoOverlay",
+            "visible": true,
+            "opacity": 0.5,
+            "position": [
+                707,
+                -56
+            ],
+            "flip_x": false,
+            "scrollFactor": 1
+        },
+        {
+            "": {
+                "type": "character",
+                "layer": 4,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    547,
+                    705
+                ],
+                "camera": [
+                    0,
+                    0
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "type": "spritesheet",
+            "layer": 5,
+            "scale": 1,
+            "namePath": "limoDrive",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -342,
+                476
+            ],
+            "flip_x": false,
+            "scrollFactor": 1,
+            "animation": {
+                "name": "Limo stage",
+                "frameRate": 24,
+                "play": "bpm"
+            }
+        },
+        {
+            "playergf": {
+                "type": "character",
+                "layer": 6,
+                "scale": 1,
+                "visible": false,
+                "opacity": 1,
+                "position": [
+                    800,
+                    696
+                ],
+                "camera": [
+                    -106,
+                    -112
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "": {
+                "type": "character",
+                "layer": 7,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    72,
+                    819
+                ],
+                "camera": [
+                    0,
+                    0
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "enemy": {
+                "type": "character",
+                "layer": 8,
+                "scale": 1,
+                "visible": false,
+                "opacity": 1,
+                "position": [
+                    439,
+                    752
+                ],
+                "camera": [
+                    -419,
+                    -119
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "": {
+                "type": "character",
+                "layer": 9,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    1002,
+                    535
+                ],
+                "camera": [
+                    0,
+                    0
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "player": {
+                "type": "character",
+                "layer": 10,
+                "scale": 1,
+                "visible": false,
+                "opacity": 1,
+                "position": [
+                    1041,
+                    776
+                ],
+                "camera": [
+                    227,
+                    8
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "type": "image",
+            "layer": 12,
+            "scale": 1,
+            "namePath": "fastCarLol",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -1315,
+                729
+            ],
+            "flip_x": false,
+            "scrollFactor": 1
+        }
+    ]
+}

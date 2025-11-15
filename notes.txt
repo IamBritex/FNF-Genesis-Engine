@@ -1,0 +1,3 @@
+utilizar el stage noal y characters para el stage editor
+
+soporte para mobile

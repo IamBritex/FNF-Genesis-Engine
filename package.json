@@ -1,0 +1,76 @@
+{
+  "name": "genesisengine",
+  "version": "1.0.0",
+  "description": "Engine para Friday Night Funkin",
+  "main": "source/core/Electron.js",
+  "homepage": "https://github.com/LeiveTD/GenesisEngine",
+  "author": {
+    "name": "LeiveTD",
+    "email": "leivetd@gmail.com"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder build --win --linux",
+    "build:win": "electron-builder build --win",
+    "build:linux": "electron-builder build --linux"
+  },
+  "build": {
+    "appId": "com.genesislauncher.app",
+    "productName": "Genesis Launcher",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icons/ico-ico.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Game",
+      "icon": "icons/ico-ico.png",
+      "maintainer": "LeiveTD <leivetd@gmail.com>"
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ]
+  },
+  "keywords": [
+    "FNF",
+    "Friday Night Funkin",
+    "Engine",
+    "Game"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^38.4.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "discord-rpc": "^4.0.1",
+    "express": "^5.1.0",
+    "marked": "^16.4.1"
+  }
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNF': Genesis Engine</title>
+    <link rel="stylesheet" href="public/style.css">
+
+    <!-- Render libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.87.0/phaser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+
+    <!-- Backend libs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
+
+</head>
+
+<body>
+    <div id="game-container"></div>
+
+    <script src="source/funkin/sprites/Assets.js"></script>
+
+    <script type="module" src="source/core/phaser/game.js"></script>
+    <script type="module" src="source/funkin/effects/TransitionScene.js"></script>    
+    <script type="module" src="source/funkin/play/PlayState.js"></script>
+    <script type="module" src="source/funkin/ui/storymode/StoryModeState.js"></script>
+    <script type="module" src="source/funkin/ui/freeplay/FreeplayState.js"></script>
+    <script type="module" src="source/funkin/effects/flash.js"></script>
+    <script type="module" src="source/funkin/ui/intro/introText.js"></script>
+    <script type="module" src="source/funkin/ui/intro/introDance.js"></script>
+    <script type="module" src="source/funkin/ui/mainmenu/MainMenuState.js"></script>
+    <script type="module" src="source/funkin/ui/editors/menu.js"></script>
+    <script type="module" src="source/funkin/ui/editors/stage/StageEditor.js"></script>
+    <script type="module" src="source/funkin/ui/editors/character/CharacterEditor.js"></script>
+    <script type="module" src="source/funkin/ui/credits/CreditsState.js"></script>
+    <script type="module" src="source/funkin/ui/multiplayer/rooms.js"></script>
+    </body>
+</html>

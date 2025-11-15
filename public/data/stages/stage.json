@@ -1,0 +1,103 @@
+{
+    "stage": [
+        {
+            "type": "image",
+            "layer": 1,
+            "scale": 1,
+            "namePath": "stageback",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                640,
+                360
+            ],
+            "flip_x": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "image",
+            "layer": 2,
+            "scale": 1,
+            "namePath": "stagefront",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                653,
+                886
+            ],
+            "flip_x": false,
+            "scrollFactor": 1
+        },
+        {
+            "playergf": {
+                "type": "character",
+                "layer": 3,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    712,
+                    697
+                ],
+                "camera": [
+                    60,
+                    0
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "enemy": {
+                "type": "character",
+                "layer": 4,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    320,
+                    850
+                ],
+                "camera": [
+                    -140,
+                    -40
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "player": {
+                "type": "character",
+                "layer": 5,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    1046,
+                    776
+                ],
+                "camera": [
+                    210,
+                    70
+                ],
+                "flip_x": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "type": "image",
+            "layer": 6,
+            "scale": 1,
+            "namePath": "stagecurtains",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                652,
+                314
+            ],
+            "flip_x": false,
+            "scrollFactor": 1.3
+        }
+    ]
+}
