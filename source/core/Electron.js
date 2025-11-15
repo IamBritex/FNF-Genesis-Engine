@@ -2,11 +2,21 @@
   Este es el proceso main de Electron.
 */
 
-const { app, BrowserWindow, Menu } = require('electron');
+// 'url' ya no es necesario aquí, 'createCrashWindow' se ha movido
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
+
+// --- NUEVO ---
+// Importamos el inicializador de nuestro manejador de errores
+const { initCrashHandlerMain } = require('./crashHandlerMain');
+// --- FIN NUEVO ---
 
 // Deshabilitar autofill antes del ready
 app.commandLine.appendSwitch('disable-features', 'Autofill');
+
+
+// --- LA FUNCIÓN createCrashWindow() SE HA MOVIDO A crashHandlerMain.js ---
+
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -18,16 +28,12 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
     },
+    icon: "icons_desktop_env/icon.webp"
   });
 
   const gamePath = path.join(__dirname, '..', '..', 'index.html');
   mainWindow.loadFile(gamePath);
-
-  // [CORRECCIÓN] Comentamos esta línea.
-  // Al establecer el menú como 'null', se elimina por completo.
-  // Al comentarlo, Electron mostrará el menú por defecto (Archivo, Editar, etc.).
-  // Menu.setApplicationMenu(null);
-
+  
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`[Renderer] ${message}`);
   });
@@ -37,7 +43,14 @@ app.whenReady().then(() => {
   // 🔹 Inicializar DiscordRPC
   require('../funkin/API/discordRPC');
 
+  // --- NUEVO ---
+  // Inicializamos el listener del crash handler
+  initCrashHandlerMain();
+  // --- FIN NUEVO ---
+
   createWindow();
+
+  // --- EL LISTENER ipcMain.on('show-crash-report', ...) SE HA MOVIDO ---
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

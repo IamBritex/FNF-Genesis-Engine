@@ -1,6 +1,6 @@
 {
   "name": "genesisengine",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Engine para Friday Night Funkin",
   "main": "source/core/Electron.js",
   "homepage": "https://github.com/LeiveTD/GenesisEngine",
@@ -30,7 +30,7 @@
           ]
         }
       ],
-      "icon": "icons/ico-ico.png"
+      "icon": "icons_desktop_env/icon.webp"
     },
     "linux": {
       "target": [
@@ -38,7 +38,7 @@
         "deb"
       ],
       "category": "Game",
-      "icon": "icons/ico-ico.png",
+      "icon": "icons_desktop_env/icon.webp",
       "maintainer": "LeiveTD <leivetd@gmail.com>"
     },
     "files": [

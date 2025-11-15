@@ -1,6 +1,8 @@
+// source/core/phaser/game.js
+
 import coreWindow from "./coreWindow.js";
 import { initVolumeControl, VolumeUIScene } from "../soundtray/styleSoundtray.js";
-import { CrashHandler } from "../CrashHandler.js";
+import { CrashHandler } from "../CrashHandler.js"; // Importación existente
 
 // Main game configuration
 const gameConfig = {
@@ -22,7 +24,26 @@ const gameConfig = {
 window.game = new Phaser.Game(gameConfig);
 
 game.events.on("ready", () => {
+  // 1. Inicializar Crash Handler
   window.crashHandler = new CrashHandler(game.scene.scenes[0]);
+
+  // 2. Configurar listeners de errores globales
+  window.onerror = (message, source, lineno, colno, error) => {
+    console.log("window.onerror capturado:");
+    if (window.crashHandler) {
+      // Pasamos el objeto 'error' si existe, si no, creamos uno nuevo
+      window.crashHandler.showError(error || new Error(message));
+    }
+    return true; // Previene el manejo de errores por defecto del navegador
+  };
+
+  window.onunhandledrejection = (event) => {
+    console.log("window.onunhandledrejection capturado:");
+    if (window.crashHandler) {
+      const error = event.reason || new Error('Rechazo de promesa no manejado');
+      window.crashHandler.showError(error);
+    }
+  };
 });
 
 initVolumeControl();
