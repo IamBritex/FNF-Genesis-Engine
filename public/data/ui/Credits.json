@@ -19,27 +19,6 @@
                             "icon": "MarkIcon",
                             "link": "https://www.youtube.com/@KettuMark",
                             "bgColor": "#ffb800"
-                        },
-                        {
-                            "name": "Alejo",
-                            "description": "Junior Programmer",
-                            "icon": "IconAlejo",
-                            "link": "https://www.youtube.com/@alejogdofficial",
-                            "bgColor": "#5457B0"
-                        },
-                        {
-                            "name": "MaGucci",
-                            "description": "Assistant Programmer",
-                            "icon": "MGIcon",
-                            "link": "https://www.youtube.com/@HayimeAlina",
-                            "bgColor": "#f42f2f"
-                        },
-                        {
-                            "name": "Shiro",
-                            "description": "LUA Programmer",
-                            "icon": "awa",
-                            "link": "https://www.youtube.com/@ShiroYaekawa",
-                            "bgColor": "#ffffff"
                         }
                     ]
                 },
@@ -52,25 +31,6 @@
                             "icon": "poto",
                             "link": "https://youtube.com/@protoelconejo?si=PJWokPF4OFZTXtRf",
                             "bgColor": "#669966"
-                        },
-                        {
-                            "name": "MR.pace",
-                            "description": "Sub Artist",
-                            "icon": "MrPaceIcon",
-                            "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
-                            "bgColor": "#001A33"
-                        }                   
-                    ]
-                },
-                {
-                    "title": "Testers",
-                    "users": [
-                        {
-                            "name": "Anderei",
-                            "description": "xd",
-                            "icon": "AndereiIcon",
-                            "link": "https://github.com/IamBritex/FNF-Genesis-Engine",
-                            "bgColor": "#330022"
                         }
                     ]
                 }

@@ -12,18 +12,25 @@ export class Stage {
    * @param {Phaser.Scene} scene - La escena de PlayState.
    * @param {object} chartData - El chartData procesado por ChartDataHandler.
    * @param {CameraManager} cameraManager - El gestor de cámaras.
+   * @param {import('../Conductor.js').Conductor} conductor - El gestor de BPM.
    */
-  constructor(scene, chartData, cameraManager) {
+  constructor(scene, chartData, cameraManager, conductor) { // <-- [MODIFICADO]
     this.scene = scene;
     this.cameraManager = cameraManager; 
+    /** * El gestor de ritmo.
+     * @type {import('../Conductor.js').Conductor} 
+     */
+    this.conductor = conductor; // <-- [NUEVO]
     
     this.stageDataKey = StageData.extract(chartData);
     this.stageKey = null; 
     this.defaultStageKey = 'StageJSON_stage'; // El JSON de fallback
     this.stageContent = null; 
 
-    // Crear el manejador de elementos (pasando el cameraManager)
-    this.stageElements = new StageElements(this.scene, this.stageDataKey, this.cameraManager);
+    // --- [MODIFICADO] ---
+    // Crear el manejador de elementos (pasando el cameraManager y el conductor)
+    this.stageElements = new StageElements(this.scene, this.stageDataKey, this.cameraManager, this.conductor);
+    // --- [FIN MODIFICADO] ---
   }
 
   /**
@@ -79,7 +86,6 @@ export class Stage {
     }
     // --- FIN DE LA LÓGICA ---
 
-    // Imprimir el contenido (como solicitaste)
     console.log("--- CONTENIDO DEL STAGE JSON (cargado por Stage.js) ---");
     console.log(this.stageContent);
 
@@ -99,10 +105,9 @@ export class Stage {
     }
   }
 
-  update(songPosition) {
-    // Lógica de actualización
-  }
-
+  /**
+   * Limpia los recursos del escenario.
+   */
   shutdown() {
     const finalStageKey = this.stageElements?.stageDataKey || this.stageDataKey;
 

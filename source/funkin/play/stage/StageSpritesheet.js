@@ -2,17 +2,36 @@
  * StageSpritesheet.js
  * Se encarga de precargar y crear los spritesheets animados de un escenario.
  */
+
+/**
+ * El punto de anclaje (origen) por defecto para los spritesheets.
+ * @type {{x: number, y: number}}
+ */
+export const SPRITESHEET_ORIGIN = { x: 0.5, y: 0.5 };
+
 export class StageSpritesheet {
   /**
    * @param {Phaser.Scene} scene - La escena de PlayState.
    * @param {string} stageDataKey - El nombre del escenario (ej. "spooky").
    * @param {import('../camera/Camera.js').CameraManager} cameraManager - El gestor de cámaras.
+   * @param {import('../Conductor.js').Conductor} conductor - El gestor de BPM.
    */
-  constructor(scene, stageDataKey, cameraManager) {
+  constructor(scene, stageDataKey, cameraManager, conductor) { 
     this.scene = scene;
     this.stageDataKey = stageDataKey;
     this.cameraManager = cameraManager;
+    /** * El gestor de ritmo.
+     * @type {import('../Conductor.js').Conductor | null} 
+     */
+    this.conductor = conductor; 
+    
+    /** @type {Array<Phaser.GameObjects.Sprite>} */
     this.createdSprites = [];
+    
+    /** * Flag para asegurar que solo registramos el listener una vez.
+     * @type {boolean} 
+     */
+    this.beatListenerRegistered = false; 
   }
 
   /**
@@ -40,7 +59,7 @@ export class StageSpritesheet {
   }
 
   /**
-   * Crea el sprite, las animaciones y lo configura en la escena.
+   * Crea el sprite, las animaciones y lo configura para 'Loop' o 'Beat'.
    * @param {object} item - El objeto del elemento desde el JSON del escenario.
    */
   create(item) {
@@ -51,72 +70,173 @@ export class StageSpritesheet {
       console.warn(`StageSpritesheet: Textura no encontrada para crear sprite: ${textureKey}`);
       return;
     }
+    
+    const anim = item.animation || {};
+    const play_list = anim.play_list || {}; 
+    const play_mode = anim.play_mode || 'None';
+    const frameRate = anim.frameRate || 24;
+    
+    // Nombres de las animaciones definidas en play_list
+    const animNames = Object.keys(play_list); 
 
-    // 1. Crear animaciones a partir del atlas
-    const frames = this.scene.textures.get(textureKey).getFrameNames();
-    const animationGroups = this.groupFramesByAnimation(frames);
+    if (animNames.length === 0) {
+        console.warn(`StageSpritesheet: 'play_list' está vacío para ${namePath}. No se creará el sprite.`);
+        return;
+    }
 
-    Object.entries(animationGroups).forEach(([animName, animFrames]) => {
-      const animKey = `${textureKey}_${animName}`;
-      if (this.scene.anims.exists(animKey)) return;
+    // 1. Crear las animaciones de Phaser basadas en 'play_list'
+    for (const animName of animNames) {
+        const animKey = `${textureKey}_${animName}`; 
+        if (this.scene.anims.exists(animKey)) continue;
 
-      this.scene.anims.create({
-        key: animKey,
-        frames: animFrames.sort().map((frame) => ({ key: textureKey, frame })),
-        frameRate: item.fps || 24,
-        repeat: -1, // Siempre en bucle por defecto para escenarios
-      });
-    });
+        const animData = play_list[animName]; 
+        if (!animData || !animData.prefix || !animData.indices) {
+            console.warn(`StageSpritesheet: Datos de anim '${animName}' inválidos para ${textureKey}.`);
+            continue;
+        }
+
+        const frameNames = animData.indices.map(idx => `${animData.prefix}${idx}`);
+        
+        const phaserFrames = [];
+        for (const frame of frameNames) {
+            if (this.scene.textures.get(textureKey).has(frame)) {
+                phaserFrames.push({ key: textureKey, frame: frame });
+            } else {
+                console.warn(`StageSpritesheet: Frame '${frame}' no encontrado en atlas '${textureKey}'`);
+            }
+        }
+
+        if (phaserFrames.length > 0) {
+            this.scene.anims.create({
+                key: animKey,
+                frames: phaserFrames,
+                frameRate: frameRate,
+                repeat: 0, 
+            });
+        }
+    }
 
     // 2. Crear el sprite
-    const sprite = this.scene.add.sprite(item.position[0], item.position[1], textureKey);
+    const firstAnimName = animNames[0]; 
+    const firstAnimData = play_list[firstAnimName];
+    const firstFrame = `${firstAnimData.prefix}${firstAnimData.indices[0]}`;
 
-    // --- [SOLUCIÓN] ---
-    // Establecer el origen en la esquina superior izquierda para que coincida con el editor.
-    sprite.setOrigin(0, 0);
+    if (!this.scene.textures.get(textureKey).has(firstFrame)) {
+        console.error(`StageSpritesheet: Frame inicial '${firstFrame}' no existe. Abortando creación de sprite.`);
+        return;
+    }
 
-    // 3. Aplicar propiedades
+    const sprite = this.scene.add.sprite(item.position[0], item.position[1], textureKey, firstFrame);
+
+    // 3. Aplicar propiedades (FORZANDO ORIGEN 0,0)
+    sprite.setOrigin(0, 0); // [CAMBIO] Origen siempre 0,0
+    
+    sprite.setScale(item.scale ?? 1);
     sprite.setDepth(item.layer);
-    sprite.setAlpha(item.opacity);
-    sprite.setFlipX(item.flip_x);
-    sprite.setScrollFactor(item.scrollFactor);
+    sprite.setAlpha(item.opacity ?? 1);
+    sprite.setFlipX(item.flip_x || false);
+    sprite.setFlipY(item.flip_y || false);
+    
+    // Lógica de Scroll X/Y (si existe en el JSON)
+    if (item.scroll_x !== undefined && item.scroll_y !== undefined) {
+        sprite.setScrollFactor(item.scroll_x, item.scroll_y);
+    } else {
+        sprite.setScrollFactor(item.scrollFactor ?? 1);
+    }
+    
+    // Lógica de Rotación
+    if (item.angle) {
+        sprite.setAngle(item.angle);
+    }
+
     sprite.setData('baseX', item.position[0]);
     sprite.setData('baseY', item.position[1]);
 
     // 4. Asignar a la cámara de juego
     this.cameraManager.assignToGame(sprite);
 
-    // 5. Reproducir la primera animación disponible
-    const firstAnimName = Object.keys(animationGroups)[0];
-    if (firstAnimName) {
-      sprite.play(`${textureKey}_${firstAnimName}`);
+    // 5. Configurar y reproducir animación
+    const firstAnimKey = `${textureKey}_${firstAnimName}`; 
+
+    if (play_mode === 'Loop') {
+        const animToPlay = this.scene.anims.get(firstAnimKey);
+        if (animToPlay) {
+            animToPlay.repeat = -1; 
+            sprite.play(firstAnimKey);
+        } else {
+            console.warn(`StageSpritesheet: No se encontró la anim 'Loop' ${firstAnimKey}`);
+        }
+    } else if (play_mode === 'Beat') {
+        const beatInterval = (anim.beat && anim.beat[0] > 0) ? anim.beat[0] : 1;
+        
+        sprite.setData('beat_anim_list', animNames.map(name => `${textureKey}_${name}`));
+        sprite.setData('beat_anim_interval', beatInterval);
+        sprite.setData('beat_anim_index', 0); 
+        sprite.setData('beat_anim_countdown', beatInterval); 
+        
+        if (this.scene.anims.exists(firstAnimKey)) {
+            sprite.play(firstAnimKey);
+        }
+    }
+
+    // 6. Registrar el listener del Conductor
+    if (play_mode === 'Beat' && this.conductor && !this.beatListenerRegistered) {
+        this.conductor.on('beat', this.onBeatUpdate, this);
+        this.beatListenerRegistered = true;
     }
 
     this.createdSprites.push(sprite);
   }
 
   /**
-   * Agrupa los nombres de los frames por prefijo de animación.
-   * @param {string[]} frames - Array con todos los nombres de los frames.
-   * @returns {object} - Objeto con las animaciones agrupadas.
+   * Se llama en cada beat del Conductor.
    */
-  groupFramesByAnimation(frames) {
-    const animationGroups = {};
-    frames.forEach((frame) => {
-      const baseAnimName = frame.replace(/\d+$/, "");
-      if (!animationGroups[baseAnimName]) {
-        animationGroups[baseAnimName] = [];
+  onBeatUpdate(beat) {
+      if (!this.createdSprites || !this.scene) return;
+
+      for (const sprite of this.createdSprites) {
+          if (!sprite || !sprite.active) continue;
+          
+          const animList = sprite.getData('beat_anim_list');
+          if (!animList) continue; 
+
+          let interval = sprite.getData('beat_anim_interval');
+          let countdown = sprite.getData('beat_anim_countdown');
+
+          countdown--;
+
+          if (countdown <= 0) {
+              let index = sprite.getData('beat_anim_index');
+              index = (index + 1) % animList.length; 
+              
+              const nextAnimKey = animList[index];
+              
+              if (this.scene && this.scene.anims.exists(nextAnimKey)) {
+                  sprite.play(nextAnimKey);
+              }
+
+              sprite.setData('beat_anim_index', index);
+              sprite.setData('beat_anim_countdown', interval); 
+          } else {
+              sprite.setData('beat_anim_countdown', countdown);
+          }
       }
-      animationGroups[baseAnimName].push(frame);
-    });
-    return animationGroups;
   }
 
   /**
-   * Destruye todos los sprites creados.
+   * Destruye todos los sprites creados y quita el listener del conductor.
    */
   destroy() {
+    if (this.beatListenerRegistered && this.conductor) {
+        this.conductor.off('beat', this.onBeatUpdate, this);
+        this.beatListenerRegistered = false;
+    }
+
     this.createdSprites.forEach(s => s.destroy());
     this.createdSprites = [];
+
+    this.conductor = null;
+    this.scene = null;
+    this.cameraManager = null;
   }
 }

@@ -8,25 +8,39 @@
             "visible": true,
             "opacity": 1,
             "position": [
-                640,
-                360
+                541,
+                305
             ],
             "flip_x": false,
-            "scrollFactor": 1
+            "scrollFactor": 0.9
         },
         {
             "type": "image",
             "layer": 2,
-            "scale": 1,
+            "scale": 1.2,
             "namePath": "stagefront",
             "visible": true,
             "opacity": 1,
             "position": [
-                653,
-                886
+                820,
+                865
             ],
             "flip_x": false,
-            "scrollFactor": 1
+            "scrollFactor": 0.9
+        },
+        {
+            "type": "image",
+            "layer": 6,
+            "scale": 1,
+            "namePath": "stagecurtains",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                689,
+                289
+            ],
+            "flip_x": false,
+            "scrollFactor": 1.3
         },
         {
             "playergf": {
@@ -36,12 +50,12 @@
                 "visible": true,
                 "opacity": 1,
                 "position": [
-                    712,
-                    697
+                    765,
+                    673
                 ],
-                "camera": [
-                    60,
-                    0
+                "camera_Offset": [
+                    300,
+                    300
                 ],
                 "flip_x": false,
                 "scrollFactor": 1
@@ -55,12 +69,12 @@
                 "visible": true,
                 "opacity": 1,
                 "position": [
-                    320,
-                    850
+                    324,
+                    792
                 ],
-                "camera": [
-                    -140,
-                    -40
+                "camera_Offset": [
+                    300,
+                    300
                 ],
                 "flip_x": false,
                 "scrollFactor": 1
@@ -74,30 +88,17 @@
                 "visible": true,
                 "opacity": 1,
                 "position": [
-                    1046,
-                    776
+                    1099,
+                    801
                 ],
-                "camera": [
-                    210,
-                    70
+                "camera_Offset": [
+                    69,
+                    113
                 ],
                 "flip_x": false,
+                "flip_y": true,
                 "scrollFactor": 1
             }
-        },
-        {
-            "type": "image",
-            "layer": 6,
-            "scale": 1,
-            "namePath": "stagecurtains",
-            "visible": true,
-            "opacity": 1,
-            "position": [
-                652,
-                314
-            ],
-            "flip_x": false,
-            "scrollFactor": 1.3
         }
     ]
 }

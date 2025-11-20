@@ -6,7 +6,7 @@ export class HealthBar {
    * @param {Phaser.Scene} scene
    * @param {object} chartData - El objeto chartData procesado de PlayState.
    */
-  constructor(scene, chartData) {  
+  constructor(scene, chartData, conductor) {  
       this.scene = scene;  
       // --- [NUEVO] ---
       this.chartData = chartData; // Guardar chartData
@@ -17,14 +17,10 @@ export class HealthBar {
       this.minHealth = 0.0;  
       this.maxHealth = 2.0;  
       this.opacity = 1.0;  
-      
-      // --- [MODIFICADO] ---
-      // Estas se inicializan como null. Se poblarán en preloadIcons()
       this.playerIconName = null;
       this.enemyIconName = null;
       this.playerIcon = null; 
       this.enemyIcon = null; 
-      // --- [FIN MODIFICADO] ---
         
       this.config = {  
           position: {  
@@ -33,13 +29,12 @@ export class HealthBar {
           },  
           scale: 1,  
           colors: {  
-              // Los colores se asignarán en preloadIcons()
               player: 0x00ff00, // Verde por defecto
               enemy: 0xff0000    // Rojo por defecto
           }
       };  
   
-      this.bpm = chartData?.bpm || 100;
+      this.bpm = conductor.bpm || 100;
       this.damageMultiplier = 0.04;
       this.healMultiplier = 0.023;   
       

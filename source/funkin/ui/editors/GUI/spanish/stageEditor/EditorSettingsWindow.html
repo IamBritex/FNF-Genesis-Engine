@@ -1,0 +1,55 @@
+<div class="settings-container">
+    
+    <div class="setting-group">
+        <label class="setting-label">Estilo de Fondo</label>
+        <div class="setting-options">
+            <button class="opt-btn" data-bg="Checkerboard">Ajedrez</button>
+            <button class="opt-btn" data-bg="Solid">Sólido</button>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <label class="setting-label">Tema</label>
+        <div class="setting-options">
+            <button class="opt-btn" data-mode="Light">Claro</button>
+            <button class="opt-btn" data-mode="Dark">Obscuro</button>
+            <button class="opt-btn" id="btn-custom-color" data-mode="Custom">
+                Seleccionar... <span id="color-preview-dot"></span>
+            </button>
+        </div>
+
+        <div id="custom-color-dropdown" class="color-picker-dropdown" style="display: none;">
+            <div class="picker-canvas-wrapper">
+                <canvas id="color-wheel-canvas" width="200" height="200"></canvas>
+            </div>
+            <div class="picker-controls">
+                <input type="text" id="picker-hex-input">
+                <div class="picker-buttons">
+                    <button id="picker-confirm" class="picker-btn confirm">¡Perfecto!</button>
+                    <button id="picker-cancel" class="picker-btn cancel">No...</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <label class="setting-label">Audio</label>
+        <div class="prop-item prop-check">
+            <label for="music-mute-check">Silenciar Música:</label>
+            <input type="checkbox" id="music-mute-check">
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <label class="setting-label">Idioma</label>
+        <select id="language-select" class="setting-select">
+            <option value="Spanish">Español</option>
+            <option value="English">Inglés</option>
+        </select>
+    </div>
+
+    <div class="settings-footer">
+        <button id="btn-reset-settings" class="footer-btn reset">Restablecer</button>
+        <button id="btn-save-settings" class="footer-btn save">Guardar cambios</button>
+    </div>
+</div>

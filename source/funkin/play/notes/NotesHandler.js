@@ -11,7 +11,7 @@ export class NotesHandler {
 
     // --- [MODIFICADO] ---
     // Añadir ratingManager al constructor
-    constructor(scene, chartData, ratingManager) {
+    constructor(scene, chartData, ratingManager, conductor) {
     // --- [FIN MODIFICADO] ---
         this.scene = scene;
         this.mainUICADContainer = scene.add.layer(0, 0);
@@ -29,7 +29,7 @@ export class NotesHandler {
         this.holdGroup = scene.add.group();
         this.noteScale = 0.7; 
         this.noteOffsetX = 21;
-        this.bpm = chartData.bpm || 100;
+        this.bpm = conductor.bpm || 100;
         this.speed = chartData.speed || 1;
         this.scrollSpeedMultiplier = 0.3; 
         this.spawnLeadTime = 2000 / this.speed; 

@@ -15,13 +15,14 @@ export class Characters {
    * @param {object} chartData - El chartData procesado por ChartDataHandler.
    * @param {CameraManager} cameraManager - El gestor de cámaras.
    * @param {import('../stage/Stage.js').Stage} stageHandler - El gestor del escenario.
+   * @param {import('../Conductor.js').Conductor} conductor - El gestor de BPM.
    */
-  constructor(scene, chartData, cameraManager, stageHandler) {
+  constructor(scene, chartData, cameraManager, stageHandler, conductor) {
     this.scene = scene;
     this.cameraManager = cameraManager;
+    /** @type {import('../stage/Stage.js').Stage} */
     this.stageHandler = stageHandler; 
     
-    // 1. Extraer NOMBRES y BPM (ahora usa gfVersion)
     this.chartCharacterNames = CharactersData.extractChartData(chartData);
     
     console.log("--- DATOS DE PERSONAJES (desde chartData) ---");
@@ -30,16 +31,22 @@ export class Characters {
     this.stageCharacterData = null; 
     this.loadedCharacterJSONs = new Map(); 
 
-    this.booper = new CharacterBooper(this.scene, this.chartCharacterNames.bpm);
+    this.booper = new CharacterBooper(this.scene, conductor?.bpm || 100);
 
     this.characterElements = new CharacterElements(this.scene, this.cameraManager);
     this.characterAnimations = new CharacterAnimations(this.scene);
 
+    /** @type {Phaser.GameObjects.Sprite | null} */
     this.bf = null;
+    /** @type {Phaser.GameObjects.Sprite | null} */
     this.dad = null;
+    /** @type {Phaser.GameObjects.Sprite | null} */
     this.gf = null;
   }
 
+  /**
+   * Registra los JSON de los personajes en la cola de carga.
+   */
   loadCharacterJSONs() {
     if (!this.chartCharacterNames) return;
     
@@ -61,18 +68,39 @@ export class Characters {
     loadChar('gf', names.gfVersion);
   }
 
+  /**
+   * Procesa los JSON cargados y registra las imágenes (Atlas) en la cola de carga.
+   */
   processAndLoadImages() {
-    const stageContent = this.stageHandler.stageContent;
-    this.stageCharacterData = CharactersData.extractStageData(stageContent);
+    // --- [INICIO DE LA CORRECCIÓN] ---
+    // Solo extrae los datos del stageContent SI AÚN NO EXISTEN.
+    // Si 'refreshCharacterSpritesFromData' (en StageCharacters.js)
+    // ya guardó la posición/capa en 'this.stageCharacterData',
+    // esta línea NO debe sobrescribirlo.
+    if (!this.stageCharacterData) {
+        const stageContent = this.stageHandler.stageContent;
+        this.stageCharacterData = CharactersData.extractStageData(stageContent);
+    }
+    // --- [FIN DE LA CORRECCIÓN] ---
+
+
+    // --- [INICIO DE LA CORRECCIÓN (de tu archivo)] ---
+    // Limpiar el mapa antes de poblarlo.
+    // Esto asegura que al refrescar (como en un cambio de personaje),
+    // solo los personajes actuales (ej. 'bf', 'dad', 'gf-car') estén en el mapa.
+    this.loadedCharacterJSONs.clear();
+    // --- [FIN DE LA CORRECCIÓN] ---
 
     const getJSON = (charName) => {
       if (!charName) return null;
       const charKey = `char_${charName}`;
       if (this.scene.cache.json.exists(charKey)) {
         const content = this.scene.cache.json.get(charKey);
+        // Poblar el mapa (ahora limpio)
         this.loadedCharacterJSONs.set(charName, content);
         return content;
       }
+      console.warn(`Characters.js: No se encontró el JSON en caché para '${charName}' (key: ${charKey})`);
       return null;
     };
     
@@ -93,6 +121,9 @@ export class Characters {
     this.characterElements.preloadAtlases(this.chartCharacterNames, this.loadedCharacterJSONs);
   }
 
+  /**
+   * Crea las animaciones y los sprites de los personajes.
+   */
   createAnimationsAndSprites() {
     this.characterAnimations.createAllAnimations(this.chartCharacterNames, this.loadedCharacterJSONs);
     const sprites = this.characterElements.createSprites(this.chartCharacterNames, this.stageCharacterData, this.loadedCharacterJSONs);
@@ -104,6 +135,9 @@ export class Characters {
     this.booper.setCharacterSprites(this.bf, this.dad, this.gf);
   }
 
+  /**
+   * Inicia el sistema de ritmo (bopping).
+   */
   startBeatSystem() {
     if (this.booper) {
       this.booper.startBeatSystem();
@@ -119,23 +153,16 @@ export class Characters {
     const charSprite = isPlayer ? this.bf : this.dad;
     if (!charSprite || !charSprite.active) return;
 
-    // 1. Determinar el nombre de la animación (ej. 'singUP', 'singLEFT')
     const dirName = NoteDirection.getNameUpper(direction); // 'LEFT', 'DOWN', 'UP', 'RIGHT'
     const animName = `sing${dirName}`; // 'singLEFT', 'singDOWN', etc.
 
-    // 2. Marcamos como "cantando" Y reiniciamos el contador de beats.
     charSprite.setData('isSinging', true);
     const singDuration = charSprite.getData('singDuration') || 4;
     charSprite.setData('singBeatCountdown', singDuration);
 
-
-    // 3. Usamos la función playAnimation del Booper.
-    // El 'true' final (force) es crucial para reiniciar la anim.
     this.booper.playAnimation(charSprite, animName, true);
   }
 
-
-  // --- [FUNCIÓN MODIFICADA] ---
   /**
    * Llama a la animación de "fallo" (miss) para el personaje.
    * @param {boolean} isPlayer - ¿Es el jugador (true) o el enemigo (false)?
@@ -145,30 +172,29 @@ export class Characters {
       const charSprite = isPlayer ? this.bf : this.dad;
       if (!charSprite || !charSprite.active) return;
   
-      // 1. Determinar el nombre de la animación (ej. 'singUPmiss', 'singLEFTmiss')
-      const dirName = NoteDirection.getNameUpper(direction); // 'LEFT', 'DOWN', 'UP', 'RIGHT'
-      const animName = `sing${dirName}miss`; // 'singLEFTmiss', 'singDOWNmiss', etc.
+      const dirName = NoteDirection.getNameUpper(direction); 
+      const animName = `sing${dirName}miss`; 
   
-      // 2. [¡MODIFICADO!] Marcamos el sprite como "cantando" (ocupado)
-      // y establecemos el contador de beats usando 'singDuration'
-      // igual que en playSingAnimation.
       charSprite.setData('isSinging', true);
-      const singDuration = charSprite.getData('singDuration') || 4; // Leemos la duración
-      charSprite.setData('singBeatCountdown', singDuration); // La aplicamos
+      const singDuration = charSprite.getData('singDuration') || 4; 
+      charSprite.setData('singBeatCountdown', singDuration); 
   
-      // 3. Usamos la función playAnimation del Booper para forzar la anim.
-      // El 'true' final (force) es crucial.
       this.booper.playAnimation(charSprite, animName, true);
   }
-  // --- Fin de la modificación ---
 
-
+  /**
+   * Actualiza el estado del CharacterBooper.
+   * @param {number} songPosition - El tiempo actual de la canción en ms.
+   */
   update(songPosition) {
     if (this.booper) {
       this.booper.update(songPosition);
     }
   }
 
+  /**
+   * Limpia y destruye los recursos de los personajes.
+   */
   shutdown() {
     if (this.characterElements) {
       this.characterElements.destroy();
@@ -177,6 +203,7 @@ export class Characters {
       this.booper.stopBeatSystem();
     }
 
+    // Limpiar texturas
     if (this.chartCharacterNames) {
         const names = this.chartCharacterNames;
         if (names.player) this.scene.textures.remove(`char_${names.player}`);
@@ -184,6 +211,7 @@ export class Characters {
         if (names.gfVersion) this.scene.textures.remove(`char_${names.gfVersion}`);
     }
     
+    // Limpiar JSONs del caché
     this.loadedCharacterJSONs.forEach((content, charName) => {
       const charKey = `char_${charName}`;
       if (this.scene.cache.json.exists(charKey)) {

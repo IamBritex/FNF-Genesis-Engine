@@ -11,9 +11,8 @@ import { TimeBar } from "./components/timeBar.js";
 import { HealthBar } from "./components/healthBar.js";
 import { RatingText } from "./judgments/RatingText.js";
 import { Score } from "./components/Score.js"; 
-// --- [NUEVO] ---
+import { Conductor } from "./Conductor.js";
 import { FunWaiting } from "./components/FunWaiting.js";
-// --- [FIN NUEVO] ---
 
 export class PlayState extends Phaser.Scene {
   constructor() {
@@ -22,22 +21,36 @@ export class PlayState extends Phaser.Scene {
     this.chartData = null;
     this.assetsLoaded = false;
     this.songAudio = { inst: null, voices: [] };
-    this.notesHandler = null;
-    this.cameraManager = null;
-    this.stageHandler = null;
-    this.charactersHandler = null;
-    this.popUpManager = null;
-    this.countdown = null;
-    this.timeBar = null; 
-    this.healthBar = null; 
-    
-    this.ratingText = null;
-    this.scoreManager = null; 
 
-    // --- [NUEVO] ---
+    /**
+     * El gestor principal de ritmo y BPM.
+     * @type {Conductor | null}
+     */
+    this.conductor = null; 
+    
+    /** @type {NotesHandler | null} */
+    this.notesHandler = null;
+    /** @type {CameraManager | null} */
+    this.cameraManager = null;
+    /** @type {Stage | null} */
+    this.stageHandler = null;
+    /** @type {Characters | null} */
+    this.charactersHandler = null;
+    /** @type {PopUpManager | null} */
+    this.popUpManager = null;
+    /** @type {Countdown | null} */
+    this.countdown = null;
+    /** @type {TimeBar | null} */
+    this.timeBar = null; 
+    /** @type {HealthBar | null} */
+    this.healthBar = null; 
+    /** @type {RatingText | null} */
+    this.ratingText = null;
+    /** @type {Score | null} */
+    this.scoreManager = null; 
+    /** @type {FunWaiting | null} */
     this.funWaiting = null; // Gestor de la pantalla negra
     this.isWaitingOnLoad = true; // Flag para pausar el update
-    // --- [FIN NUEVO] ---
 
     this.isInCountdown = false; 
     this.countdownStartTime = 0;
@@ -69,22 +82,14 @@ export class PlayState extends Phaser.Scene {
   }
 
   create() {
-    // --- [MODIFICADO] ---
-    // Establecer flags de carga
     this.assetsLoaded = false;
     this.isWaitingOnLoad = true; 
-    // --- [FIN MODIFICADO] ---
     
-    // El CameraManager DEBE crearse primero
     this.cameraManager = new CameraManager(this);
 
-    // --- [NUEVO] ---
-    // Crear la pantalla negra INMEDIATAMENTE
     this.funWaiting = new FunWaiting(this, this.cameraManager);
     this.funWaiting.createOverlay();
-    // --- [FIN NUEVO] ---
 
-    // Crear el gestor de puntuación
     this.scoreManager = new Score(this);
     
     this.popUpManager = new PopUpManager(this, this.cameraManager);
@@ -102,16 +107,18 @@ export class PlayState extends Phaser.Scene {
     this.chartData = ChartDataHandler.processChartData(this, this.initData.targetSongId, this.initData.DifficultyID || "normal");
     if (!this.chartData) { this.exitToMenu(); return; }
 
-    this.healthBar = new HealthBar(this, this.chartData);
-    this.stageHandler = new Stage(this, this.chartData, this.cameraManager);
-    this.charactersHandler = new Characters(this, this.chartData, this.cameraManager, this.stageHandler);
+    this.conductor = new Conductor(this.chartData.bpm);
+
+    this.healthBar = new HealthBar(this, this.chartData, this.conductor);
+    this.stageHandler = new Stage(this, this.chartData, this.cameraManager, this.conductor);
+    this.charactersHandler = new Characters(this, this.chartData, this.cameraManager, this.stageHandler, this.conductor);
     
     this.stageHandler.loadStageJSON();
     
     this.charactersHandler.loadCharacterJSONs();
     this.healthBar.loadCharacterData(); 
 
-    this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager);
+    this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager, this.conductor);
 
     this.cameraManager.assignToUI(this.notesHandler.mainUICADContainer);
     this.notesHandler.mainUICADContainer.setDepth(2);
@@ -128,7 +135,7 @@ export class PlayState extends Phaser.Scene {
   }
 
   async onAllDataLoaded() {
-    if (this.assetsLoaded) return; // Prevenir doble ejecución
+    if (this.assetsLoaded) return; 
 
     if (this.stageHandler) {
       this.stageHandler.loadStageImages(); 
@@ -148,7 +155,6 @@ export class PlayState extends Phaser.Scene {
     if (this.assetsLoaded) return; 
     this.assetsLoaded = true;
 
-    // Crear todos los elementos visuales (mientras la pantalla sigue en negro)
     if (this.healthBar) {
         await this.healthBar.init(); 
         this.healthBar.container.setDepth(1) 
@@ -176,33 +182,26 @@ export class PlayState extends Phaser.Scene {
       this.charactersHandler.startBeatSystem(); 
     }
 
-    // --- [MODIFICADO] ---
-    // En lugar de iniciar el juego, iniciamos el fundido de salida.
-    // El juego comenzará cuando el fundido termine.
     if (this.funWaiting) {
         this.funWaiting.startFadeOut(() => {
-            // Callback: Se llama al terminar el fundido
-            this.isWaitingOnLoad = false; // Desbloquear el update
-            this.startGameLogic();      // Iniciar la cuenta atrás
-        }, 500); // 500ms de fundido
+            this.isWaitingOnLoad = false; 
+            this.startGameLogic();      
+        }, 500); 
     } else {
-        // Fallback por si FunWaiting falló
         this.isWaitingOnLoad = false;
         this.startGameLogic();
     }
-    // --- [FIN MODIFICADO] ---
   }
 
   /**
-   * [NUEVA FUNCIÓN]
    * Contiene la lógica que se ejecuta DESPUÉS del fundido de carga.
    */
   startGameLogic() {
-    if (!this.scene) return; // Seguridad por si la escena se cerró
+    if (!this.scene || !this.conductor) return; 
 
     this.isInCountdown = true;
     
-    const beatLengthMs = (60 / this.chartData.bpm) * 1000;
+    const beatLengthMs = this.conductor.crochet;
 
     this.countdownStartTime = this.time.now; 
     this.songStartTime = this.countdownStartTime + (beatLengthMs * 5);
@@ -219,6 +218,11 @@ export class PlayState extends Phaser.Scene {
             if (this.timeBar) {
                 this.timeBar.setTotalDuration(durationMs);
             }
+            
+            // --- [MODIFICADO] ---
+            // PlayState NO llama a conductor.start().
+            // El conductor en PlayState es pasivo.
+            // --- [FIN MODIFICADO] ---
             
             this.songAudio.inst.on('complete', this.onSongComplete, this);
         }
@@ -244,17 +248,12 @@ export class PlayState extends Phaser.Scene {
   }
 
    update(time, delta) {
-    // --- [NUEVO] ---
-    // Pausar toda la lógica de update si estamos en la pantalla negra
     if (this.isWaitingOnLoad) {
         return;
     }
-    // --- [FIN NUEVO] ---
 
     this.debugCameraControls(delta);
 
-    // assetsLoaded es true si isWaitingOnLoad es false,
-    // así que esta comprobación es redundante, pero la dejamos por seguridad.
     if (!this.assetsLoaded) return;
 
     let songPosition; 
@@ -272,6 +271,10 @@ export class PlayState extends Phaser.Scene {
     } else {
         if (!this.songAudio?.inst?.isPlaying) {
              if (this.charactersHandler) this.charactersHandler.update(0); 
+             // --- [MODIFICADO] ---
+             // Actualizar conductor con 0
+             if (this.conductor) this.conductor.updateFromSong(0);
+             // --- [FIN MODIFICADO] ---
              return;
         }
         
@@ -283,6 +286,14 @@ export class PlayState extends Phaser.Scene {
         }
     }
     
+    // --- [MODIFICADO] ---
+    // Actualizar el conductor con la posición de la canción
+    // usando el método pasivo.
+    if (this.conductor) {
+        this.conductor.updateFromSong(songPosition);
+    }
+    // --- [FIN MODIFICADO] ---
+
     if (this.timeBar) {
         this.timeBar.update(songPosition);
     }
@@ -293,12 +304,20 @@ export class PlayState extends Phaser.Scene {
     }
    }
    
+   /**
+    * Aplica daño a la barra de vida.
+    * @param {number} [amount=1] - El multiplicador de daño.
+    */
    damage(amount = 1) {
        if (this.healthBar) {
            this.healthBar.damage(amount); 
        }
    }
 
+   /**
+    * Aplica curación a la barra de vida.
+    * @param {number} [amount=1] - El multiplicador de curación.
+    */
    heal(amount = 1) {
        if (this.healthBar) {
            this.healthBar.heal(amount); 
@@ -339,20 +358,22 @@ export class PlayState extends Phaser.Scene {
   }
 
   shutdown() {
-    // Limpiar todo
     if (this.healthBar) { this.healthBar.destroy(); this.healthBar = null; } 
     if (this.timeBar) { this.timeBar.destroy(); this.timeBar = null; }
     if (this.ratingText) { this.ratingText.destroy(); this.ratingText = null; }
     if (this.scoreManager) { this.scoreManager.destroy(); this.scoreManager = null; }
-    // --- [NUEVO] ---
     if (this.funWaiting) { this.funWaiting.destroy(); this.funWaiting = null; }
-    // --- [FIN NUEVO] ---
     if (this.notesHandler) { this.notesHandler.shutdown(); this.notesHandler = null; }
     if (this.cameraManager) { this.cameraManager.shutdown(this); this.cameraManager = null; }
     if (this.stageHandler) { this.stageHandler.shutdown(); this.stageHandler = null; }
     if (this.charactersHandler) { this.charactersHandler.shutdown(); this.charactersHandler = null; } 
     if (this.popUpManager) { this.popUpManager.shutdown(); this.popUpManager = null; }
     if (this.countdown) { this.countdown.stop(); this.countdown = null; }
+    
+    if (this.conductor) { 
+        this.conductor.stop();
+        this.conductor = null; 
+    }
 
     SongPlayer.shutdown(this, this.chartData, this.songAudio);
     

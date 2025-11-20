@@ -121,7 +121,7 @@ class MainMenuState extends Phaser.Scene {
         this.inputHandler.initControls();
         this.inputHandler.updateSelection();
         
-        this.cameras.main.fadeIn(400, 0, 0, 0, (cam, progress) => {
+        this.cameras.main.fadeIn(250, 0, 0, 0, (cam, progress) => {
             if (progress === 1) {
                 this.canInteract = true;
             }
@@ -133,7 +133,7 @@ class MainMenuState extends Phaser.Scene {
 
         this.menuItems.forEach((item, index) => {
             if (index !== this.selectedIndex) {
-                this.tweens.add({ targets: item, alpha: 0, duration: 300, ease: 'Cubic.easeOut' });
+                this.tweens.add({ targets: item, alpha: 0, duration: 200, ease: 'Cubic.easeOut' });
             }
         });
 
@@ -141,7 +141,7 @@ class MainMenuState extends Phaser.Scene {
             this.scene.get("TransitionScene").startTransition(sceneKey);
         } else {
             console.warn("TransitionScene no encontrada. Usando fadeOut simple.");
-            this.cameras.main.fadeOut(500, 0, 0, 0);
+            this.cameras.main.fadeOut(300, 0, 0, 0);
             this.cameras.main.once('camerafadeoutcomplete', () => {
                  if (this.scene.keys[sceneKey]) this.scene.start(sceneKey);
             });

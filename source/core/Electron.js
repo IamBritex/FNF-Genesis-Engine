@@ -6,10 +6,8 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 
-// --- NUEVO ---
-// Importamos el inicializador de nuestro manejador de errores
 const { initCrashHandlerMain } = require('./crashHandlerMain');
-// --- FIN NUEVO ---
+require('@electron/remote/main').initialize();
 
 // Deshabilitar autofill antes del ready
 app.commandLine.appendSwitch('disable-features', 'Autofill');
@@ -27,9 +25,12 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      enableRemoteModule: true
     },
     icon: "icons_desktop_env/icon.webp"
   });
+  
+  require('@electron/remote/main').enable(mainWindow.webContents);
 
   const gamePath = path.join(__dirname, '..', '..', 'index.html');
   mainWindow.loadFile(gamePath);
@@ -37,6 +38,7 @@ function createWindow() {
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`[Renderer] ${message}`);
   });
+  
 }
 
 app.whenReady().then(() => {

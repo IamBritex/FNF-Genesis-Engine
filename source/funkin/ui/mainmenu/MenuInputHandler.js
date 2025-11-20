@@ -13,16 +13,20 @@ export class MenuInputHandler {
      * Vincula los eventos del teclado a las acciones del menú.
      */
     initControls() {
-        // Guardamos las referencias para poder limpiarlas después
         this.onKeyUp = () => this.changeSelection(-1);
         this.onKeyDown = () => this.changeSelection(1);
         this.onKeyEnter = () => this.confirmSelection();
         this.onKeyBackspace = () => this.goBack();
         
-        // Agregar atajo para EditorsState
         this.onKeySeven = () => {
             if (this.scene.canInteract) {
-                this.scene.startExitState('EditorsState');
+                /**
+                 * Al lanzar el modal, no pausamos la escena,
+                 * solo le quitamos la interactividad.
+                 * Esto es VITAL para que el 'backdrop-filter' (blur) funcione.
+                 */
+                this.scene.canInteract = false; 
+                this.scene.scene.launch('EditorsState');
             }
         };
 
@@ -30,7 +34,7 @@ export class MenuInputHandler {
         this.scene.input.keyboard.on('keydown-DOWN', this.onKeyDown);
         this.scene.input.keyboard.on('keydown-ENTER', this.onKeyEnter);
         this.scene.input.keyboard.on('keydown-BACKSPACE', this.onKeyBackspace);
-        this.scene.input.keyboard.on('keydown-SEVEN', this.onKeySeven); // Agregar listener
+        this.scene.input.keyboard.on('keydown-SEVEN', this.onKeySeven);
     }
 
     /**
@@ -65,7 +69,6 @@ export class MenuInputHandler {
             }
         });
 
-        // Mover el 'camFollow' instantáneamente
         const targetY = this.scene.menuItems[this.scene.selectedIndex].y;
         this.scene.camFollow.setPosition(this.scene.camFollow.x, targetY);
     }
@@ -80,7 +83,6 @@ export class MenuInputHandler {
         this.scene.confirmSound.play();
         const selectedItem = this.scene.menuItems[this.scene.selectedIndex];
 
-        // Lógica de FlxFlicker
         const duration = 1100, interval = 90;
         this.scene.menuFlash.setVisible(true);
         if (this.scene.flickerTimer) this.scene.flickerTimer.remove();
@@ -130,6 +132,6 @@ export class MenuInputHandler {
         this.scene.input.keyboard.off('keydown-DOWN', this.onKeyDown);
         this.scene.input.keyboard.off('keydown-ENTER', this.onKeyEnter);
         this.scene.input.keyboard.off('keydown-BACKSPACE', this.onKeyBackspace);
-        this.scene.input.keyboard.off('keydown-SEVEN', this.onKeySeven); // Remover listener
+        this.scene.input.keyboard.off('keydown-SEVEN', this.onKeySeven);
     }
 }

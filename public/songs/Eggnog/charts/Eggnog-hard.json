@@ -2664,7 +2664,7 @@
 				"mustHitSection": true
 			}
 		],
-		"enemy": "parents-christmas",,
+		"enemy": "parents-christmas",
 		"song": "Eggnog",
 		"stage": "mall",
 		"needsVoices": false,

@@ -50,7 +50,8 @@ export class CharacterElements {
   }
 
   /**
-   * Crea los sprites de los personajes y les aplica las propiedades del stage.json.
+   * [MODIFICADO] Crea los sprites de los personajes y les aplica las propiedades del stage.json.
+   * Ahora soporta scroll diferenciado (X/Y), rotación y flip Y.
    * @param {object} names - { player, enemy, gfVersion }
    * @param {object} stageData - { player, enemy, playergf }
    * @param {Map<string, object>} jsonContents - Map con el contenido de los JSONs de personajes
@@ -71,30 +72,43 @@ export class CharacterElements {
       
       const jsonData = jsonContents.get(charName);
 
-      // --- [NUEVO] Guardar Sing Duration ---
-      // Si no existe, usamos 4 beats por defecto
+      if (!jsonData) {
+        console.warn(`CharacterElements: No se encontró JSON data para '${charName}'. Abortando creación de sprite.`);
+        return null;
+      }
+      
       const singDuration = jsonData.sing_duration || 4;
-      // --- Fin del cambio ---
       
-      // --- ¡¡INICIO DE LA LÓGICA DE ANCLAJE (COPIADA DEL EDITOR)!! ---
-      let frameWidth = 1;
-      let frameHeight = 1;
-      let animToPlayKey = `${textureKey}_idle`;
-      let fallbackAnimKey = `${textureKey}_danceLeft`;
+      // --- [INICIO DE LÓGICA DE POSICIONAMIENTO] ---
 
-      // 1. Encontrar la animación 'idle' (o 'danceLeft' como fallback) en el JSON del personaje
-      let defaultAnimData = jsonData.animations.find(a => a.anim === 'idle' || a.anim === 'idle-loop');
-      
-      if (!defaultAnimData) {
-        defaultAnimData = jsonData.animations.find(a => a.anim === 'danceLeft' || a.anim === 'danceLeft-loop');
-        animToPlayKey = fallbackAnimKey; // Usaremos danceLeft si idle no existe
+      // 1. Crear el Map de offsets ANTES
+      const allOffsets = new Map();
+      if (jsonData.animations) {
+        jsonData.animations.forEach(anim => {
+          if (anim.anim && anim.offsets) {
+            allOffsets.set('offset_' + anim.anim, anim.offsets);
+          }
+        });
       }
 
-      // 2. Obtener las dimensiones del primer frame de esa animación
+      // 2. Encontrar la animación 'idle' (o 'danceLeft' como fallback)
+      let frameWidth = 1, frameHeight = 1;
+      let animToPlayKey = `${textureKey}_idle`;
+      let fallbackAnimKey = `${textureKey}_danceLeft`;
+      
+      let defaultAnimData = jsonData.animations.find(a => a.anim === 'idle' || a.anim === 'idle-loop');
+      if (!defaultAnimData) {
+        defaultAnimData = jsonData.animations.find(a => a.anim === 'danceLeft' || a.anim === 'danceLeft-loop');
+        animToPlayKey = fallbackAnimKey; 
+      }
+
+      // 3. Obtener el offset de la anim por defecto
+      const initialAnimName = (defaultAnimData && defaultAnimData.anim) ? defaultAnimData.anim : 'idle';
+      const initialOffset = allOffsets.get('offset_' + initialAnimName) || [0, 0];
+
+      // 4. Obtener las dimensiones del primer frame
       if (defaultAnimData && defaultAnimData.name) {
         const frames = this.scene.textures.get(textureKey).getFrameNames();
-        // Buscamos un frame que COMIENCE con el nombre de la animación.
-        // ej. 'bf idle dance' puede tener frames como 'bf idle dance0000', 'bf idle dance0001', etc.
         const firstFrameName = frames.find(f => f.startsWith(defaultAnimData.name));
 
         if (firstFrameName) {
@@ -108,79 +122,72 @@ export class CharacterElements {
         console.warn(`CharacterElements: No se encontró 'idle' o 'danceLeft' en ${charName}.json`);
       }
 
-      // 3. Calcular la escala total (JSON del personaje * JSON del escenario)
+      // 5. Calcular la escala total
       const baseScale = jsonData.scale || 1;
       const finalScale = baseScale * stageBlock.scale;
 
-      // 4. Calcular las dimensiones finales escaladas
+      // 6. Calcular las dimensiones finales escaladas
       const scaledWidth = frameWidth * finalScale;
       const scaledHeight = frameHeight * finalScale;
 
-      // 5. Obtener la POSICIÓN DE ANCLAJE (Bottom-Center) del stage.json
+      // 7. Obtener la POSICIÓN DE ANCLAJE (Bottom-Center) del stage.json
       const anchorX = stageBlock.position[0];
       const anchorY = stageBlock.position[1];
 
-      // 6. Calcular la posición final (Top-Left) para el sprite con origin (0, 0)
-      const finalX = anchorX - (scaledWidth / 2);
-      const finalY = anchorY - scaledHeight;
+      // 8. Calcular el 'baseX' y 'baseY' (el punto 0,0 lógico)
+      // El punto (0,0) lógico se calcula restando el offset de la anim 'idle' 
+      // y las dimensiones del frame 'idle' desde el punto de anclaje (Centro-Abajo).
+      const baseX = anchorX - (initialOffset[0] * finalScale) - (scaledWidth / 2);
+      const baseY = anchorY - (initialOffset[1] * finalScale) - scaledHeight;
       
-      // --- FIN DE LA LÓGICA DE ANCLAJE ---
+      // 9. Calcular la POSICIÓN INICIAL (con offset de 'idle' o 'danceLeft')
+      const initialX = baseX + (initialOffset[0] * finalScale);
+      const initialY = baseY + (initialOffset[1] * finalScale);
       
-      const baseX = finalX;
-      const baseY = finalY;
-      // Usamos un Map para guardar los offsets que le pondremos al sprite
-      const allOffsets = new Map();
-      if (jsonData.animations) {
-        jsonData.animations.forEach(anim => {
-          if (anim.anim && anim.offsets) {
-            allOffsets.set('offset_' + anim.anim, anim.offsets);
-          }
-        });
-      }
+      // --- [FIN DE LÓGICA DE POSICIONAMIENTO] ---
       
-      // Calcular la POSICIÓN INICIAL (con offset de 'idle' o 'danceLeft')
-      const initialAnimName = (defaultAnimData && defaultAnimData.anim) ? defaultAnimData.anim : null;
-      let initialX = baseX;
-      let initialY = baseY;
-
-      if (initialAnimName) {
-          // Busca el offset inicial (ej. 'offset_idle') en el Map
-          const initialOffset = allOffsets.get('offset_' + initialAnimName) || [0, 0];
-          // Aplica el offset escalado
-          initialX = baseX + (initialOffset[0] * finalScale);
-          initialY = baseY + (initialOffset[1] * finalScale);
-      }
-      // --- Fin del cambio ---
-
       const sprite = this.scene.add.sprite(initialX, initialY, textureKey);
 
-      // 8. Aplicar propiedades del stage.json
+      // 10. Aplicar propiedades generales del stage.json
       sprite.setDepth(stageBlock.layer);
       sprite.setAlpha(stageBlock.opacity);
-      sprite.setScrollFactor(stageBlock.scrollFactor);
       sprite.setVisible(stageBlock.visible);
       
-      // 9. Aplicar escala
+      // [NUEVO] Lógica de Scroll X/Y
+      if (stageBlock.scroll_x !== undefined && stageBlock.scroll_y !== undefined) {
+          sprite.setScrollFactor(stageBlock.scroll_x, stageBlock.scroll_y);
+      } else {
+          sprite.setScrollFactor(stageBlock.scrollFactor ?? 1);
+      }
+
+      // [NUEVO] Lógica de Rotación
+      if (stageBlock.angle) {
+          sprite.setAngle(stageBlock.angle);
+      }
+      
+      // 11. Aplicar escala
       sprite.setScale(finalScale);
 
-      // 10. Aplicar Flip (XOR)
-      const defaultFlip = jsonData.flip_x === true;
-      const stageFlip = stageBlock.flip_x === true;
-      sprite.setFlipX(defaultFlip !== stageFlip); 
+      // 12. Aplicar Flip X (XOR con el valor por defecto del personaje)
+      const defaultFlipX = jsonData.flip_x === true;
+      const stageFlipX = stageBlock.flip_x === true;
+      sprite.setFlipX(defaultFlipX !== stageFlipX); 
 
-      // 11. Asignar a la cámara de juego
+      // [NUEVO] Aplicar Flip Y
+      sprite.setFlipY(stageBlock.flip_y === true);
+
+      // 13. Asignar a la cámara de juego
       if (this.cameraManager) {
         this.cameraManager.assignToGame(sprite);
       }
 
-      // 12. Aplicar origen (¡CRUCIAL! Debe ser 0,0 para que el cálculo funcione)
+      // 14. Aplicar origen (¡CRUCIAL! Debe ser 0,0 para que la lógica de offsets funcione)
       sprite.setOrigin(0, 0);
 
-      // 13. Reproducir animación "idle" o "danceLeft"
+      // 15. Reproducir animación "idle" o "danceLeft"
       if (this.scene.anims.exists(animToPlayKey)) {
         sprite.play({ key: animToPlayKey }); 
       } else {
-        // Fallback si la anim 'idle' no existe pero 'danceLeft' sí
         if (this.scene.anims.exists(fallbackAnimKey)) {
            sprite.play({ key: fallbackAnimKey });
         } else {
@@ -188,24 +195,19 @@ export class CharacterElements {
         }
       }
       
-      // Guardar el nombre de la textura en el sprite para el booper
       sprite.setData('textureKey', textureKey);
       
-      // --- [NUEVO] Guardar la posición base y TODOS los offsets en el sprite ---
+      // 16. Guardar el 'baseX' y 'baseY' (el 0,0 lógico)
       sprite.setData('baseX', baseX);
       sprite.setData('baseY', baseY);
       allOffsets.forEach((value, key) => {
         sprite.setData(key, value);
       });
-      // --- Fin del cambio ---
       
-      // --- [NUEVO] ---
-      // Inicializar la bandera de "cantando"
+      // 17. Inicializar la bandera de "cantando"
       sprite.setData('isSinging', false);
-      // Guardar sing_duration y el contador de beats
       sprite.setData('singDuration', singDuration);
-      sprite.setData('singBeatCountdown', 0); // Inicia en 0
-      // --- Fin del cambio ---
+      sprite.setData('singBeatCountdown', 0);
       
       return sprite;
     };

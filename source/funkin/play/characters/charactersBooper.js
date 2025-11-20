@@ -142,6 +142,13 @@ export class CharacterBooper {
    * @param {boolean} [force=false] - Si es true, fuerza la reproducción incluso si ya se está reproduciendo.
    */
   playAnimation(sprite, animName, force = false) {
+    
+    // --- [INICIO DE LA CORRECCIÓN] ---
+    // ¡Añadir esta línea!
+    // Si el sprite es nulo o está inactivo, no hacer nada.
+    if (!sprite || !sprite.active) return;
+    // --- [FIN DE LA CORRECCIÓN] ---
+
     const textureKey = sprite.getData('textureKey');
     if (!textureKey) return;
     

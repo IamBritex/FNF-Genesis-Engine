@@ -1,6 +1,6 @@
 {
 	"song": {
-		"player1": "bf-car",
+		"player": "bf-car",
 		"events": [],
 		"gfVersion": "gf-car",
 		"notes": [

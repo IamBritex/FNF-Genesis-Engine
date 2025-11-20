@@ -1,0 +1,23 @@
+<div class="layers-panel-wrapper">
+    <div class="layers-panel-container">
+        <button class="layers-toggle-btn" title="Ocultar/Mostrar Panel">></button>
+        <div class="layers-title-bar">
+            <span class="layers-title">LAYERS</span>
+            <div class="layers-actions">
+                <button class="layers-popup-btn" title="Abrir en nueva ventana"><img src="public/images/ui/editors/open_in_new.svg" width="16"></button>
+                <div class="layers-add-wrapper">
+                    <button class="layers-add-btn" id="btn-add-menu" title="Add Element">+</button>
+                    <div class="layers-dropdown" id="layers-add-dropdown" style="display: none;">
+                        <button class="dd-item" id="dd-add-asset">ADD ASSET</button>
+                        <button class="dd-item" id="dd-add-object">ADD OBJECT</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <input type="file" id="layers-file-input" multiple accept=".png,.xml" style="display: none;">
+        
+        <div class="layers-list-scroll-area">
+            <div class="layers-list-content"></div>
+        </div>
+    </div>
+</div>
