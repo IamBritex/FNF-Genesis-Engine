@@ -12,6 +12,7 @@ export class PropertiesWindow {
         
         this.currentTarget = null;
         this.windowInstance = null;
+        this.onDestroy = null;
         
         this.generalModule = null;
         this.specificModule = null;
@@ -299,5 +300,10 @@ export class PropertiesWindow {
         }
         if (this.charSelectorWindow) this.charSelectorWindow.windowInstance.destroy();
         if (this.windowInstance && !fromWindow) this.windowInstance.destroy();
+        
+        if (this.onDestroy) {
+            this.onDestroy();
+            this.onDestroy = null;
+        }
     }
 }

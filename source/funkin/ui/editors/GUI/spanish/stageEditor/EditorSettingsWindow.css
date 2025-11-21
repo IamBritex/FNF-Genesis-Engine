@@ -38,12 +38,11 @@
 }
 .color-picker-dropdown {
     margin-top: 15px; background-color: #2a1836;
-    border: 2px solid #663399; padding: 10px;
+    border: 2px solid #663399; padding: 10px; 
     border-radius: 8px; display: flex; flex-direction: column; align-items: center;
 }
 .picker-canvas-wrapper {
-    cursor: crosshair; border-radius: 50%; overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.5); margin-bottom: 10px;
+    cursor: crosshair; overflow: hidden; display:flex; justify-content: center;
 }
 .picker-controls {
     width: 100%; display: flex; flex-direction: column; gap: 10px;

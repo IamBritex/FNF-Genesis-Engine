@@ -42,7 +42,6 @@ export class LoadingLol {
             fontFamily: 'Arial',
             fontSize: '24px',
             color: '#ffffff',
-            backgroundColor: '#00000088',
             padding: { x: 10, y: 5 },
             wordWrap: { width: width - 40 }
         };
@@ -51,6 +50,7 @@ export class LoadingLol {
         this.text.setOrigin(0, 1);
         this.text.setScrollFactor(0);
         this.text.setDepth(100001);
+        this.text.setStroke('#000000', 5);
 
         this.updateTip();
         
