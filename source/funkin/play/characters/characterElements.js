@@ -51,7 +51,7 @@ export class CharacterElements {
 
   /**
    * [MODIFICADO] Crea los sprites de los personajes y les aplica las propiedades del stage.json.
-   * Ahora soporta scroll diferenciado (X/Y), rotación y flip Y.
+   * Ahora soporta detección de Pixel Art.
    * @param {object} names - { player, enemy, gfVersion }
    * @param {object} stageData - { player, enemy, playergf }
    * @param {Map<string, object>} jsonContents - Map con el contenido de los JSONs de personajes
@@ -76,6 +76,16 @@ export class CharacterElements {
         console.warn(`CharacterElements: No se encontró JSON data para '${charName}'. Abortando creación de sprite.`);
         return null;
       }
+
+      // --- [NUEVO] Detectar Pixel Art ---
+      // Verifica las propiedades comunes para pixel art en motores FNF
+      const isPixel = jsonData.isPixel === true || jsonData.no_antialiasing === true || jsonData.antialiasing === false;
+      
+      if (isPixel) {
+          // Establecer filtro Nearest Neighbor para bordes definidos (pixel art nítido)
+          texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      }
+      // --- [FIN NUEVO] ---
       
       const singDuration = jsonData.sing_duration || 4;
       
@@ -135,12 +145,10 @@ export class CharacterElements {
       const anchorY = stageBlock.position[1];
 
       // 8. Calcular el 'baseX' y 'baseY' (el punto 0,0 lógico)
-      // El punto (0,0) lógico se calcula restando el offset de la anim 'idle' 
-      // y las dimensiones del frame 'idle' desde el punto de anclaje (Centro-Abajo).
       const baseX = anchorX - (initialOffset[0] * finalScale) - (scaledWidth / 2);
       const baseY = anchorY - (initialOffset[1] * finalScale) - scaledHeight;
       
-      // 9. Calcular la POSICIÓN INICIAL (con offset de 'idle' o 'danceLeft')
+      // 9. Calcular la POSICIÓN INICIAL
       const initialX = baseX + (initialOffset[0] * finalScale);
       const initialY = baseY + (initialOffset[1] * finalScale);
       
@@ -148,63 +156,49 @@ export class CharacterElements {
       
       const sprite = this.scene.add.sprite(initialX, initialY, textureKey);
 
-      // 10. Aplicar propiedades generales del stage.json
+      // 10. Aplicar propiedades
       sprite.setDepth(stageBlock.layer);
       sprite.setAlpha(stageBlock.opacity);
       sprite.setVisible(stageBlock.visible);
       
-      // [NUEVO] Lógica de Scroll X/Y
       if (stageBlock.scroll_x !== undefined && stageBlock.scroll_y !== undefined) {
           sprite.setScrollFactor(stageBlock.scroll_x, stageBlock.scroll_y);
       } else {
           sprite.setScrollFactor(stageBlock.scrollFactor ?? 1);
       }
 
-      // [NUEVO] Lógica de Rotación
       if (stageBlock.angle) {
           sprite.setAngle(stageBlock.angle);
       }
       
-      // 11. Aplicar escala
       sprite.setScale(finalScale);
 
-      // 12. Aplicar Flip X (XOR con el valor por defecto del personaje)
       const defaultFlipX = jsonData.flip_x === true;
       const stageFlipX = stageBlock.flip_x === true;
       sprite.setFlipX(defaultFlipX !== stageFlipX); 
-
-      // [NUEVO] Aplicar Flip Y
       sprite.setFlipY(stageBlock.flip_y === true);
 
-      // 13. Asignar a la cámara de juego
       if (this.cameraManager) {
         this.cameraManager.assignToGame(sprite);
       }
 
-      // 14. Aplicar origen (¡CRUCIAL! Debe ser 0,0 para que la lógica de offsets funcione)
       sprite.setOrigin(0, 0);
 
-      // 15. Reproducir animación "idle" o "danceLeft"
       if (this.scene.anims.exists(animToPlayKey)) {
         sprite.play({ key: animToPlayKey }); 
       } else {
         if (this.scene.anims.exists(fallbackAnimKey)) {
            sprite.play({ key: fallbackAnimKey });
-        } else {
-           console.warn(`CharacterElements: No se encontró la animación 'idle' o 'danceLeft' para ${charName}`);
         }
       }
       
       sprite.setData('textureKey', textureKey);
-      
-      // 16. Guardar el 'baseX' y 'baseY' (el 0,0 lógico)
       sprite.setData('baseX', baseX);
       sprite.setData('baseY', baseY);
       allOffsets.forEach((value, key) => {
         sprite.setData(key, value);
       });
       
-      // 17. Inicializar la bandera de "cantando"
       sprite.setData('isSinging', false);
       sprite.setData('singDuration', singDuration);
       sprite.setData('singBeatCountdown', 0);

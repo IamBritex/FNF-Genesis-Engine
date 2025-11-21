@@ -19,19 +19,20 @@ export class SongPlayer {
     const timestamp = Date.now(); 
 
     const instKey = `Inst_${songName}`;
-    scene.load.audio(instKey, `${songPath}/Inst.ogg?t=${timestamp}`);
-    console.log(`SongPlayer: Iniciando carga de ${instKey} (Inst.ogg)`);
+    // Verificar si ya existe para no recargar y duplicar claves si algo falla
+    if (!scene.cache.audio.exists(instKey)) {
+        scene.load.audio(instKey, `${songPath}/Inst.ogg?t=${timestamp}`);
+        console.log(`SongPlayer: Iniciando carga de ${instKey} (Inst.ogg)`);
+    }
 
     if (chartData.needsVoices) {
       const playerKey = `Voices-Player_${songName}`;
       const opponentKey = `Voices-Opponent_${songName}`;
-      scene.load.audio(playerKey, `${songPath}/Voices-Player.ogg?t=${timestamp}`);
-      scene.load.audio(opponentKey, `${songPath}/Voices-Opponent.ogg?t=${timestamp}`);
-      console.log(`SongPlayer: 'needsVoices' es true. Cargando pistas separadas.`);
+      if (!scene.cache.audio.exists(playerKey)) scene.load.audio(playerKey, `${songPath}/Voices-Player.ogg?t=${timestamp}`);
+      if (!scene.cache.audio.exists(opponentKey)) scene.load.audio(opponentKey, `${songPath}/Voices-Opponent.ogg?t=${timestamp}`);
     } else {
       const voicesKey = `Voices_${songName}`;
-      scene.load.audio(voicesKey, `${songPath}/Voices.ogg?t=${timestamp}`);
-      console.log(`SongPlayer: 'needsVoices' es false. Cargando pista combinada.`);
+      if (!scene.cache.audio.exists(voicesKey)) scene.load.audio(voicesKey, `${songPath}/Voices.ogg?t=${timestamp}`);
     }
   }
 
@@ -102,13 +103,19 @@ export class SongPlayer {
     if (songAudio) {
       if (songAudio.inst) {
         songAudio.inst.stop();
+        songAudio.inst.destroy(); // Asegurar destrucción del objeto
       }
-      songAudio.voices.forEach(voice => voice.stop());
+      if (songAudio.voices) {
+          songAudio.voices.forEach(voice => {
+              voice.stop();
+              voice.destroy();
+          });
+      }
     }
 
     // 2. Limpiar los archivos del caché de Phaser
     if (!chartData || !chartData.song) {
-      console.warn("SongPlayer.shutdown: No se proporcionó chartData, no se puede limpiar el audio.");
+      // Si no hay chartData, no podemos saber qué claves borrar, pero no crasheamos.
       return;
     }
 

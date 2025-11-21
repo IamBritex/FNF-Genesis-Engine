@@ -2,15 +2,9 @@ import { HealthIcon } from './healthIcon.js';
 
 export class HealthBar {  
   
-  /**
-   * @param {Phaser.Scene} scene
-   * @param {object} chartData - El objeto chartData procesado de PlayState.
-   */
   constructor(scene, chartData, conductor) {  
       this.scene = scene;  
-      // --- [NUEVO] ---
-      this.chartData = chartData; // Guardar chartData
-      // --- [FIN NUEVO] ---
+      this.chartData = chartData; 
 
       this.health = 1.0;  
       this.curHealth = 1.0;  
@@ -21,6 +15,10 @@ export class HealthBar {
       this.enemyIconName = null;
       this.playerIcon = null; 
       this.enemyIcon = null; 
+
+      // Variables para Pixel Art
+      this.isPixelPlayer = false;
+      this.isPixelEnemy = false;
         
       this.config = {  
           position: {  
@@ -29,8 +27,8 @@ export class HealthBar {
           },  
           scale: 1,  
           colors: {  
-              player: 0x00ff00, // Verde por defecto
-              enemy: 0xff0000    // Rojo por defecto
+              player: 0x00ff00, 
+              enemy: 0xff0000    
           }
       };  
   
@@ -41,23 +39,13 @@ export class HealthBar {
       this._loadOpacityFromStorage();  
   }  
 
-  /**
-   * Precarga la imagen de fondo de la barra.
-   * @param {Phaser.Scene} scene
-   */
   static preload(scene) {
       if (!scene.textures.exists('healthBar')) {
           scene.load.image('healthBar', 'public/images/ui/healthBar.png');
       }
-      // Asegurarse de que el ícono 'face' (fallback) esté cargado
       HealthIcon.preload(scene, 'face');
   }
 
-  // --- [NUEVO] ---
-  /**
-   * Carga los archivos JSON de los personajes.
-   * (Llamado desde PlayState.create)
-   */
   loadCharacterData() {
     const p1Name = this.chartData?.player || 'bf';
     const p2Name = this.chartData?.enemy || 'dad';
@@ -69,13 +57,21 @@ export class HealthBar {
         this.scene.load.json(`char_${p2Name}`, `public/data/characters/${p2Name}.json`);
     }
   }
+
   preloadIcons() {
     const p1Data = this.scene.cache.json.get(`char_${this.chartData?.player || 'bf'}`);
     const p2Data = this.scene.cache.json.get(`char_${this.chartData?.enemy || 'dad'}`);
+    
     this.playerIconName = p1Data?.healthicon || 'bf';
     this.enemyIconName = p2Data?.healthicon || 'dad';
+
+    // Detectar Pixel Art desde JSON
+    this.isPixelPlayer = p1Data?.isPixel === true || p1Data?.no_antialiasing === true || p1Data?.antialiasing === false;
+    this.isPixelEnemy = p2Data?.isPixel === true || p2Data?.no_antialiasing === true || p2Data?.antialiasing === false;
+
     this.config.colors.player = p1Data?.healthbar_colors ? Phaser.Display.Color.GetColor(p1Data.healthbar_colors[0], p1Data.healthbar_colors[1], p1Data.healthbar_colors[2]) : 0x00ff00;
     this.config.colors.enemy = p2Data?.healthbar_colors ? Phaser.Display.Color.GetColor(p2Data.healthbar_colors[0], p2Data.healthbar_colors[1], p2Data.healthbar_colors[2]) : 0xff0000;
+    
     HealthIcon.preload(this.scene, this.playerIconName);
     HealthIcon.preload(this.scene, this.enemyIconName);
   }
@@ -101,8 +97,11 @@ export class HealthBar {
       this.container = this.scene.add.container(this.config.position.x, this.config.position.y);
       this.container.setName("HealthBar_container");
       this.container.y = this.scene.cameras.main.height - 70;
-      this.playerIcon = new HealthIcon(this.scene, this.playerIconName, true);
-      this.enemyIcon = new HealthIcon(this.scene, this.enemyIconName, false);      
+      
+      // Pasar flag isPixel al crear los iconos
+      this.playerIcon = new HealthIcon(this.scene, this.playerIconName, true, this.isPixelPlayer);
+      this.enemyIcon = new HealthIcon(this.scene, this.enemyIconName, false, this.isPixelEnemy);      
+      
       this.playerIcon.bpm = this.bpm;
       this.enemyIcon.bpm = this.bpm;
 
@@ -172,6 +171,9 @@ export class HealthBar {
       const redWidth = totalWidth - greenWidth;
 
       if (this.playerIcon) {
+          // [FIX] Matar tweens anteriores de GSAP para evitar conflictos
+          if (this.playerIcon.sprite) gsap.killTweensOf(this.playerIcon.sprite);
+          
           gsap.to(this.playerIcon, {
               x: -halfWidth + redWidth + iconOffset,
               duration: 0.3,
@@ -180,6 +182,8 @@ export class HealthBar {
       }
 
       if (this.enemyIcon) {
+          if (this.enemyIcon.sprite) gsap.killTweensOf(this.enemyIcon.sprite);
+
           gsap.to(this.enemyIcon, {
               x: halfWidth - greenWidth - iconOffset,
               duration: 0.3,
@@ -244,8 +248,10 @@ export class HealthBar {
   }
 
   destroy() {
+      // Destruir íconos primero (que matarán sus GSAP tweens)
       if (this.playerIcon) this.playerIcon.destroy();
       if (this.enemyIcon) this.enemyIcon.destroy();
+      
       if (this.container) this.container.destroy();
   }
 }

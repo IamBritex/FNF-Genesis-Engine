@@ -86,6 +86,15 @@ export class StageElements {
           return;
       }
 
+      // --- [NUEVO] Detectar Pixel Art en Stage Elements ---
+      if (item.isPixel) {
+          const texture = this.scene.textures.get(textureKey);
+          if (texture) {
+              texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+          }
+      }
+      // --- [FIN NUEVO] ---
+
       const sprite = this.scene.add.image(
           item.position[0],
           item.position[1],
@@ -110,18 +119,13 @@ export class StageElements {
 
   /**
    * Función auxiliar para recorrer la estructura del escenario recursivamente.
-   * Maneja items planos y Grupos (objetos llave-valor).
-   * @param {Array} nodeList - Lista de nodos del JSON.
-   * @param {Function} callback - Función (item, type) => void.
    */
   _traverseStageData(nodeList, callback) {
       if (!Array.isArray(nodeList)) return;
 
       for (const node of nodeList) {
-          // Caso 1: Item plano (tiene propiedad 'type' directa)
           if (node.type) {
               if (node.type === 'group') {
-                  // Es un grupo plano (raro en tu estructura actual, pero posible)
                   if (node.children) this._traverseStageData(node.children, callback);
               } else {
                   callback(node, node.type);
@@ -129,19 +133,16 @@ export class StageElements {
               continue;
           }
 
-          // Caso 2: Item envuelto en clave (ej: "NombreGrupo": { type: "group" })
           const keys = Object.keys(node);
           if (keys.length === 1) {
               const key = keys[0];
               const content = node[key];
               
               if (content && content.type === 'group') {
-                  // Es un grupo, recursión en sus hijos
                   if (content.children) {
                       this._traverseStageData(content.children, callback);
                   }
               } else if (content && (content.type === 'image' || content.type === 'spritesheet')) {
-                  // Es un item envuelto
                   callback(content, content.type);
               }
           }

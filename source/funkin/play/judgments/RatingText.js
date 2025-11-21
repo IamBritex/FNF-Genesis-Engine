@@ -1,16 +1,9 @@
 // import { NumberAnimation } from '../../ui/storymode/NumberAnimation.js'; // [ELIMINADO]
 
 export class RatingText {
-    // --- [MODIFICADO] ---
-    // Aceptar 'ratingManager' (que será la instancia de Score.js)
     constructor(scene, ratingManager) {
-    // --- [FIN MODIFICADO] ---
         this.scene = scene;
-        
-        // --- [MODIFICADO] ---
-        // Asignar el manager recibido
         this.ratingManager = ratingManager;
-        // --- [FIN MODIFICADO] ---
         
         if (!this.ratingManager) {
             console.error('RatingManager no está disponible para RatingText');
@@ -23,7 +16,8 @@ export class RatingText {
                 y: scene.scale.height - 30 
             },
             style: {
-                fontFamily: 'VCR',
+                // --- [MODIFICADO] Usar la fuente cargada en PlayState ---
+                fontFamily: 'VCR OSD Mono', 
                 fontSize: '20px',
                 color: '#FFFFFF',
                 align: 'center',
@@ -40,14 +34,8 @@ export class RatingText {
         this.container = this.scene.add.container(0, 0);
         this.container.setName("RatingText_container"); 
 
-        // --- [MODIFICADO] ---
-        // Posicionar el texto relativo a la barra de vida, centrado.
-        // La barra está en (y: scene.scale.height - 70)
         const healthBarY = this.scene.scale.height - 70;
-        
-        // Aumentar el offset de 25 a 45 para que esté "más abajo"
         let yPosition = healthBarY + 45; 
-        // --- [FIN MODIFICADO] ---
 
         this.mainText = this.scene.add.text(
             this.config.position.x, 
@@ -57,23 +45,12 @@ export class RatingText {
         )
         .setOrigin(0.5) 
         .setScrollFactor(0)
-        .setDepth(102); // Asegurarse de que esté visible
+        .setDepth(102); 
 
         this.container.add(this.mainText);
 
-        // --- [MODIFICADO] ---
-        // El depth se establece en PlayState.js
-        // this.container.setDepth(101); 
-        // --- [FIN MODIFICADO] ---
         this.container.setScrollFactor(0);
         this.container.setVisible(true);
-
-        // --- [MODIFICADO] ---
-        // La asignación a la UI Camera se hace en PlayState.js
-        // if (this.scene.cameraController) {
-        //     this.scene.cameraController.addToUILayer(this.container);
-        // }
-        // --- [FIN MODIFICADO] ---
 
         this.updateMainText();
     }

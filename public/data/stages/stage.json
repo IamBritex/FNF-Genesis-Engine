@@ -96,7 +96,7 @@
                     113
                 ],
                 "flip_x": false,
-                "flip_y": true,
+                "flip_y": false,
                 "scrollFactor": 1
             }
         }
