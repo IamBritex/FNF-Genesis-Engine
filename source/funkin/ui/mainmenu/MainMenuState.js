@@ -21,6 +21,7 @@ class MainMenuState extends Phaser.Scene {
         const spacing = 160;
         const startY = this.game.config.height / 2 - (spacing * (5 - 1)) / 2;
         const centerX = this.game.config.width / 2;
+        const itemX = centerX + 35; 
         const bgScrollFactor = 0.10; 
 
         this.spriteData = {
@@ -29,7 +30,7 @@ class MainMenuState extends Phaser.Scene {
             items: [
                 {
                     id: 'storymode', texture: 'storymode', scene: 'StoryModeState',
-                    x: centerX, y: startY, origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
+                    x: itemX, y: startY, origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'storymode idle', anim: 'idle', fps: frameRate, loop: true, indices: [0,1,2,3,4,5,6,7,8] },
                         { name: 'storymode selected', anim: 'selected', fps: frameRate, loop: true, indices: [0,1,2] }
@@ -37,7 +38,7 @@ class MainMenuState extends Phaser.Scene {
                 },
                 {
                     id: 'freeplay', texture: 'freeplay', scene: 'FreeplayState',
-                    x: centerX, y: startY + spacing, origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
+                    x: itemX, y: startY + spacing, origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'freeplay idle', anim: 'idle', fps: frameRate, loop: true },
                         { name: 'freeplay selected', anim: 'selected', fps: frameRate, loop: true }
@@ -45,7 +46,7 @@ class MainMenuState extends Phaser.Scene {
                 },
                 {
                     id: 'multiplayer', texture: 'multiplayer', scene: 'RoomsScene',
-                    x: centerX, y: startY + (spacing * 2), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
+                    x: itemX, y: startY + (spacing * 2), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'multiplayer basic', anim: 'idle', fps: frameRate, loop: true },
                         { name: 'multiplayer white', anim: 'selected', fps: frameRate, loop: true }
@@ -53,7 +54,7 @@ class MainMenuState extends Phaser.Scene {
                 },
                 {
                     id: 'options', texture: 'options', scene: 'OptionsState',
-                    x: centerX, y: startY + (spacing * 3), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
+                    x: itemX, y: startY + (spacing * 3), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'options idle', anim: 'idle', fps: frameRate, loop: true },
                         { name: 'options selected', anim: 'selected', fps: frameRate, loop: true }
@@ -61,7 +62,7 @@ class MainMenuState extends Phaser.Scene {
                 },
                 {
                     id: 'credits', texture: 'credits', scene: 'CreditsState',
-                    x: centerX, y: startY + (spacing * 4), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
+                    x: itemX, y: startY + (spacing * 4), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'credits idle', anim: 'idle', fps: frameRate, loop: true },
                         { name: 'credits selected', anim: 'selected', fps: frameRate, loop: true }
@@ -108,13 +109,20 @@ class MainMenuState extends Phaser.Scene {
             const sprite = await AssetsDriver.createSpriteFromData(data.id, data, data.texture);
             sprite.targetScene = data.scene;
             sprite.setScrollFactor(data.scrollFactor.x, data.scrollFactor.y);
+            
+            sprite.setOrigin(0.5, 0.5);
+
+            sprite.x = data.x + (sprite.width / 2);
+            sprite.y = data.y + (sprite.height / 2);
+
             return sprite;
         });
         
         this.menuItems = await Promise.all(itemPromises);
 
-        // Configurar cámara
-        this.camFollow = new Phaser.GameObjects.Zone(this, this.menuItems[0].x, this.menuItems[0].y, 1, 1);
+        const screenCenterX = this.game.config.width / 2;
+        
+        this.camFollow = new Phaser.GameObjects.Zone(this, screenCenterX, this.menuItems[0].y, 1, 1);
         this.add.existing(this.camFollow);
         this.cameras.main.startFollow(this.camFollow, true, 0.08, 0.08);
 

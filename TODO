@@ -1,0 +1,14 @@
+
+## EDITORES
+
+- Editor de escenarios (stages) {✓}
+- !Editor de charts (timeline + preview)
+- Editor de diálogos
+- Editor de personajes (animaciones, offsets)
+- Test Mode para cargar assets sin reiniciar
+- Editor de Luces y shaders
+- Editor de Scripts
+
+
+! = Important
+✓ = Complete

@@ -30,11 +30,21 @@ export class MenuInputHandler {
             }
         };
 
+        this.onWheel = (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+            if (deltaY > 0) {
+                this.changeSelection(1);
+            } else if (deltaY < 0) {
+                this.changeSelection(-1);
+            }
+        };
+
         this.scene.input.keyboard.on('keydown-UP', this.onKeyUp);
         this.scene.input.keyboard.on('keydown-DOWN', this.onKeyDown);
         this.scene.input.keyboard.on('keydown-ENTER', this.onKeyEnter);
         this.scene.input.keyboard.on('keydown-BACKSPACE', this.onKeyBackspace);
         this.scene.input.keyboard.on('keydown-SEVEN', this.onKeySeven);
+        
+        this.scene.input.on('wheel', this.onWheel);
     }
 
     /**
@@ -69,6 +79,8 @@ export class MenuInputHandler {
             }
         });
 
+        // Con origen 0.5, item.y es el centro.
+        // La cámara debe seguir el centro.
         const targetY = this.scene.menuItems[this.scene.selectedIndex].y;
         this.scene.camFollow.setPosition(this.scene.camFollow.x, targetY);
     }
@@ -133,5 +145,7 @@ export class MenuInputHandler {
         this.scene.input.keyboard.off('keydown-ENTER', this.onKeyEnter);
         this.scene.input.keyboard.off('keydown-BACKSPACE', this.onKeyBackspace);
         this.scene.input.keyboard.off('keydown-SEVEN', this.onKeySeven);
+        
+        this.scene.input.off('wheel', this.onWheel);
     }
 }
