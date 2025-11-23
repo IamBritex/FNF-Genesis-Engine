@@ -1,0 +1,11 @@
+{
+	"image": "nene",
+	"position": [
+		15,
+		-40
+	],
+	"scale": 1,
+	"idle_anim": "M nene Idle",
+	"confirm_anim": "M nene Idle",
+	"antialiasing": true
+}

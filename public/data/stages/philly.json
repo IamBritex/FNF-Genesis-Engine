@@ -1,0 +1,154 @@
+{
+    "stage": [
+        {
+            "type": "image",
+            "layer": 4,
+            "scale": 1,
+            "namePath": "behindTrain",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                733,
+                507
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "image",
+            "layer": 2,
+            "scale": 1,
+            "namePath": "city",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                617,
+                355
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1.1
+        },
+        {
+            "type": "image",
+            "layer": 1,
+            "scale": 1.7,
+            "namePath": "sky",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                611,
+                664
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1.2
+        },
+        {
+            "type": "image",
+            "layer": 6,
+            "scale": 1,
+            "namePath": "street",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                730,
+                512
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "image",
+            "layer": 5,
+            "scale": 1,
+            "namePath": "train",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                3884,
+                493
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "image",
+            "layer": 3,
+            "scale": 1,
+            "namePath": "win0",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                617,
+                342
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1.1
+        },
+        {
+            "playergf": {
+                "type": "character",
+                "layer": 7,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    696,
+                    655
+                ],
+                "camera_Offset": [
+                    300,
+                    300
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "enemy": {
+                "type": "character",
+                "layer": 8,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    285,
+                    775
+                ],
+                "camera_Offset": [
+                    298,
+                    105
+                ],
+                "flip_x": true,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "player": {
+                "type": "character",
+                "layer": 9,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    1118,
+                    755
+                ],
+                "camera_Offset": [
+                    69,
+                    40
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        }
+    ]
+}

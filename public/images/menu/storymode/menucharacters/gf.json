@@ -1,0 +1,12 @@
+{
+	
+	"image": "gf",
+	"position": [
+		0,
+		-25
+	],
+	"scale": 1,
+	"idle_anim": "M gf Idle",
+	"confirm_anim": "M gf Idle",
+	"antialiasing": true
+}

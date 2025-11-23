@@ -1,0 +1,24 @@
+{
+  "title": "FNF: Genesis Engine",
+  "version": "1.0.0",
+  "appID": "com.genesis.engine",
+  "author": "ImBritex",
+
+  "width": 1280,
+  "height": 720,
+  "minWidth": 800,
+  "minHeight": 600,
+  "icon": "icons/icon.ico",
+  "backgroundColor": "#000000",
+
+  "startMaximized": false,
+  "resizable": true,
+  "fullscreen": false,
+  "frame": true,
+  "alwaysOnTop": false,
+
+  "singleInstance": true,
+  "hardwareAcceleration": true,
+  "devTools": true,
+  "fpsLimit": 60
+}

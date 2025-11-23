@@ -1,0 +1,508 @@
+{
+    "stage": [
+        {
+            "playergf": {
+                "type": "character",
+                "layer": 8,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    573,
+                    753
+                ],
+                "camera_Offset": [
+                    300,
+                    300
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "enemy": {
+                "type": "character",
+                "layer": 11,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    90,
+                    837
+                ],
+                "camera_Offset": [
+                    300,
+                    300
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "player": {
+                "type": "character",
+                "layer": 10,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    1034,
+                    566
+                ],
+                "camera_Offset": [
+                    69,
+                    113
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "type": "spritesheet",
+            "layer": 9,
+            "scale": 1,
+            "namePath": "limoDrive",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -312,
+                514
+            ],
+            "origin": [
+                0,
+                0
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "animation": {
+                "play_list": {
+                    "drive": {
+                        "prefix": "Limo stage00",
+                        "indices": [
+                            "00",
+                            "01",
+                            "02",
+                            "03"
+                        ]
+                    }
+                },
+                "play_mode": "Loop",
+                "frameRate": 24,
+                "offsets": {},
+                "beat": [
+                    1
+                ]
+            },
+            "scrollFactor": 1
+        },
+        {
+            "Group": {
+                "type": "group",
+                "visible": true,
+                "children": [
+                    {
+                        "type": "spritesheet",
+                        "layer": 7,
+                        "scale": 1,
+                        "namePath": "limoDancer",
+                        "visible": true,
+                        "opacity": 1,
+                        "position": [
+                            -69,
+                            108
+                        ],
+                        "origin": [
+                            0,
+                            0
+                        ],
+                        "flip_x": false,
+                        "flip_y": false,
+                        "animation": {
+                            "play_list": {
+                                "left": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "00",
+                                        "01",
+                                        "02",
+                                        "03",
+                                        "04",
+                                        "05",
+                                        "06",
+                                        "07",
+                                        "08",
+                                        "09",
+                                        "10",
+                                        "11",
+                                        "12",
+                                        "13",
+                                        "14"
+                                    ]
+                                },
+                                "right": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "15",
+                                        "16",
+                                        "17",
+                                        "18",
+                                        "19",
+                                        "20",
+                                        "21",
+                                        "22",
+                                        "23",
+                                        "24",
+                                        "25",
+                                        "26",
+                                        "27",
+                                        "28",
+                                        "29"
+                                    ]
+                                }
+                            },
+                            "play_mode": "Beat",
+                            "frameRate": 24,
+                            "offsets": {},
+                            "beat": [
+                                1
+                            ]
+                        },
+                        "scrollFactor": 0.9
+                    },
+                    {
+                        "type": "spritesheet",
+                        "layer": 6,
+                        "scale": 1,
+                        "namePath": "limoDancer",
+                        "visible": true,
+                        "opacity": 1,
+                        "position": [
+                            631,
+                            108
+                        ],
+                        "origin": [
+                            0,
+                            0
+                        ],
+                        "flip_x": false,
+                        "flip_y": false,
+                        "animation": {
+                            "play_list": {
+                                "left": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "00",
+                                        "01",
+                                        "02",
+                                        "03",
+                                        "04",
+                                        "05",
+                                        "06",
+                                        "07",
+                                        "08",
+                                        "09",
+                                        "10",
+                                        "11",
+                                        "12",
+                                        "13",
+                                        "14"
+                                    ]
+                                },
+                                "right": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "15",
+                                        "16",
+                                        "17",
+                                        "18",
+                                        "19",
+                                        "20",
+                                        "21",
+                                        "22",
+                                        "23",
+                                        "24",
+                                        "25",
+                                        "26",
+                                        "27",
+                                        "28",
+                                        "29"
+                                    ]
+                                }
+                            },
+                            "play_mode": "Beat",
+                            "frameRate": 24,
+                            "offsets": {},
+                            "beat": [
+                                1
+                            ]
+                        },
+                        "scrollFactor": 0.9
+                    },
+                    {
+                        "type": "spritesheet",
+                        "layer": 5,
+                        "scale": 1,
+                        "namePath": "limoDancer",
+                        "visible": true,
+                        "opacity": 1,
+                        "position": [
+                            291,
+                            108
+                        ],
+                        "origin": [
+                            0,
+                            0
+                        ],
+                        "flip_x": false,
+                        "flip_y": false,
+                        "animation": {
+                            "play_list": {
+                                "left": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "00",
+                                        "01",
+                                        "02",
+                                        "03",
+                                        "04",
+                                        "05",
+                                        "06",
+                                        "07",
+                                        "08",
+                                        "09",
+                                        "10",
+                                        "11",
+                                        "12",
+                                        "13",
+                                        "14"
+                                    ]
+                                },
+                                "right": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "15",
+                                        "16",
+                                        "17",
+                                        "18",
+                                        "19",
+                                        "20",
+                                        "21",
+                                        "22",
+                                        "23",
+                                        "24",
+                                        "25",
+                                        "26",
+                                        "27",
+                                        "28",
+                                        "29"
+                                    ]
+                                }
+                            },
+                            "play_mode": "Beat",
+                            "frameRate": 24,
+                            "offsets": {},
+                            "beat": [
+                                1
+                            ]
+                        },
+                        "scrollFactor": 0.9
+                    },
+                    {
+                        "type": "spritesheet",
+                        "layer": 4,
+                        "scale": 1,
+                        "namePath": "limoDancer",
+                        "visible": true,
+                        "opacity": 1,
+                        "position": [
+                            990,
+                            110
+                        ],
+                        "origin": [
+                            0,
+                            0
+                        ],
+                        "flip_x": false,
+                        "flip_y": false,
+                        "animation": {
+                            "play_list": {
+                                "left": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "00",
+                                        "01",
+                                        "02",
+                                        "03",
+                                        "04",
+                                        "05",
+                                        "06",
+                                        "07",
+                                        "08",
+                                        "09",
+                                        "10",
+                                        "11",
+                                        "12",
+                                        "13",
+                                        "14"
+                                    ]
+                                },
+                                "right": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "15",
+                                        "16",
+                                        "17",
+                                        "18",
+                                        "19",
+                                        "20",
+                                        "21",
+                                        "22",
+                                        "23",
+                                        "24",
+                                        "25",
+                                        "26",
+                                        "27",
+                                        "28",
+                                        "29"
+                                    ]
+                                }
+                            },
+                            "play_mode": "Beat",
+                            "frameRate": 24,
+                            "offsets": {},
+                            "beat": [
+                                1
+                            ]
+                        },
+                        "scrollFactor": 0.9
+                    },
+                    {
+                        "type": "spritesheet",
+                        "layer": 3,
+                        "scale": 1,
+                        "namePath": "limoDancer",
+                        "visible": true,
+                        "opacity": 1,
+                        "position": [
+                            1340,
+                            110
+                        ],
+                        "origin": [
+                            0,
+                            0
+                        ],
+                        "flip_x": false,
+                        "flip_y": false,
+                        "animation": {
+                            "play_list": {
+                                "left": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "00",
+                                        "01",
+                                        "02",
+                                        "03",
+                                        "04",
+                                        "05",
+                                        "06",
+                                        "07",
+                                        "08",
+                                        "09",
+                                        "10",
+                                        "11",
+                                        "12",
+                                        "13",
+                                        "14"
+                                    ]
+                                },
+                                "right": {
+                                    "prefix": "bg dancer sketch PINK00",
+                                    "indices": [
+                                        "15",
+                                        "16",
+                                        "17",
+                                        "18",
+                                        "19",
+                                        "20",
+                                        "21",
+                                        "22",
+                                        "23",
+                                        "24",
+                                        "25",
+                                        "26",
+                                        "27",
+                                        "28",
+                                        "29"
+                                    ]
+                                }
+                            },
+                            "play_mode": "Beat",
+                            "frameRate": 24,
+                            "offsets": {},
+                            "beat": [
+                                1
+                            ]
+                        },
+                        "scrollFactor": 0.9
+                    }
+                ]
+            }
+        },
+        {
+            "type": "spritesheet",
+            "layer": 2,
+            "scale": 1,
+            "namePath": "bgLimo",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -460,
+                489
+            ],
+            "origin": [
+                0,
+                0
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "animation": {
+                "play_list": {
+                    "bgLimo": {
+                        "prefix": "background limo pink00",
+                        "indices": [
+                            "00",
+                            "01",
+                            "02",
+                            "03"
+                        ]
+                    }
+                },
+                "play_mode": "Loop",
+                "frameRate": 24,
+                "offsets": {},
+                "beat": [
+                    1
+                ]
+            },
+            "scrollFactor": 0.9
+        },
+        {
+            "type": "image",
+            "layer": 1,
+            "scale": 1.1,
+            "namePath": "limoSunset",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                500,
+                552
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 0.8
+        }
+    ]
+}

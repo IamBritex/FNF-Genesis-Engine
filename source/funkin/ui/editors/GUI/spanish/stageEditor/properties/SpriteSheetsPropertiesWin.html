@@ -1,0 +1,47 @@
+<div class="prop-group" id="prop-group-sprite">
+    <label class="group-label">CONFIGURACIÓN GENERAL ANIM:</label>
+    <div class="prop-item">
+        <label>Frames (FPS):</label>
+        <input type="number" step="1" id="prop-anim-fps" class="wheelable-input">
+    </div>
+    <div class="prop-item">
+        <label>Play Mode:</label>
+        <select id="prop-anim-playmode">
+            <option value="None">NONE</option>
+            <option value="Loop">LOOP</option>
+            <option value="Beat">BEAT</option>
+        </select>
+    </div>
+    <div class="prop-item" id="prop-anim-beat-row" style="display: none;">
+        <label>Intervalo (Beats):</label>
+        <input type="number" step="1" id="prop-anim-beat" class="wheelable-input">
+    </div>
+
+    <div class="prop-sub-group" id="prop-anim-editor">
+        <label class="group-label">EDITOR DE ANIMACIONES</label>
+        <div class="prop-item">
+            <select id="prop-anim-select"></select>
+        </div>
+        <div class="prop-item prop-full-text">
+            <label>Nombre (Key):</label>
+            <input type="text" id="prop-anim-name" placeholder="EJ: IDLE">
+        </div>
+        <div class="prop-item prop-full-text">
+            <label>Prefijo (XML):</label>
+            <input type="text" id="prop-anim-prefix" placeholder="EJ: DANCELEFT">
+        </div>
+        <div class="prop-item prop-full-text">
+            <label>Índices (00):</label>
+            <input type="text" id="prop-anim-indices">
+        </div>
+        <div class="prop-item-buttons">
+            <button id="btn-anim-save" class="prop-btn save">GUARDAR</button>
+            <button id="btn-anim-remove" class="prop-btn remove">ELIMINAR</button>
+        </div>
+    </div>
+    
+    <div class="prop-sub-group">
+        <label class="group-label">NAVEGADOR DE XML</label>
+        <div class="anim-browser-container" id="prop-anim-browser"></div>
+    </div>
+</div>

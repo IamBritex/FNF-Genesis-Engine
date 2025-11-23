@@ -1,0 +1,16 @@
+{
+    "tracks": [
+        ["Bopeebo", "Fresh", "Dadbattle"]
+    ],
+
+	"weekCharacters": [
+		"dad",
+		"bf",
+		"gf"
+	],
+
+    "weekBackground": "stage",
+
+    "phrase": "TIME TO BATTLE!",
+    "weekName": "week1"
+}

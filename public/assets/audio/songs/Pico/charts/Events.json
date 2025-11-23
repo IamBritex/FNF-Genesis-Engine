@@ -1,0 +1,14 @@
+{
+    "events": [
+        {
+            "time": 0,
+            "script": "windowsChanges",
+            "type": "continuous"
+        },
+        {
+            "time": 0,
+            "script": "TrainStreet",
+            "type": "continuous"
+        }
+    ]
+}

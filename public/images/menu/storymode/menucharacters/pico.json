@@ -1,0 +1,11 @@
+{
+	"idle_anim": "M Pico Idle",
+	"confirm_anim": "M Pico Idle",
+	"image": "pico",
+	"position": [
+		0,
+		-120
+	],
+	"scale": 1,
+	"antialiasing": true
+}

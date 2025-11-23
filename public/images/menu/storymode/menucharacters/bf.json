@@ -1,0 +1,11 @@
+{
+	"image": "bf",
+	"position": [
+		15,
+		-40
+	],
+	"scale": 1,
+	"idle_anim": "M bf Idle",
+	"confirm_anim": "M bf HEY",
+	"antialiasing": true
+}

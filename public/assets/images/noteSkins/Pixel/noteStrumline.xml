@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="notes.png">
+	<!-- Created using the Spritesheet and XML generator -->
+	<!-- https://uncertainprod.github.io/FNF-Spritesheet-XML-generator-Web -->
+	<SubTexture name="staticLeft0001" x="21" y="0" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="staticDown0001" x="0" y="21" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="staticUp0001" x="42" y="63" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="staticRight0001" x="0" y="63" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="noteLeft0000" x="42" y="0" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="noteDown0000" x="84" y="42" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="noteUp0000" x="21" y="42" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="noteRight0000" x="0" y="0" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedLeft0000" x="42" y="0" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedDown0000" x="84" y="42" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedUp0000" x="21" y="42" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedRight0000" x="0" y="0" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedLeft0001" x="42" y="21" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedDown0001" x="0" y="42" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedUp0001" x="63" y="0" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="pressedRight0001" x="63" y="63" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmLeft0000" x="21" y="21" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmDown0000" x="84" y="21" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmUp0000" x="84" y="63" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmRight0000" x="63" y="21" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmLeft0001" x="21" y="63" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmDown0001" x="63" y="42" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmUp0001" x="42" y="42" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+	<SubTexture name="confirmRight0001" x="84" y="0" width="21" height="21" frameX="2" frameY="2" frameWidth="17" frameHeight="17"/>
+</TextureAtlas>

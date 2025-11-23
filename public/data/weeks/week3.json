@@ -1,0 +1,14 @@
+{
+	"tracks": [
+		["Pico", "Philly Nice", "Blammed"]
+	],
+	"weekCharacters": [
+		"pico",
+		"bf",
+		"gf"
+	],
+	"weekBackground": "philly",
+
+	"phrase": "PICO",
+	"weekName": "week3"
+}

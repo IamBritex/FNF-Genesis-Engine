@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Created with Free texture packer v0.6.7 http://free-tex-packer.com
+-->
+<TextureAtlas imagePath="Menu_nene.png" width="2015" height="2402">
+  <SubTexture name="M nene Idle0002" x="1259" y="345" width="402" height="326" frameX="-0" frameY="-4" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0005" x="426" y="684" width="401" height="328" frameX="-1" frameY="-2" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0006" x="843" y="687" width="401" height="328" frameX="-1" frameY="-2" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0007" x="1260" y="687" width="401" height="328" frameX="-1" frameY="-2" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0009" x="8" y="1026" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0010" x="425" y="1028" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0011" x="842" y="1031" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0012" x="1259" y="1031" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0014" x="8" y="1372" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0015" x="425" y="1374" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0016" x="8" y="8" width="401" height="321" frameX="-1" frameY="-9" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0017" x="425" y="8" width="401" height="321" frameX="-1" frameY="-9" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0019" x="1260" y="8" width="402" height="321" frameX="-0" frameY="-9" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0020" x="8" y="345" width="401" height="322" frameX="-1" frameY="-8" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0021" x="425" y="345" width="401" height="322" frameX="-1" frameY="-8" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0023" x="842" y="1377" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0025" x="8" y="1718" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0026" x="425" y="1720" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0027" x="842" y="1723" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0028" x="1259" y="1723" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+  <SubTexture name="M nene Idle0030" x="8" y="2064" width="401" height="330" frameX="-1" frameY="-0" frameWidth="402" frameHeight="330" />
+</TextureAtlas>

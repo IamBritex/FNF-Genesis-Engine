@@ -1,0 +1,267 @@
+{
+    "stage": [
+        {
+            "playergf": {
+                "type": "character",
+                "layer": 9,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    795,
+                    800
+                ],
+                "camera_Offset": [
+                    300,
+                    300
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "enemy": {
+                "type": "character",
+                "layer": 7,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    -5,
+                    880
+                ],
+                "camera_Offset": [
+                    300,
+                    300
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "player": {
+                "type": "character",
+                "layer": 10,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    1169,
+                    871
+                ],
+                "camera_Offset": [
+                    69,
+                    113
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "type": "spritesheet",
+            "layer": 8,
+            "scale": 1,
+            "namePath": "santa",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -873,
+                192
+            ],
+            "origin": [
+                0,
+                0
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "animation": {
+                "play_list": {
+                    "santaidleinfear00": {
+                        "prefix": "santa idle in fear00",
+                        "indices": [
+                            "00",
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "10",
+                            "11",
+                            "12",
+                            "13"
+                        ]
+                    }
+                },
+                "play_mode": "Beat",
+                "frameRate": 24,
+                "offsets": {},
+                "beat": [
+                    1
+                ]
+            },
+            "scrollFactor": 1
+        },
+        {
+            "type": "image",
+            "layer": 6,
+            "scale": 1,
+            "namePath": "fgSnow",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                354,
+                850
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "spritesheet",
+            "layer": 5,
+            "scale": 1,
+            "namePath": "bottomBop",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -333,
+                160
+            ],
+            "origin": [
+                0,
+                0
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "animation": {
+                "play_list": {
+                    "BottomLevelBoppers00": {
+                        "prefix": "Bottom Level Boppers00",
+                        "indices": [
+                            "00",
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "10",
+                            "11",
+                            "12",
+                            "13"
+                        ]
+                    }
+                },
+                "play_mode": "Beat",
+                "frameRate": 24,
+                "offsets": {},
+                "beat": [
+                    1
+                ]
+            },
+            "scrollFactor": 0.9
+        },
+        {
+            "type": "image",
+            "layer": 4,
+            "scale": 1,
+            "namePath": "christmasTree",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                691,
+                244
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 0.4
+        },
+        {
+            "type": "image",
+            "layer": 3,
+            "scale": 0.9,
+            "namePath": "bgEscalator",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                630,
+                251
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 0.3
+        },
+        {
+            "type": "spritesheet",
+            "layer": 2,
+            "scale": 0.85,
+            "namePath": "upperBop",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -387,
+                -115
+            ],
+            "origin": [
+                0,
+                0
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "animation": {
+                "play_list": {
+                    "UpperCrowdBob00": {
+                        "prefix": "Upper Crowd Bob00",
+                        "indices": [
+                            "00",
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "10",
+                            "11",
+                            "12"
+                        ]
+                    }
+                },
+                "play_mode": "Beat",
+                "frameRate": 24,
+                "offsets": {},
+                "beat": [
+                    1
+                ]
+            },
+            "scrollFactor": 0.28
+        },
+        {
+            "type": "image",
+            "layer": 1,
+            "scale": 0.8,
+            "namePath": "bgWalls",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                567,
+                246
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 0.2
+        }
+    ]
+}

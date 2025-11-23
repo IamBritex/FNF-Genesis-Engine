@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="multiplayer.png">
+	<!-- Created with Adobe Animate version 21.0.0.35450 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="multiplayer basic0000" x="0" y="0" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0001" x="0" y="0" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0002" x="0" y="0" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0003" x="0" y="125" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0004" x="0" y="125" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0005" x="0" y="125" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0006" x="0" y="250" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0007" x="0" y="250" width="629" height="125"/>
+	<SubTexture name="multiplayer basic0008" x="0" y="250" width="629" height="125"/>
+	<SubTexture name="multiplayer white0000" x="0" y="375" width="845" height="191" frameX="-3" frameY="-5" frameWidth="855" frameHeight="202"/>
+	<SubTexture name="multiplayer white0001" x="0" y="566" width="855" height="195" frameX="0" frameY="-5" frameWidth="855" frameHeight="202"/>
+	<SubTexture name="multiplayer white0002" x="0" y="761" width="846" height="202" frameX="-4" frameY="0" frameWidth="855" frameHeight="202"/>
+</TextureAtlas>

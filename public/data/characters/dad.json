@@ -1,0 +1,142 @@
+{
+  "animations": [
+    {
+      "offsets": [
+        37,
+        -76
+      ],
+      "loop": false,
+      "anim": "singLEFT",
+      "fps": 24,
+      "name": "Dad Sing Note LEFT",
+      "indices": []
+    },
+    {
+      "offsets": [
+        37,
+        -37
+      ],
+      "loop": false,
+      "anim": "singDOWN",
+      "fps": 24,
+      "name": "Dad Sing Note DOWN",
+      "indices": []
+    },
+    {
+      "offsets": [
+        36,
+        -110
+      ],
+      "loop": false,
+      "anim": "singUP",
+      "fps": 24,
+      "name": "Dad Sing Note UP",
+      "indices": []
+    },
+    {
+      "offsets": [
+        33,
+        -94
+      ],
+      "loop": false,
+      "anim": "singRIGHT",
+      "fps": 24,
+      "name": "Dad Sing Note RIGHT",
+      "indices": []
+    },
+    {
+      "offsets": [
+        36,
+        -67
+      ],
+      "loop": false,
+      "anim": "idle",
+      "fps": 24,
+      "name": "Dad idle dance",
+      "indices": []
+    },
+    {
+      "offsets": [
+        37,
+        -68
+      ],
+      "loop": true,
+      "fps": 24,
+      "anim": "idle-loop",
+      "indices": [
+        10,
+        11,
+        12,
+        12
+      ],
+      "name": "Dad idle dance"
+    },
+    {
+      "offsets": [
+        36,
+        -78
+      ],
+      "loop": true,
+      "fps": 24,
+      "anim": "singLEFT-loop",
+      "indices": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "name": "Dad Sing Note LEFT"
+    },
+    {
+      "offsets": [
+        36,
+        -93
+      ],
+      "loop": true,
+      "fps": 24,
+      "anim": "singRIGHT-loop",
+      "indices": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "name": "Dad Sing Note RIGHT"
+    },
+    {
+      "offsets": [
+        36,
+        -108
+      ],
+      "loop": true,
+      "fps": 24,
+      "anim": "singUP-loop",
+      "indices": [
+        56,
+        57,
+        58,
+        59
+      ],
+      "name": "Dad Sing Note UP"
+    }
+  ],
+  "no_antialiasing": false,
+  "image": "characters/DADDY_DEAREST",
+  "position": [
+    0,
+    10
+  ],
+  "healthicon": "dad",
+  "flip_x": false,
+  "healthbar_colors": [
+    175,
+    102,
+    206
+  ],
+  "camera_position": [
+    470,
+    250
+  ],
+  "sing_duration": 6.1,
+  "scale": 1
+}

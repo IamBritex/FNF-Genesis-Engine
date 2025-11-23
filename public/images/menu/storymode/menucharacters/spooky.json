@@ -1,0 +1,11 @@
+{
+	"idle_anim": "M Spooky Kids Idle",
+	"confirm_anim": "M Spooky Kids Idle",
+	"image": "spooky",
+	"position": [
+		0,
+		-80
+	],
+	"scale": 1,
+	"antialiasing": true
+}

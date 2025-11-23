@@ -1,0 +1,122 @@
+{
+  "animations": [
+    {
+      "loop": false,
+      "offsets": [
+        831,
+        -91
+      ],
+      "fps": 24,
+      "anim": "idle",
+      "indices": [],
+      "name": "BF IDLE"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        850,
+        -90
+      ],
+      "anim": "singLEFTmiss",
+      "fps": 24,
+      "name": "BF LEFT MISS",
+      "indices": []
+    },
+    {
+      "loop": false,
+      "offsets": [
+        844,
+        -95
+      ],
+      "anim": "singLEFT",
+      "fps": 24,
+      "name": "BF LEFT NOTE",
+      "indices": []
+    },
+    {
+      "loop": false,
+      "offsets": [
+        836,
+        -94
+      ],
+      "anim": "singUPmiss",
+      "fps": 24,
+      "name": "BF UP MISS",
+      "indices": []
+    },
+    {
+      "loop": false,
+      "offsets": [
+        833,
+        -94
+      ],
+      "anim": "singUP",
+      "fps": 24,
+      "name": "BF UP NOTE",
+      "indices": []
+    },
+    {
+      "loop": false,
+      "offsets": [
+        830,
+        -90
+      ],
+      "anim": "singRIGHT",
+      "fps": 24,
+      "name": "BF RIGHT NOTE",
+      "indices": []
+    },
+    {
+      "loop": false,
+      "offsets": [
+        829,
+        -90
+      ],
+      "anim": "singRIGHTmiss",
+      "fps": 24,
+      "name": "BF RIGHT MISS",
+      "indices": []
+    },
+    {
+      "loop": false,
+      "offsets": [
+        838,
+        -96
+      ],
+      "anim": "singDOWN",
+      "fps": 24,
+      "name": "BF DOWN NOTE",
+      "indices": []
+    },
+    {
+      "loop": false,
+      "offsets": [
+        840,
+        -96
+      ],
+      "anim": "singDOWNmiss",
+      "fps": 24,
+      "name": "BF DOWN MISS",
+      "indices": []
+    }
+  ],
+  "no_antialiasing": true,
+  "image": "characters/bfPixel",
+  "position": [
+    0,
+    350
+  ],
+  "healthicon": "bf-pixel",
+  "flip_x": false,
+  "healthbar_colors": [
+    123,
+    214,
+    246
+  ],
+  "camera_position": [
+    50,
+    -60
+  ],
+  "sing_duration": 4,
+  "scale": 6
+}

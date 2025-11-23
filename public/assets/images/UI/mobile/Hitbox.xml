@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="FG呱呱制作">
+	<SubTexture name="static0000" x="1" y="0" width="1" height="1"/>
+	<SubTexture name="press0000" x="0" y="0" width="1" height="1"/>
+	<SubTexture name="confirm-hold0000" x="0" y="0" width="1" height="1"/>
+	<SubTexture name="confirm0000" x="0" y="0" width="1" height="1"/>
+	
+</TextureAtlas>

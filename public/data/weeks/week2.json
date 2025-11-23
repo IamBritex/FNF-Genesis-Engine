@@ -1,0 +1,14 @@
+{
+	"tracks": [
+		["Spookeez", "South", "Monster"]
+	],
+	"weekCharacters": [
+		"spooky",
+		"bf",
+		"gf"
+	],
+	"weekBackground": "halloween",
+
+	"phrase": "SPOOKY MONTH",
+	"weekName": "week2"
+}

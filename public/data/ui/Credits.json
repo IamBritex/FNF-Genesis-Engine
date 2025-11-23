@@ -1,0 +1,40 @@
+{
+    "credits": [
+        {
+            "title": "Genesis Team",
+            "sections": [
+                {
+                    "title": "Coders",
+                    "users": [
+                        {
+                            "name": "Britex",
+                            "description": "Lead Programmer",
+                            "icon": "BritexIcon",
+                            "link": "https://www.youtube.com/@ImBritex",
+                            "bgColor": "#2C003E"
+                        },
+                        {
+                            "name": "KettuMark",
+                            "description": "Secondary Programmer",
+                            "icon": "MarkIcon",
+                            "link": "https://www.youtube.com/@KettuMark",
+                            "bgColor": "#ffb800"
+                        }
+                    ]
+                },
+                {
+                    "title": "Artists",
+                    "users": [
+                        {
+                            "name": "Proto",
+                            "description": "Main Artist",
+                            "icon": "poto",
+                            "link": "https://youtube.com/@protoelconejo?si=PJWokPF4OFZTXtRf",
+                            "bgColor": "#669966"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

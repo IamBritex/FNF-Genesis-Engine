@@ -1,0 +1,63 @@
+{
+  "introSequences": [
+    {
+      "id": "default",
+      "bpm": 120,
+      "steps": [
+        {
+          "beat": 1,
+          "text": ["Genesis Team"]
+        },
+        {
+          "beat": 3,
+          "text": ["presents"]
+        },
+        {
+          "beat": 4,
+          "clear": true
+        },
+        {
+          "beat": 5,
+          "text": ["Not associated", "with"]
+        },
+        {
+          "beat": 8,
+          "text": ["newgrounds"],
+          "img": { "id": "newgrounds", "scale": 0.7 }
+        },
+        {
+          "beat": 9,
+          "clear": true
+        },
+        {
+          "beat": 10,
+          "action": "random-text-1"
+        },
+        {
+          "beat": 12,
+          "action": "random-text-2"
+        },
+        {
+          "beat": 13,
+          "clear": true
+        },
+        {
+          "beat": 14,
+          "text": ["Friday"]
+        },
+        {
+          "beat": 15,
+          "text": ["Night"]
+        },
+        {
+          "beat": 16,
+          "text": ["Funkin"]
+        },
+        {
+          "beat": 18,
+          "action": "skipIntro"
+        }
+      ]
+    }
+  ]
+}

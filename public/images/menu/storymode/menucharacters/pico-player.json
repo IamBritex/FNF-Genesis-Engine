@@ -1,0 +1,14 @@
+{
+	"image": "pico-player",
+	"position": [
+		15,
+		-40
+	],
+	"scale": 1,
+    "globalRotation": 0, 
+    "idleRotation": -90, 
+    "confirmRotation": 360,
+	"idle_anim": "M pico-player Idle",
+	"confirm_anim": "M pico-player confirm",
+	"antialiasing": true
+}

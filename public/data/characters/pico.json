@@ -1,0 +1,118 @@
+{
+  "animations": [
+    {
+      "loop": false,
+      "offsets": [
+        77,
+        -76
+      ],
+      "fps": 24,
+      "anim": "idle",
+      "indices": [],
+      "name": "Pico Idle Dance"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        28,
+        -76
+      ],
+      "fps": 24,
+      "anim": "singLEFT",
+      "indices": [],
+      "name": "Pico Note Right0"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        153,
+        -67
+      ],
+      "fps": 24,
+      "anim": "singRIGHT",
+      "indices": [],
+      "name": "Pico NOTE LEFT0"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        141,
+        -101
+      ],
+      "fps": 24,
+      "anim": "singRIGHTmiss",
+      "indices": [],
+      "name": "Pico NOTE LEFT miss"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        166,
+        -144
+      ],
+      "fps": 24,
+      "anim": "singLEFTmiss",
+      "indices": [],
+      "name": "Pico Note Right Miss"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        111,
+        -105
+      ],
+      "fps": 24,
+      "anim": "singUP",
+      "indices": [],
+      "name": "pico Up note0"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        121,
+        5
+      ],
+      "fps": 24,
+      "anim": "singDOWN",
+      "indices": [],
+      "name": "Pico Down Note0"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        41,
+        -59
+      ],
+      "fps": 24,
+      "anim": "singDOWNmiss",
+      "indices": [],
+      "name": "Pico Down Note MISS"
+    },
+    {
+      "loop": false,
+      "offsets": [
+        97,
+        -160
+      ],
+      "fps": 24,
+      "anim": "singUPmiss",
+      "indices": [],
+      "name": "pico Up note miss"
+    }
+  ],
+  "no_antialiasing": false,
+  "image": "characters/Pico_FNF_assetss",
+  "position": [
+    0,
+    300
+  ],
+  "healthicon": "pico",
+  "flip_x": false,
+  "healthbar_colors": [
+    183,
+    216,
+    85
+  ],
+  "sing_duration": 4,
+  "scale": 1
+}

@@ -1,0 +1,9 @@
+{
+    "events": [
+        {
+            "time": 0,
+            "script": "bgHalloween",
+            "type": "continuous"
+        }
+    ]
+}

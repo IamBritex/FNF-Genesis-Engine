@@ -1,0 +1,44 @@
+{
+  "id": "fnf-genesis-engine-v1",
+  "name": "FNF Genesis Engine",
+  "short_name": "Genesis",
+  "description": "FNF Genesis Engine es un motor avanzado para Friday Night Funkin', diseñado para ofrecer alto rendimiento, herramientas de desarrollo modernas y una experiencia de juego totalmente personalizable.",
+  "lang": "es-ES",
+  "start_url": "./index.html", 
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["games", "music", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/gameplay-desktop.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Gameplay en modo Fullscreen"
+    },
+    {
+      "src": "screenshots/menu-mobile.jpg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Menú de opciones"
+    }
+  ]
+}

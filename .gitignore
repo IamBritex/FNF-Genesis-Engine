@@ -1,0 +1,4 @@
+dist/
+obj/
+packages/
+nuget.exe

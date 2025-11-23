@@ -1,0 +1,11 @@
+{
+	"idle_anim": "M Tankman Idle",
+	"confirm_anim": "M Tankman Idle",
+	"image": "tankman",
+	"position": [
+		0,
+		-95
+	],
+	"scale": 1,
+	"antialiasing": true
+}
