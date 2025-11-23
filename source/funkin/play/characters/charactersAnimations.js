@@ -1,5 +1,4 @@
-/**
- * charactersAnimations.js
+/* charactersAnimations.js
  * Se encarga de crear las animaciones de Phaser
  * a partir de los datos de los personajes.
  */
@@ -10,10 +9,9 @@ export class CharacterAnimations {
 
   /**
    * Itera sobre todos los personajes y crea sus animaciones.
-   * @param {object} names - { player, enemy, gfVersion }
-   * @param {Map<string, object>} jsonContents - Map con el contenido de los JSONs de personajes
+   * [MODIFICADO] Acepta sessionId
    */
-  createAllAnimations(names, jsonContents) {
+  createAllAnimations(names, jsonContents, sessionId) {
     if (!names) return;
 
     // Función auxiliar para procesar un personaje
@@ -21,7 +19,9 @@ export class CharacterAnimations {
       const jsonData = jsonContents.get(charName);
       if (!jsonData || !jsonData.animations) return;
       
-      const textureKey = `char_${charName}`;
+      // Usar clave única
+      const textureKey = `char_${charName}_${sessionId}`;
+      
       if (!this.scene.textures.exists(textureKey)) {
         console.warn(`CharacterAnimations: No se pueden crear anims, textura no encontrada: ${textureKey}`);
         return;
@@ -30,7 +30,7 @@ export class CharacterAnimations {
       const frames = this.scene.textures.get(textureKey).getFrameNames();
 
       for (const animation of jsonData.animations) {
-        const animKey = `${textureKey}_${animation.anim}`; // ej. char_bf_idle
+        const animKey = `${textureKey}_${animation.anim}`; // ej. char_bf_12345_idle
         
         if (this.scene.anims.exists(animKey)) {
           continue;
@@ -71,8 +71,6 @@ export class CharacterAnimations {
 
     setupAnims(names.player);
     setupAnims(names.enemy);
-    // --- ¡¡CORREGIDO!! ---
-    setupAnims(names.gfVersion); // Antes 'names.gfStyle'
-    // --- FIN ---
+    setupAnims(names.gfVersion);
   }
 }

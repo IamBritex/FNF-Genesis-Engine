@@ -10,22 +10,26 @@ export class NoteSpawner {
 
     /**
      * Precarga los assets necesarios para las notas.
+     * [MODIFICADO] Usa sessionId para clave única.
      */
-    static preload(scene) {
+    static preload(scene, sessionId) {
         const skinName = 'Funkin'; 
         const basePath = `public/images/noteSkins/${skinName}/`;
         const texturePath = `${basePath}notes.png`;
         const atlasPath = `${basePath}notes.xml`;
 
-        if (!scene.textures.exists(NoteSpawner.ATLAS_KEY)) {
-            scene.load.atlasXML(NoteSpawner.ATLAS_KEY, texturePath, atlasPath);
+        // Clave única por sesión
+        const key = sessionId ? `${NoteSpawner.ATLAS_KEY}_${sessionId}` : NoteSpawner.ATLAS_KEY;
+
+        if (!scene.textures.exists(key)) {
+            scene.load.atlasXML(key, texturePath, atlasPath);
         }
     }
 
     /**
      * Crea un sprite de nota basado en los datos de la nota parseada.
      */
-    static spawnNoteSprite(scene, noteData, scale, strumlineContainers, noteOffsetX = 0) {
+    static spawnNoteSprite(scene, noteData, scale, strumlineContainers, noteOffsetX = 0, sessionId) {
         if (!noteData || strumlineContainers.length <= noteData.noteDirection || !strumlineContainers[noteData.noteDirection]) {
             console.error("NoteSpawner.spawnNoteSprite: Datos de nota o strumline inválidos.", noteData);
             return null;
@@ -36,16 +40,19 @@ export class NoteSpawner {
         const frameName = `note${capDirName}0001`; 
 
         const targetStrumContainer = strumlineContainers[noteData.noteDirection];
-        const targetX = targetStrumContainer.x + noteOffsetX; // Esta X será recalculada en NotesHandler
+        const targetX = targetStrumContainer.x + noteOffsetX; 
         
-        const initialY = -100; // Posición inicial (antes de calcular)
+        const initialY = -100; 
 
-        if (scene.textures.exists(NoteSpawner.ATLAS_KEY) && scene.textures.get(NoteSpawner.ATLAS_KEY).has(frameName)) {
-            const noteSprite = scene.add.sprite(targetX, initialY, NoteSpawner.ATLAS_KEY, frameName);
+        // Usar clave única
+        const key = sessionId ? `${NoteSpawner.ATLAS_KEY}_${sessionId}` : NoteSpawner.ATLAS_KEY;
+
+        if (scene.textures.exists(key) && scene.textures.get(key).has(frameName)) {
+            const noteSprite = scene.add.sprite(targetX, initialY, key, frameName);
             noteSprite.setScale(scale);
             noteSprite.setOrigin(0.5, 0.5);
             noteSprite.setDepth(100); 
-            noteSprite.setVisible(false); // Inicia invisible, NotesHandler la mostrará
+            noteSprite.setVisible(false); 
 
             noteSprite.noteData = noteData; 
             noteSprite.isPlayerNote = noteData.isPlayerNote; 
@@ -54,7 +61,7 @@ export class NoteSpawner {
 
             return noteSprite;
         } else {
-            console.error(`NoteSpawner.spawnNoteSprite: Frame ${frameName} no encontrado.`);
+            console.error(`NoteSpawner.spawnNoteSprite: Frame ${frameName} no encontrado en ${key}.`);
             return null;
         }
     }

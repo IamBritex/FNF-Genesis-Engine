@@ -10,12 +10,15 @@ export class HealthIcon {
      * @param {string} iconName - El nombre del ícono (ej. "bf", "dad").
      * @param {boolean} flipX - Si el sprite debe estar volteado horizontalmente.
      * @param {boolean} isPixel - Si es un ícono pixel art (forzado).
+     * @param {string} sessionId - ID único de sesión
      */
-    constructor(scene, iconName, flipX, isPixel = false) {
+    constructor(scene, iconName, flipX, isPixel = false, sessionId) {
         this.scene = scene;
         this.iconName = iconName || 'face';
         this.flipX = flipX;
         this.isPixel = isPixel; 
+        this.sessionId = sessionId;
+
         this.sprite = null;
         this.frameCount = 1;
         this.isDefault = false;
@@ -30,10 +33,11 @@ export class HealthIcon {
 
     /**
      * Carga de forma estática los íconos necesarios.
+     * [MODIFICADO] Usa sessionId
      */
-    static preload(scene, iconName) {
+    static preload(scene, iconName, sessionId) {
         iconName = iconName || 'face';
-        const iconKey = 'icon-' + iconName;
+        const iconKey = `icon-${iconName}_${sessionId}`; // Clave única
         const path = `public/images/characters/icons/${iconName}.png`;
 
         if (scene.textures.exists(iconKey) || scene.load.isLoading()) {
@@ -43,8 +47,10 @@ export class HealthIcon {
         scene.load.image(iconKey, path);
 
         scene.load.once(`loaderror-image-${iconKey}`, () => {
-            if (!scene.textures.exists('icon-face')) {
-                scene.load.image('icon-face', 'public/images/characters/icons/face.png');
+            // Fallback face
+            const faceKey = `icon-face_${sessionId}`;
+            if (!scene.textures.exists(faceKey)) {
+                scene.load.image(faceKey, 'public/images/characters/icons/face.png');
             }
         });
     }
@@ -53,25 +59,22 @@ export class HealthIcon {
      * Crea el sprite en la escena.
      */
     create(x, y) {
-        let textureKey = 'icon-' + this.iconName;
+        let textureKey = `icon-${this.iconName}_${this.sessionId}`;
 
         if (!this.scene.textures.exists(textureKey)) {
-            textureKey = 'icon-face';
+            textureKey = `icon-face_${this.sessionId}`;
             this.isDefault = true;
         }
 
         const texture = this.scene.textures.get(textureKey);
         
-        // --- [NUEVO] Auto-detectar Pixel Art por tamaño ---
-        // Si el ancho total de la imagen es pequeño (ej. < 250px),
-        // asumimos que es un ícono pixel art (usualmente 32x32 o 64x32).
+        // --- Auto-detectar Pixel Art por tamaño ---
         if (texture && texture.source && texture.source[0]) {
             if (texture.source[0].width < 250) {
                 this.isPixel = true;
             }
         }
 
-        // --- Aplicar filtro si es Pixel Art ---
         if (this.isPixel) {
             if (texture) {
                 texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -83,27 +86,19 @@ export class HealthIcon {
         
         this._processIconFrames(textureKey);
         
-        // --- [NUEVO] Lógica de Auto-Escalado ---
-        // Queremos que visualmente tenga un tamaño consistente (~150px de ancho por frame).
+        // --- Lógica de Auto-Escalado ---
         const standardFrameWidth = 150;
-        
-        // Obtenemos el ancho del frame actual
         const currentFrameWidth = this.sprite.frame.width;
 
         if (currentFrameWidth < standardFrameWidth) {
-             // Calcular cuánto escalar para llegar al tamaño estándar
              const scaleFactor = standardFrameWidth / currentFrameWidth;
-             
-             // Ajustar las escalas base
              this.minIconScale = scaleFactor;
-             this.maxIconScale = scaleFactor * 1.2; // Mantener el 'bop' relativo
+             this.maxIconScale = scaleFactor * 1.2; 
         } else {
-             // Valores por defecto para íconos HD
              this.minIconScale = 1.0;
              this.maxIconScale = 1.2;
         }
 
-        // Aplicar la escala inicial calculada
         this.curIconScale = this.minIconScale;
         this.sprite.setScale(this.curIconScale);
         
@@ -119,7 +114,6 @@ export class HealthIcon {
         
         const frame = texture.get(0);
 
-        // Limpiar frames previos si existen para evitar duplicados al recargar
         if (texture.has('normal')) texture.remove('normal');
         if (texture.has('losing')) texture.remove('losing');
 
@@ -182,9 +176,17 @@ export class HealthIcon {
     }
     
     destroy() { 
-        // Detener cualquier tween de GSAP asociado a este sprite
         if (this.sprite) {
             gsap.killTweensOf(this.sprite);
+            
+            // [NUEVO] Limpiar la textura específica de esta sesión al destruir el ícono
+            // (Esto es opcional, ya que PlayState.shutdown debería encargarse, 
+            // pero ayuda a mantener limpia la memoria inmediatamente)
+            // const textureKey = this.sprite.texture.key;
+            // if (this.scene.textures.exists(textureKey)) {
+            //    this.scene.textures.remove(textureKey);
+            // }
+
             this.sprite.destroy(); 
         }
     }

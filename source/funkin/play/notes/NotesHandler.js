@@ -8,11 +8,16 @@ import { PlayerJudgement } from "../judgments/PlayerJudgement.js"
 import { HitWindow } from "../judgments/HitWindow.js"
 
 export class NotesHandler {
-  constructor(scene, chartData, ratingManager, conductor) {
+  // [MODIFICADO] Acepta sessionId
+  constructor(scene, chartData, ratingManager, conductor, sessionId) {
     this.scene = scene
+    this.sessionId = sessionId // Guardar ID de sesión
+    
     this.mainUICADContainer = scene.add.layer(0, 0)
     this.chartData = chartData
-    const strumlines = Strumline.setupStrumlines(scene)
+    
+    // Pasar sessionId a setupStrumlines
+    const strumlines = Strumline.setupStrumlines(scene, this.sessionId)
     this.playerStrums = strumlines.player
     this.enemyStrums = strumlines.enemy
 
@@ -40,10 +45,11 @@ export class NotesHandler {
     this._initGameplayInputHandling()
   }
 
-  static preload(scene) {
-    NoteSpawner.preload(scene)
-    Strumline.preload(scene)
-    SustainNote.preload(scene)
+  // [MODIFICADO] Acepta sessionId para preload
+  static preload(scene, sessionId) {
+    NoteSpawner.preload(scene, sessionId)
+    Strumline.preload(scene, sessionId)
+    SustainNote.preload(scene, sessionId)
 
     scene.load.audio("missnote1", "public/sounds/gameplay/miss/missnote1.ogg")
     scene.load.audio("missnote2", "public/sounds/gameplay/miss/missnote2.ogg")
@@ -151,12 +157,14 @@ export class NotesHandler {
       const strumlineToUse = noteData.isPlayerNote ? this.playerStrums : this.enemyStrums
       const group = noteData.isPlayerNote ? this.playerNotesGroup : this.enemyNotesGroup
 
+      // Pasar sessionId a NoteSpawner
       const noteSprite = NoteSpawner.spawnNoteSprite(
         this.scene,
         noteData,
         this.noteScale,
         strumlineToUse,
         this.noteOffsetX,
+        this.sessionId
       )
       if (!noteSprite) continue
 
@@ -168,12 +176,14 @@ export class NotesHandler {
       this.calculateInitialNotePosition(noteSprite, songPosition)
 
       if (noteData.isHoldNote) {
+        // Pasar sessionId a SustainNote
         const holdContainer = SustainNote.spawnHoldSprites(
           this.scene,
           noteData,
           this.noteScale,
           noteSprite,
           scrollSpeedValue,
+          this.sessionId
         )
         if (holdContainer) {
           noteData.holdSpriteRef = holdContainer
@@ -499,22 +509,61 @@ export class NotesHandler {
 
     // Destroy all note groups
     if (this.playerNotesGroup) {
-      this.playerNotesGroup.destroy(true)
+      this.playerNotesGroup.clear(true, true)
+      this.playerNotesGroup.destroy()
       this.playerNotesGroup = null
     }
     if (this.enemyNotesGroup) {
-      this.enemyNotesGroup.destroy(true)
+      this.enemyNotesGroup.clear(true, true)
+      this.enemyNotesGroup.destroy()
       this.enemyNotesGroup = null
     }
     if (this.holdGroup) {
-      this.holdGroup.destroy(true)
+      this.holdGroup.clear(true, true)
+      this.holdGroup.destroy()
       this.holdGroup = null
+    }
+
+    // [MODIFICADO] Limpieza con sessionId
+    // Se eliminan las texturas específicas de esta sesión
+    const texturesToClean = [
+        `${NoteSpawner.ATLAS_KEY}_${this.sessionId}`, 
+        `${Strumline.ATLAS_KEY}_${this.sessionId}`, 
+        `${SustainNote.ATLAS_KEY}_${this.sessionId}`
+    ];
+
+    if (this.scene && this.scene.anims) {
+        // Eliminar animaciones asociadas
+        // (Como las animaciones usan la key de la textura, podemos filtrar por ella)
+        const anims = this.scene.anims.anims.entries;
+        const animKeysToRemove = [];
+        for (const [key, anim] of Object.entries(anims)) {
+            if (anim.frames && anim.frames.length > 0) {
+                 const textureKey = anim.frames[0].textureKey; 
+                 if (texturesToClean.includes(textureKey)) {
+                     animKeysToRemove.push(key);
+                 }
+            }
+        }
+        animKeysToRemove.forEach(key => this.scene.anims.remove(key));
+    }
+
+    if (this.scene && this.scene.textures) {
+        texturesToClean.forEach(key => {
+            if (this.scene.textures.exists(key)) {
+                this.scene.textures.remove(key);
+                console.log(`Limpiada textura de nota: ${key}`);
+            }
+            if (this.scene.cache.xml.exists(key)) {
+                 this.scene.cache.xml.remove(key);
+            }
+        });
     }
 
     this.playerStrums = []
     this.enemyStrums = []
     this.parsedNotes = []
     this.activeHolds = { 0: null, 1: null, 2: null, 3: null }
-    console.log("NotesHandler shutdown complete")
+    console.log("NotesHandler shutdown complete (and session notes textures cleaned)")
   }
 }

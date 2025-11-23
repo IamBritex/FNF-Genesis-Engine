@@ -39,10 +39,17 @@ export class PlayState extends Phaser.Scene {
     this.isInCountdown = false
     this.countdownStartTime = 0
     this.songStartTime = 0
+    
+    // [NUEVO] ID único para esta sesión de juego para forzar texturas nuevas
+    this.playSessionId = null; 
   }
 
   init(data) {
     this.sound.stopAll()
+
+    // Generar un ID único para esta sesión (timestamp + random)
+    this.playSessionId = Date.now().toString() + Math.floor(Math.random() * 1000);
+    console.log(`PlayState initialized with Session ID: ${this.playSessionId}`);
 
     const registryData = this.registry.get("playStateData")
     const finalData = registryData || data
@@ -62,7 +69,8 @@ export class PlayState extends Phaser.Scene {
     `
     document.head.appendChild(style)
 
-    NotesHandler.preload(this)
+    // Pasar sessionId a los preloads
+    NotesHandler.preload(this, this.playSessionId)
     ChartDataHandler.preloadChart(this, this.initData.targetSongId, this.initData.DifficultyID || "normal")
 
     if (!this.cache.audio.has("menuMusic")) {
@@ -72,7 +80,7 @@ export class PlayState extends Phaser.Scene {
     PopUpManager.preload(this)
     Countdown.preload(this)
     TimeBar.preload(this)
-    HealthBar.preload(this)
+    HealthBar.preload(this, this.playSessionId) // Pasar sessionId
   }
 
   create() {
@@ -118,16 +126,21 @@ export class PlayState extends Phaser.Scene {
 
     this.conductor = new Conductor(this.chartData.bpm)
 
-    this.healthBar = new HealthBar(this, this.chartData, this.conductor)
+    // Pasar sessionId a HealthBar
+    this.healthBar = new HealthBar(this, this.chartData, this.conductor, this.playSessionId)
+    
     this.stageHandler = new Stage(this, this.chartData, this.cameraManager, this.conductor)
-    this.charactersHandler = new Characters(this, this.chartData, this.cameraManager, this.stageHandler, this.conductor)
+    
+    // Pasar sessionId a Characters
+    this.charactersHandler = new Characters(this, this.chartData, this.cameraManager, this.stageHandler, this.conductor, this.playSessionId)
 
     this.stageHandler.loadStageJSON()
 
     this.charactersHandler.loadCharacterJSONs()
     this.healthBar.loadCharacterData()
 
-    this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager, this.conductor)
+    // Pasar sessionId a NotesHandler
+    this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager, this.conductor, this.playSessionId)
 
     this.cameraManager.assignToUI(this.notesHandler.mainUICADContainer)
     this.notesHandler.mainUICADContainer.setDepth(2)
@@ -328,17 +341,6 @@ export class PlayState extends Phaser.Scene {
 
   exitToMenu() {
     const nextSceneKey = this.initData?.isStoryMode ? "StoryModeState" : "FreeplayState"
-    const nextScene = this.scene.get(nextSceneKey)
-    if (nextScene) {
-      nextScene.events.once("create", () => {
-        if (this.game && this.game.sound) {
-          const menuMusic = this.game.sound.get("menuMusic")
-          if (!menuMusic || !menuMusic.isPlaying) {
-            this.game.sound.play("menuMusic", { loop: true, volume: 0.7 })
-          }
-        }
-      })
-    }
     this.scene.start(nextSceneKey)
   }
 
@@ -360,7 +362,6 @@ export class PlayState extends Phaser.Scene {
     this.load.off("complete", this.onAllDataLoaded, this)
     this.load.off("complete", this.onAllAssetsLoaded, this)
 
-    // Step 1: Shutdown managers (they will clean up their own sprites and textures)
     if (this.notesHandler) {
       this.notesHandler.shutdown()
       this.notesHandler = null
@@ -374,10 +375,8 @@ export class PlayState extends Phaser.Scene {
       this.stageHandler = null
     }
 
-    // Step 2: Remove any remaining children (should be none after shutdown above)
     this.children.removeAll(true)
 
-    // Step 3: Destroy UI components
     if (this.healthBar) {
       this.healthBar.destroy()
       this.healthBar = null
@@ -419,6 +418,9 @@ export class PlayState extends Phaser.Scene {
     SongPlayer.shutdown(this, this.chartData, this.songAudio)
     ChartDataHandler.shutdown(this, this.initData?.targetSongId, this.initData?.DifficultyID || "normal")
     PlayStateData.shutdown(this)
+    
+    // Reset Session ID
+    this.playSessionId = null;
 
     console.log("PlayState shutdown complete - all sprites and textures cleaned")
   }

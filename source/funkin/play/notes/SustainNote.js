@@ -6,18 +6,22 @@ export class SustainNote {
     static PIECE_HEIGHT = 44; 
     static PIECE_OVERLAP = -40; 
 
-    static preload(scene) {
+    // [MODIFICADO] Usa sessionId
+    static preload(scene, sessionId) {
         const skinName = 'Funkin'; 
         const basePath = `public/images/noteSkins/${skinName}/`;
         const texturePath = `${basePath}NOTE_hold_assets.png`;
         const atlasPath = `${basePath}NOTE_hold_assets.xml`;
 
-        if (!scene.textures.exists(SustainNote.ATLAS_KEY)) {
-            scene.load.atlasXML(SustainNote.ATLAS_KEY, texturePath, atlasPath);
+        const key = sessionId ? `${SustainNote.ATLAS_KEY}_${sessionId}` : SustainNote.ATLAS_KEY;
+
+        if (!scene.textures.exists(key)) {
+            scene.load.atlasXML(key, texturePath, atlasPath);
         }
     }
 
-    static spawnHoldSprites(scene, noteData, noteScale, noteSprite, scrollSpeedValue) {
+    // [MODIFICADO] Usa sessionId
+    static spawnHoldSprites(scene, noteData, noteScale, noteSprite, scrollSpeedValue, sessionId) {
         if (!noteData.isHoldNote || noteData.sustainLength <= 0 || !noteSprite) {
             return null;
         }
@@ -31,29 +35,28 @@ export class SustainNote {
         const effectivePieceHeight = pieceHeightScaled + (SustainNote.PIECE_OVERLAP * noteScale);
         const numPieces = Math.max(1, Math.ceil(visualLength / effectivePieceHeight));
 
-        // [CAMBIO] 1. Crear un contenedor
         const holdContainer = scene.add.container(noteSprite.x, noteSprite.y);
         if (!holdContainer) return null;
 
         holdContainer.setActive(true).setVisible(true);
         holdContainer.setDepth(noteSprite.depth - 1); 
         holdContainer.noteData = noteData; 
-        holdContainer.holdSprites = []; // Reiniciar array de sprites
+        holdContainer.holdSprites = []; 
 
         const downScroll = false;
         const pieceDirection = downScroll ? -1 : 1;
         const originY = downScroll ? 1 : 0; 
         const startY = 0; 
 
+        const key = sessionId ? `${SustainNote.ATLAS_KEY}_${sessionId}` : SustainNote.ATLAS_KEY;
+
         const pieceFrame = `${colorName} hold piece0000`;
-        if (scene.textures.get(SustainNote.ATLAS_KEY).has(pieceFrame)) {
+        if (scene.textures.get(key).has(pieceFrame)) {
             for (let i = 0; i < numPieces; i++) {
                 const segmentY = startY + (i * effectivePieceHeight * pieceDirection);
                 
-                // [CAMBIO] 3. Crear una pieza
-                const holdPiece = scene.add.sprite(0, segmentY, SustainNote.ATLAS_KEY, pieceFrame);
+                const holdPiece = scene.add.sprite(0, segmentY, key, pieceFrame);
                 
-                // Configurar la pieza creada
                 holdPiece.setOrigin(0.5, originY); 
                 holdPiece.setScale(noteScale);
                 holdContainer.add(holdPiece);
@@ -61,20 +64,17 @@ export class SustainNote {
                 
             }
         } else {
-            console.error(`SustainNote: Frame de pieza no encontrado: ${pieceFrame}`);
-            // [CAMBIO] Usar destroy()
+            console.error(`SustainNote: Frame de pieza no encontrado: ${pieceFrame} en ${key}`);
             holdContainer.destroy();
             return null;
         }
 
         const endFrame = `${colorName} hold end0000`;
-        if (scene.textures.get(SustainNote.ATLAS_KEY).has(endFrame)) {
+        if (scene.textures.get(key).has(endFrame)) {
             const endY = startY + (numPieces * effectivePieceHeight * pieceDirection);
 
-            // [CAMBIO] 4. Crear la pieza final
-            const holdEnd = scene.add.sprite(0, endY, SustainNote.ATLAS_KEY, endFrame);
+            const holdEnd = scene.add.sprite(0, endY, key, endFrame);
 
-            // Configurar la pieza final
             holdEnd.setOrigin(0.5, originY);
             holdEnd.setScale(noteScale);
             if (downScroll) holdEnd.flipY = true;

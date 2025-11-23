@@ -86,6 +86,8 @@ export class ChartDataHandler {
       return;
     }
     const chartKey = `Chart_${targetSongId}_${difficultyId}`;
+    
+    // Limpieza explícita
     if (scene.cache.json.exists(chartKey)) {
       scene.cache.json.remove(chartKey);
       console.log(`ChartDataHandler: Limpiado ${chartKey} del caché.`);

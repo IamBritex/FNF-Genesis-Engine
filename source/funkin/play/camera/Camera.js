@@ -14,6 +14,9 @@ export class CameraManager {
         this.gameCamera = scene.cameras.main;
         this.gameCamera.setName('gameCamera');
         this.gameCamera.setZoom(1);
+        
+        // [MODIFICADO] Se eliminaron los límites (setBounds) según tu petición.
+        // La cámara ahora es libre.
 
         /**
          * 2. UICamera: Muestra flechas, barra de vida, score, etc.

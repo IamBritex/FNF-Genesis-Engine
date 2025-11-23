@@ -6,10 +6,12 @@ export class CharacterElements {
   /**
    * @param {Phaser.Scene} scene
    * @param {import('../camera/Camera.js').CameraManager} cameraManager
+   * @param {string} sessionId - ID único de sesión
    */
-  constructor(scene, cameraManager) {
+  constructor(scene, cameraManager, sessionId) {
     this.scene = scene;
     this.cameraManager = cameraManager;
+    this.sessionId = sessionId;
     
     this.bf = null;
     this.dad = null;
@@ -29,7 +31,8 @@ export class CharacterElements {
       const jsonData = jsonContents.get(charName);
       if (!jsonData || !jsonData.image) return;
 
-      const textureKey = `char_${charName}`; // ej. "char_gf"
+      // Clave única
+      const textureKey = `char_${charName}_${this.sessionId}`; 
       
       if (this.scene.textures.exists(textureKey)) {
         return;
@@ -41,7 +44,7 @@ export class CharacterElements {
       const atlasPath = `public/images/characters/${imagePath}.xml`;
 
       this.scene.load.atlasXML(textureKey, texturePath, atlasPath);
-      console.log(`CharacterElements: Registrando carga de Atlas: ${texturePath}`);
+      console.log(`CharacterElements: Registrando carga de Atlas: ${texturePath} como ${textureKey}`);
     };
 
     loadAtlas(names.player);
@@ -51,7 +54,7 @@ export class CharacterElements {
 
   /**
    * [MODIFICADO] Crea los sprites de los personajes y les aplica las propiedades del stage.json.
-   * Ahora soporta detección de Pixel Art y validación robusta de texturas.
+   * Ahora incluye validación robusta de texturas para evitar crashes.
    * @param {object} names - { player, enemy, gfVersion }
    * @param {object} stageData - { player, enemy, playergf }
    * @param {Map<string, object>} jsonContents - Map con el contenido de los JSONs de personajes
@@ -62,30 +65,20 @@ export class CharacterElements {
     const createSprite = (charName, stageBlock) => {
       if (!charName || !stageBlock) return null;
 
-      const textureKey = `char_${charName}`;
-      
-      // --- VERIFICACIÓN DE TEXTURA ROBUSTA ---
+      const textureKey = `char_${charName}_${this.sessionId}`;
       const texture = this.scene.textures.get(textureKey);
 
-      // 1. Verificar existencia de la textura y su fuente
-      if (!texture || !texture.source || !texture.source[0]) {
-        console.warn(`CharacterElements: Textura '${textureKey}' no encontrada o corrupta. Evitando creación.`);
+      // --- [FIX CRÍTICO] Validación de Textura ---
+      if (!texture || !texture.source || !texture.source[0] || !texture.source[0].glTexture) {
+        console.warn(`CharacterElements: Textura '${textureKey}' no válida o sin glTexture. Se omite el sprite.`);
         return null;
       }
 
-      // 2. Verificar si la textura tiene frames (indica que el Atlas XML se cargó correctamente)
-      // Si frameTotal es <= 1 (solo el frame __BASE), significa que no se parsearon frames del XML.
-      // Esto causa que las animaciones no se encuentren y puede llevar al crash de glTexture si se intenta renderizar.
       if (texture.frameTotal <= 1) {
-         console.warn(`CharacterElements: La textura '${textureKey}' tiene 0 frames (fallo en Atlas XML). Evitando creación para prevenir crash.`);
+         console.warn(`CharacterElements: Textura '${textureKey}' tiene 0 frames (fallo XML). Se omite el sprite.`);
          return null;
       }
-
-      // 3. Verificar glTexture (prevención del crash específico reportado)
-      if (!texture.source[0].glTexture) {
-        console.warn(`CharacterElements: La textura '${textureKey}' no tiene glTexture lista. Evitando creación.`);
-        return null;
-      }
+      // ------------------------------------------
       
       const jsonData = jsonContents.get(charName);
 
@@ -94,21 +87,18 @@ export class CharacterElements {
         return null;
       }
 
-      // --- [NUEVO] Detectar Pixel Art ---
-      // Verifica las propiedades comunes para pixel art en motores FNF
+      // --- Detectar Pixel Art ---
       const isPixel = jsonData.isPixel === true || jsonData.no_antialiasing === true || jsonData.antialiasing === false;
       
       if (isPixel) {
-          // Establecer filtro Nearest Neighbor para bordes definidos (pixel art nítido)
           texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
       }
-      // --- [FIN NUEVO] ---
       
       const singDuration = jsonData.sing_duration || 4;
       
       // --- [INICIO DE LÓGICA DE POSICIONAMIENTO] ---
 
-      // 1. Crear el Map de offsets ANTES
+      // 1. Crear el Map de offsets
       const allOffsets = new Map();
       if (jsonData.animations) {
         jsonData.animations.forEach(anim => {
@@ -118,7 +108,7 @@ export class CharacterElements {
         });
       }
 
-      // 2. Encontrar la animación 'idle' (o 'danceLeft' como fallback)
+      // 2. Encontrar la animación 'idle'
       let frameWidth = 1, frameHeight = 1;
       let animToPlayKey = `${textureKey}_idle`;
       let fallbackAnimKey = `${textureKey}_danceLeft`;
@@ -146,7 +136,6 @@ export class CharacterElements {
           console.warn(`CharacterElements: No se encontró ningún frame para el prefijo: ${defaultAnimData.name}`);
         }
       } else {
-        // Si no hay animación por defecto, intentamos usar el primer frame disponible para evitar errores
         const frames = texture.getFrameNames();
         if (frames.length > 0 && frames[0] !== '__BASE') {
              const frame = texture.get(frames[0]);
@@ -198,4 +187,47 @@ export class CharacterElements {
 
       const defaultFlipX = jsonData.flip_x === true;
       const stageFlipX = stageBlock.flip_x === true;
-      sprite.setFlipX(defaultFlipX !== stageFlipX
+      sprite.setFlipX(defaultFlipX !== stageFlipX); 
+      sprite.setFlipY(stageBlock.flip_y === true);
+
+      if (this.cameraManager) {
+        this.cameraManager.assignToGame(sprite);
+      }
+
+      sprite.setOrigin(0, 0);
+
+      if (this.scene.anims.exists(animToPlayKey)) {
+        sprite.play({ key: animToPlayKey }); 
+      } else {
+        if (this.scene.anims.exists(fallbackAnimKey)) {
+           sprite.play({ key: fallbackAnimKey });
+        }
+      }
+      
+      sprite.setData('textureKey', textureKey);
+      sprite.setData('baseX', baseX);
+      sprite.setData('baseY', baseY);
+      allOffsets.forEach((value, key) => {
+        sprite.setData(key, value);
+      });
+      
+      sprite.setData('isSinging', false);
+      sprite.setData('singDuration', singDuration);
+      sprite.setData('singBeatCountdown', 0);
+      
+      return sprite;
+    };
+
+    this.bf = createSprite(names.player, stageData.player);
+    this.dad = createSprite(names.enemy, stageData.enemy);
+    this.gf = createSprite(names.gfVersion, stageData.playergf);
+
+    return { bf: this.bf, dad: this.dad, gf: this.gf };
+  }
+
+  destroy() {
+    this.bf?.destroy();
+    this.dad?.destroy();
+    this.gf?.destroy();
+  }
+}

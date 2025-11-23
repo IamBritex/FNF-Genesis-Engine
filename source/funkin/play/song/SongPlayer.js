@@ -115,7 +115,6 @@ export class SongPlayer {
 
     // 2. Limpiar los archivos del caché de Phaser
     if (!chartData || !chartData.song) {
-      // Si no hay chartData, no podemos saber qué claves borrar, pero no crasheamos.
       return;
     }
 
@@ -130,7 +129,7 @@ export class SongPlayer {
 
     keysToClean.forEach(key => {
       if (scene.cache.audio.exists(key)) {
-        scene.cache.audio.remove(key);
+        scene.cache.audio.remove(key); // Eliminar del caché
         console.log(`SongPlayer: Limpiado ${key} del caché.`);
       }
     });

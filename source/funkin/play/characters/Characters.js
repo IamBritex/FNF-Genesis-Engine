@@ -5,10 +5,12 @@ import { CharacterBooper } from "./charactersBooper.js"
 import { NoteDirection } from "../notes/NoteDirection.js"
 
 export class Characters {
-  constructor(scene, chartData, cameraManager, stageHandler, conductor) {
+  // [MODIFICADO] Acepta sessionId
+  constructor(scene, chartData, cameraManager, stageHandler, conductor, sessionId) {
     this.scene = scene
     this.cameraManager = cameraManager
     this.stageHandler = stageHandler
+    this.sessionId = sessionId // Guardar
 
     this.chartCharacterNames = CharactersData.extractChartData(chartData)
 
@@ -20,7 +22,8 @@ export class Characters {
 
     this.booper = new CharacterBooper(this.scene, conductor?.bpm || 100)
 
-    this.characterElements = new CharacterElements(this.scene, this.cameraManager)
+    // Pasar sessionId
+    this.characterElements = new CharacterElements(this.scene, this.cameraManager, this.sessionId)
     this.characterAnimations = new CharacterAnimations(this.scene)
 
     this.bf = null
@@ -75,7 +78,8 @@ export class Characters {
   }
 
   createAnimationsAndSprites() {
-    this.characterAnimations.createAllAnimations(this.chartCharacterNames, this.loadedCharacterJSONs)
+    // Pasar sessionId a Animations
+    this.characterAnimations.createAllAnimations(this.chartCharacterNames, this.loadedCharacterJSONs, this.sessionId)
     const sprites = this.characterElements.createSprites(
       this.chartCharacterNames,
       this.stageCharacterData,
@@ -140,9 +144,11 @@ export class Characters {
 
     if (this.chartCharacterNames) {
       const names = this.chartCharacterNames
-      const keysToRemove = [`char_${names.player}`, `char_${names.enemy}`, `char_${names.gfVersion}`]
+      // Usar claves con sessionId para limpiar
+      const suffix = this.sessionId ? `_${this.sessionId}` : '';
+      const keysToRemove = [`char_${names.player}${suffix}`, `char_${names.enemy}${suffix}`, `char_${names.gfVersion}${suffix}`];
 
-      // Step 1: Remove animations first
+      // Step 1: Remove animations
       if (this.scene.anims) {
         const anims = this.scene.anims.anims.entries
         const animKeysToDelete = []
@@ -162,6 +168,9 @@ export class Characters {
         if (this.scene.textures.exists(key)) {
           this.scene.textures.remove(key)
         }
+        if (this.scene.cache.xml.exists(key)) {
+          this.scene.cache.xml.remove(key)
+        }
       })
     }
 
@@ -170,4 +179,12 @@ export class Characters {
       this.loadedCharacterJSONs.forEach((content, charName) => {
         const charKey = `char_${charName}`
         if (this.scene.cache.json.exists(charKey)) {
-          this.scene.cache.json.remove(c
+          this.scene.cache.json.remove(charKey)
+        }
+      })
+      this.loadedCharacterJSONs.clear()
+    }
+    
+    console.log("Characters shutdown complete (session assets cleaned)")
+  }
+}

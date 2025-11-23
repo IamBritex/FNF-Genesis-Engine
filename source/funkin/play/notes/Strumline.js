@@ -5,13 +5,8 @@ export class Strumline {
     static ATLAS_KEY = 'noteStrumline';
     static DIRECTIONS = [NoteDirection.LEFT, NoteDirection.DOWN, NoteDirection.UP, NoteDirection.RIGHT];
 
-    // --- [NUEVO] ---
-    // Define las posiciones base (x, y) para las strumlines.
-    // Puedes (y debes) modificar estos valores desde tu PlayState
-    // antes de llamar a setupStrumlines.
     static basePositionOffsetEnemy = { x: 30, y: 70 };
     static basePositionOffsetPlayer = { x: 780, y: 70 };
-    // --- [FIN DEL CAMBIO] ---
 
     static OFFSETS = {
         static: { x: 0, y: -48 },
@@ -19,87 +14,78 @@ export class Strumline {
         confirm: { x: -1, y: -48 }
     };
 
-    static preload(scene) {
+    // [MODIFICADO] Usa sessionId
+    static preload(scene, sessionId) {
         const skinName = 'Funkin'; 
         const basePath = `public/images/noteSkins/${skinName}/`;
         const texturePath = `${basePath}noteStrumline.png`;
         const atlasPath = `${basePath}noteStrumline.xml`;
 
-        if (!scene.textures.exists(Strumline.ATLAS_KEY)) {
-             scene.load.atlasXML(Strumline.ATLAS_KEY, texturePath, atlasPath);
-             scene.load.once('complete', () => Strumline.createAnimations(scene));
+        const key = sessionId ? `${Strumline.ATLAS_KEY}_${sessionId}` : Strumline.ATLAS_KEY;
+
+        if (!scene.textures.exists(key)) {
+             scene.load.atlasXML(key, texturePath, atlasPath);
+             // Pasar sessionId a createAnimations también
+             scene.load.once('complete', () => Strumline.createAnimations(scene, sessionId));
         } else {
-             Strumline.createAnimations(scene); 
+             Strumline.createAnimations(scene, sessionId); 
         }
     }
 
-    static createAnimations(scene) {
-        if (!scene.textures.exists(Strumline.ATLAS_KEY)) return;
+    // [MODIFICADO] Usa sessionId para crear animaciones únicas
+    static createAnimations(scene, sessionId) {
+        const key = sessionId ? `${Strumline.ATLAS_KEY}_${sessionId}` : Strumline.ATLAS_KEY;
+
+        if (!scene.textures.exists(key)) return;
+
         Strumline.DIRECTIONS.forEach(direction => {
             const dirName = NoteDirection.getName(direction); 
             const capDirName = dirName.charAt(0).toUpperCase() + dirName.slice(1);
-            const pressAnimKey = `press_${dirName}`;
+            
+            // Claves de animación únicas también
+            const suffix = sessionId ? `_${sessionId}` : '';
+            const pressAnimKey = `press_${dirName}${suffix}`;
+            
             if (!scene.anims.exists(pressAnimKey)) {
-                const pressFrames = scene.anims.generateFrameNames(Strumline.ATLAS_KEY, { prefix: `press${capDirName}`, start: 1, end: 4, zeroPad: 4 });
+                const pressFrames = scene.anims.generateFrameNames(key, { prefix: `press${capDirName}`, start: 1, end: 4, zeroPad: 4 });
                 if (pressFrames.length > 0) scene.anims.create({ key: pressAnimKey, frames: pressFrames, frameRate: 24, repeat: 0 });
             }
-            const confirmAnimKey = `confirm_${dirName}`;
+            
+            const confirmAnimKey = `confirm_${dirName}${suffix}`;
+            const confirmLoopAnimKey = `confirm-loop_${dirName}${suffix}`;
+
              if (!scene.anims.exists(confirmAnimKey)) {
-                 const confirmFrames = scene.anims.generateFrameNames(Strumline.ATLAS_KEY, { prefix: `confirm${capDirName}`, start: 1, end: 4, zeroPad: 4 });
-                 if (confirmFrames.length > 0) scene.anims.create({ key: confirmAnimKey, frames: confirmFrames, frameRate: 24, repeat: 0 }); 
-                 const confirmLoopAnimKey = `confirm-loop_${dirName}`;
-                 if (confirmFrames.length > 0) scene.anims.create({ key: confirmLoopAnimKey, frames: confirmFrames, frameRate: 24, repeat: -1 }); 
+                 const confirmFrames = scene.anims.generateFrameNames(key, { prefix: `confirm${capDirName}`, start: 1, end: 4, zeroPad: 4 });
+                 if (confirmFrames.length > 0) {
+                     scene.anims.create({ key: confirmAnimKey, frames: confirmFrames, frameRate: 24, repeat: 0 }); 
+                     scene.anims.create({ key: confirmLoopAnimKey, frames: confirmFrames, frameRate: 24, repeat: -1 }); 
+                 }
              }
         });
     }
 
-    /**
-     * [ACTUALIZADO] setupStrumlines
-     * Ahora usa basePositionOffsetEnemy y basePositionOffsetPlayer
-     * para las posiciones X e Y.
-     */
-    static setupStrumlines(scene) {
+    // [MODIFICADO] setupStrumlines recibe sessionId para pasarlo a _createSingleStrumline
+    static setupStrumlines(scene, sessionId) {
         const scale = 0.7;          
         const separation = 170 * scale; 
         
-        // --- [ELIMINADO] ---
-        // const playerY = scene.cameras.main.height * 0.15; 
-        // const enemyY = scene.cameras.main.height * 0.15;  
-        // const edgeOffset = 0;         
-        // --- [FIN DEL CAMBIO] ---
-        
         const numArrows = Strumline.DIRECTIONS.length;
         
-        // (La lógica para calcular el ancho se mantiene por si la necesitas
-        // para tus cálculos en PlayState, pero ya no se usa aquí
-        // para la posición del jugador)
-        let estimatedArrowWidth = 150 * scale; 
-        const firstFrameName = `static${NoteDirection.getNameUpper(Strumline.DIRECTIONS[0])}0001`;
-         if (scene.textures.exists(Strumline.ATLAS_KEY) && scene.textures.get(Strumline.ATLAS_KEY).has(firstFrameName)) {
-             estimatedArrowWidth = scene.textures.get(Strumline.ATLAS_KEY).get(firstFrameName).width * scale;
-         }
-         const totalWidthApprox = (numArrows - 1) * separation + estimatedArrowWidth; 
-        
-        
-        // --- [CAMBIO] ---
-        // Usar las nuevas propiedades estáticas para X e Y
         const enemyBaseX = Strumline.basePositionOffsetEnemy.x;
         const enemyY = Strumline.basePositionOffsetEnemy.y;
         const playerBaseX = Strumline.basePositionOffsetPlayer.x;
         const playerY = Strumline.basePositionOffsetPlayer.y;
-        // --- [FIN DEL CAMBIO] ---
 
-        const enemyContainers = Strumline._createSingleStrumline(scene, enemyBaseX, enemyY, scale, false, separation);
-        const playerContainers = Strumline._createSingleStrumline(scene, playerBaseX, playerY, scale, true, separation);
+        const enemyContainers = Strumline._createSingleStrumline(scene, enemyBaseX, enemyY, scale, false, separation, sessionId);
+        const playerContainers = Strumline._createSingleStrumline(scene, playerBaseX, playerY, scale, true, separation, sessionId);
         return { player: playerContainers, enemy: enemyContainers };
     }
 
-    /**
-     * [ACTUALIZADO] _createSingleStrumline
-     * Se cambia el origin a (0, 0) y se guarda el ancho escalado en el contenedor.
-     */
-    static _createSingleStrumline(scene, baseX, baseY, scale, isPlayer, separation) {
+    // [MODIFICADO] _createSingleStrumline usa la clave única
+    static _createSingleStrumline(scene, baseX, baseY, scale, isPlayer, separation, sessionId) {
         const strumContainers = []; 
+        const key = sessionId ? `${Strumline.ATLAS_KEY}_${sessionId}` : Strumline.ATLAS_KEY;
+
         Strumline.DIRECTIONS.forEach((direction, index) => {
             const dirName = NoteDirection.getName(direction);
             const capDirName = dirName.charAt(0).toUpperCase() + dirName.slice(1);
@@ -109,8 +95,11 @@ export class Strumline {
             container.setDepth(isPlayer ? 90 : 80); 
             container.noteDirection = direction; 
             
-            if (scene.textures.exists(Strumline.ATLAS_KEY) && scene.textures.get(Strumline.ATLAS_KEY).has(frameName)) {
-                const arrowSprite = scene.add.sprite(Strumline.OFFSETS.static.x, Strumline.OFFSETS.static.y, Strumline.ATLAS_KEY, frameName);
+            // Guardar el sessionId en el contenedor para que las animaciones sepan qué sufijo usar
+            container.sessionId = sessionId;
+
+            if (scene.textures.exists(key) && scene.textures.get(key).has(frameName)) {
+                const arrowSprite = scene.add.sprite(Strumline.OFFSETS.static.x, Strumline.OFFSETS.static.y, key, frameName);
                 arrowSprite.setScale(scale); 
                 
                 arrowSprite.setOrigin(0, 0); 
@@ -127,21 +116,28 @@ export class Strumline {
         return strumContainers;
     }
     
+     // [MODIFICADO] Usa sessionId del contenedor para la anim key
      static playConfirmAnimation(strumContainers, direction, loop = false) {
         const container = strumContainers[direction];
         const arrowSprite = container?.getAt(0);
         if (!arrowSprite || !arrowSprite.active) return;
+        
+        const sessionId = container.sessionId; // Recuperar ID
+        const suffix = sessionId ? `_${sessionId}` : '';
+
         const dirName = NoteDirection.getName(direction);
-        const animKey = loop ? `confirm-loop_${dirName}` : `confirm_${dirName}`;
+        const animKey = loop ? `confirm-loop_${dirName}${suffix}` : `confirm_${dirName}${suffix}`;
         const capDirName = dirName.charAt(0).toUpperCase() + dirName.slice(1);
         const staticFrame = `static${capDirName}0001`;
+        
         arrowSprite.setPosition(Strumline.OFFSETS.confirm.x, Strumline.OFFSETS.confirm.y);
         if (arrowSprite.scene.anims.exists(animKey)) {
             arrowSprite.play(animKey);
             if (!loop) {
                 arrowSprite.once('animationcomplete', () => {
                     if (arrowSprite.active) { 
-                         if (arrowSprite.scene.textures.get(Strumline.ATLAS_KEY).has(staticFrame)) arrowSprite.setFrame(staticFrame);
+                         // Usa textura del sprite actual (ya tiene el ID correcto)
+                         if (arrowSprite.scene.textures.get(arrowSprite.texture.key).has(staticFrame)) arrowSprite.setFrame(staticFrame);
                         arrowSprite.setPosition(Strumline.OFFSETS.static.x, Strumline.OFFSETS.static.y);
                     }
                 });
@@ -151,7 +147,7 @@ export class Strumline {
              if (!loop) { 
                  arrowSprite.scene.time.delayedCall(100, () => { 
                      if (arrowSprite.active) {
-                         if (arrowSprite.scene.textures.get(Strumline.ATLAS_KEY).has(staticFrame)) arrowSprite.setFrame(staticFrame);
+                         if (arrowSprite.scene.textures.get(arrowSprite.texture.key).has(staticFrame)) arrowSprite.setFrame(staticFrame);
                          arrowSprite.setPosition(Strumline.OFFSETS.static.x, Strumline.OFFSETS.static.y);
                      }
                  });
@@ -159,12 +155,16 @@ export class Strumline {
         }
     }
 
+     // [MODIFICADO] Usa sessionId del contenedor
      static playPressAnimation(strumContainers, direction) {
          const container = strumContainers[direction]; 
          const arrowSprite = container?.getAt(0); 
          if (arrowSprite && arrowSprite.active) {
+              const sessionId = container.sessionId;
+              const suffix = sessionId ? `_${sessionId}` : '';
+
               const dirName = NoteDirection.getName(direction);
-              const animKey = `press_${dirName}`;
+              const animKey = `press_${dirName}${suffix}`;
               arrowSprite.setPosition(Strumline.OFFSETS.press.x, Strumline.OFFSETS.press.y); 
               if (arrowSprite.scene.anims.exists(animKey)) {
                   arrowSprite.play(animKey);
@@ -183,7 +183,7 @@ export class Strumline {
              const capDirName = dirName.charAt(0).toUpperCase() + dirName.slice(1);
              const staticFrame = `static${capDirName}0001`;
              arrowSprite.stop(); 
-             if (arrowSprite.scene.textures.get(Strumline.ATLAS_KEY).has(staticFrame)) arrowSprite.setFrame(staticFrame);
+             if (arrowSprite.scene.textures.get(arrowSprite.texture.key).has(staticFrame)) arrowSprite.setFrame(staticFrame);
              arrowSprite.setPosition(Strumline.OFFSETS.static.x, Strumline.OFFSETS.static.y); 
          }
      }

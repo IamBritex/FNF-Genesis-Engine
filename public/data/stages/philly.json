@@ -125,7 +125,7 @@
                     298,
                     105
                 ],
-                "flip_x": true,
+                "flip_x": false,
                 "flip_y": false,
                 "scrollFactor": 1
             }
