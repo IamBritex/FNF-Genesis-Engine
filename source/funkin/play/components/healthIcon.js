@@ -89,15 +89,21 @@ export class HealthIcon {
         // --- Lógica de Auto-Escalado ---
         const standardFrameWidth = 150;
         const currentFrameWidth = this.sprite.frame.width;
+        
+        // Cálculo base del factor de escala
+        let baseScaleFactor = 1.0;
 
         if (currentFrameWidth < standardFrameWidth) {
-             const scaleFactor = standardFrameWidth / currentFrameWidth;
-             this.minIconScale = scaleFactor;
-             this.maxIconScale = scaleFactor * 1.2; 
-        } else {
-             this.minIconScale = 1.0;
-             this.maxIconScale = 1.2;
+             baseScaleFactor = standardFrameWidth / currentFrameWidth;
         }
+
+        // [MODIFICADO] Si es Pixel Art, aplicar un zoom extra como fue solicitado
+        if (this.isPixel) {
+            baseScaleFactor *= 1.2; 
+        }
+
+        this.minIconScale = baseScaleFactor;
+        this.maxIconScale = baseScaleFactor * 1.2;
 
         this.curIconScale = this.minIconScale;
         this.sprite.setScale(this.curIconScale);
@@ -178,15 +184,6 @@ export class HealthIcon {
     destroy() { 
         if (this.sprite) {
             gsap.killTweensOf(this.sprite);
-            
-            // [NUEVO] Limpiar la textura específica de esta sesión al destruir el ícono
-            // (Esto es opcional, ya que PlayState.shutdown debería encargarse, 
-            // pero ayuda a mantener limpia la memoria inmediatamente)
-            // const textureKey = this.sprite.texture.key;
-            // if (this.scene.textures.exists(textureKey)) {
-            //    this.scene.textures.remove(textureKey);
-            // }
-
             this.sprite.destroy(); 
         }
     }

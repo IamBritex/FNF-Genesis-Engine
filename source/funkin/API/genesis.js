@@ -176,7 +176,7 @@ const genesisStyle = `
     padding: 6px 12px; border-radius: 20px; font-family: 'Segoe UI', sans-serif;
     font-weight: bold; font-size: 12px;
 `;
-const iconUrl = 'https://app.genesis/icons/icon.ico';
+const iconUrl = '../../../icons/icon.png';
 const iconStyle = `
     background-image: url('${iconUrl}'); background-size: contain;
     background-repeat: no-repeat; background-position: center;

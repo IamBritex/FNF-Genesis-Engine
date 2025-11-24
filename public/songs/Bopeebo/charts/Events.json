@@ -115,7 +115,7 @@
             "script": "altAnimation",
             "type": "define",
             "params": {
-                "characterType": "player1",
+                "characterType": "player",
                 "animation": "hey",
                 "duration": 2200
             }

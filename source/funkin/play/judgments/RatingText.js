@@ -1,9 +1,9 @@
-// import { NumberAnimation } from '../../ui/storymode/NumberAnimation.js'; // [ELIMINADO]
 
 export class RatingText {
     constructor(scene, ratingManager) {
         this.scene = scene;
         this.ratingManager = ratingManager;
+        this.isBotPlay = false; // Estado del Botplay
         
         if (!this.ratingManager) {
             console.error('RatingManager no está disponible para RatingText');
@@ -55,8 +55,23 @@ export class RatingText {
         this.updateMainText();
     }
 
+    /**
+     * Actualiza el estado de visualización del Botplay.
+     * @param {boolean} active 
+     */
+    setBotPlay(active) {
+        this.isBotPlay = active;
+        this.updateMainText();
+    }
+
     updateMainText() {
         if (!this.ratingManager || !this.mainText) return;
+
+        // [MODIFICADO] Si está en modo Botplay, mostrar solo el texto y salir
+        if (this.isBotPlay) {
+            this.mainText.setText("BOTPLAY");
+            return;
+        }
 
         const score = this.ratingManager.score;
         const misses = this.ratingManager.misses;

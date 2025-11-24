@@ -1,3 +1,4 @@
+// core/soundtray/mainSoundtray.js
 // Importaciones para verificar si es Electron
 // Constantes para el control de volumen
 const VOLUME_SETTINGS = {
@@ -7,16 +8,10 @@ const VOLUME_SETTINGS = {
     STEP: 0.1
 };
 
-// Variables globales para el control de volumen
-let globalVolume = (() => {
-    const saved = localStorage.getItem('gameVolume');
-    return saved !== null ? parseFloat(saved) : VOLUME_SETTINGS.DEFAULT;
-})();
+// Variables globales para el control de volumen (usan el valor por defecto, no localStorage)
+let globalVolume = VOLUME_SETTINGS.DEFAULT;
 
-let previousVolume = (() => {
-    const saved = localStorage.getItem('previousVolume');
-    return saved !== null ? parseFloat(saved) : globalVolume;
-})();
+let previousVolume = VOLUME_SETTINGS.DEFAULT;
 
 let volumeUI = null;
 let currentScene = null;
@@ -33,13 +28,9 @@ export function roundVolume(value) {
     return Math.round(value * 10) / 10;
 }
 
+// Función vacía: No guarda el estado del volumen
 export function saveVolumeState() {
-    try {
-        localStorage.setItem('gameVolume', roundVolume(globalVolume).toString());
-        localStorage.setItem('previousVolume', roundVolume(previousVolume).toString());
-    } catch (error) {
-        console.warn('Error saving volume state:', error);
-    }
+    return;
 }
 
 export function updateVolumeUI() {
@@ -53,9 +44,13 @@ export function updateVolumeUI() {
             volumeUI.bar.setVisible(true);
         } else {
             volumeUI.bar.setVisible(false);
+            // Requerimiento: Si el volumen es 0, forzar que la UI se muestre (no se oculte automáticamente)
+            if (currentScene.showVolumeUI) {
+                currentScene.showVolumeUI(true); // Pasar 'true' para indicar que no queremos que se oculte
+            }
         }
 
-        if (currentScene.showVolumeUI) {
+        if (currentScene.showVolumeUI && barLevel > 0) {
             currentScene.showVolumeUI();
         }
     } catch (error) {
@@ -76,17 +71,16 @@ export function setVolumeSounds(sounds) {
     volumeSounds = sounds;
 }
 
-// Obtener la tecla desde localStorage, si no existe usa el valor por defecto
-function getVolumeControlKey(setting, fallback) {
-    const key = localStorage.getItem(setting);
-    return key ? key.toUpperCase() : fallback;
+// Función para obtener la tecla por defecto (no usa localStorage)
+function getVolumeControlKey(fallback) {
+    return fallback;
 }
 
-// Función para actualizar las keys desde localStorage o usar defaults
+// Función para actualizar las keys usando defaults fijos
 export function updateVolumeControlKeys() {
-    keyMute = getVolumeControlKey('CONTROLS.VOLUME.MUTE', '0');
-    keyVolDown = getVolumeControlKey('CONTROLS.VOLUME.VOLUME DOWN', '-');
-    keyVolUp = getVolumeControlKey('CONTROLS.VOLUME.VOLUME UP', '+');
+    keyMute = getVolumeControlKey('0');
+    keyVolDown = getVolumeControlKey('-');
+    keyVolUp = getVolumeControlKey('+');
 }
 
 // Add these new functions
@@ -97,4 +91,3 @@ export function setGlobalVolume(value) {
 export function setPreviousVolume(value) {
     previousVolume = roundVolume(value);
 }
-

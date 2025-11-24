@@ -1,3 +1,4 @@
+// core/soundtray/styleSoundtray.js
 import {
   roundVolume,
   saveVolumeState,
@@ -28,23 +29,7 @@ export function initVolumeControl() {
 
   updateVolumeControlKeys();
 
-  // Escuchar cambios en localStorage para actualizar las keys dinámicamente
-  window.addEventListener("storage", (event) => {
-    if (
-      event.key === "CONTROLS.VOLUME.MUTE" ||
-      event.key === "CONTROLS.VOLUME.VOLUME DOWN" ||
-      event.key === "CONTROLS.VOLUME.VOLUME UP"
-    ) {
-      try {
-        updateVolumeControlKeys();
-        console.log(
-          "[soundtray] Volume control keys updated from localStorage"
-        );
-      } catch (e) {
-        console.warn("[soundtray] Error updating volume control keys:", e);
-      }
-    }
-  });
+  // Se eliminó la escucha de cambios en localStorage
 
   // Replace direct assignments in the keydown event listener
   document.addEventListener("keydown", (event) => {
@@ -57,6 +42,8 @@ export function initVolumeControl() {
     if (code === keyVolUp || key === keyVolUp.replace("NUMPAD", "") || key === "+") {
         if (globalVolume >= VOLUME_SETTINGS.MAX) {
             volumeSounds.max.play({ volume: 0.5 });
+            // Requerimiento: Si ya está al máximo, igual mostrar la UI (y luego se oculta automáticamente)
+            updateVolumeUI(); 
         } else {
             setPreviousVolume(globalVolume > 0 ? globalVolume : previousVolume);
             setGlobalVolume(Math.min(globalVolume + VOLUME_SETTINGS.STEP, VOLUME_SETTINGS.MAX));
@@ -133,14 +120,19 @@ export class VolumeUIScene extends Phaser.Scene {
 
     this.volumeUI.barBackground.setAlpha(0.5);
 
-    this.volumeUI.box.setDepth(9000).setScale(0.5);
-    this.volumeUI.barBackground.setDepth(9001).setScale(0.5);
-    this.volumeUI.bar.setDepth(9002).setScale(0.5);
+    // Aumentar la escala de 0.5 a 0.75
+    this.volumeUI.box.setDepth(9000).setScale(0.75);
+    this.volumeUI.barBackground.setDepth(9001).setScale(0.75);
+    this.volumeUI.bar.setDepth(9002).setScale(0.75);
 
     setVolumeUI(this.volumeUI);
     setCurrentScene(this);
 
-    this.showVolumeUI = () => {
+    /**
+     * Muestra la UI del volumen.
+     * @param {boolean} [permanent=false] Si es true, omite el temporizador de ocultación (utilizado para Mute/Volumen 0).
+     */
+    this.showVolumeUI = (permanent = false) => {
       if (this.hideTimeline) {
         this.hideTimeline.stop();
       }
@@ -159,7 +151,11 @@ export class VolumeUIScene extends Phaser.Scene {
       });
 
       if (this.hideTimer) clearTimeout(this.hideTimer);
-      this.hideTimer = setTimeout(() => this.hideVolumeUI(), 2000);
+      
+      // Ocultar solo si no es permanente
+      if (!permanent) {
+        this.hideTimer = setTimeout(() => this.hideVolumeUI(), 3000);
+      }
     };
 
     this.hideVolumeUI = () => {

@@ -1,9 +1,8 @@
 {
     "events": [
         {
-            "time": 0,
             "script": "windowsChanges",
-            "type": "continuous"
+            "type": "stage"
         },
         {
             "time": 0,

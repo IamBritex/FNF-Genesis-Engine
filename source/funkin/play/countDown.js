@@ -29,6 +29,9 @@ export class Countdown {
         
         this.countdownStep = CountdownStep.BEFORE;
         this.onCompleteCallback = null; // Función a llamar cuando termine
+        
+        // Almacenar tweens activos para pausarlos
+        this.activeTweens = [];
     }
 
     /**
@@ -37,7 +40,6 @@ export class Countdown {
     static preload(scene) {
         // --- Gráficos ---
         const basePath = 'public/images/ui/countdown/funkin/';
-        // [ELIMINADO] No cargamos '3.png'
         // scene.load.image('countdown_3', `${basePath}3.png`); 
         scene.load.image('countdown_2', `${basePath}ready.png`); // 'ready'
         scene.load.image('countdown_1', `${basePath}set.png`);   // 'set'
@@ -70,13 +72,44 @@ export class Countdown {
     }
 
     /**
-     * Detiene el temporizador de la cuenta regresiva si está activo.
+     * Pausa el temporizador de la cuenta regresiva.
+     * (Llamado por el menú de Pausa)
+     */
+    pause() {
+        if (this.countdownTimer) {
+            this.countdownTimer.paused = true;
+        }
+        // Pausar también los tweens visuales de la cuenta regresiva
+        this.activeTweens.forEach(tween => {
+            if (tween.isPlaying()) tween.pause();
+        });
+    }
+
+    /**
+     * Reanuda el temporizador de la cuenta regresiva.
+     */
+    resume() {
+        if (this.countdownTimer) {
+            this.countdownTimer.paused = false;
+        }
+        // Reanudar tweens visuales
+        this.activeTweens.forEach(tween => {
+            if (tween.isPaused()) tween.resume();
+        });
+    }
+
+    /**
+     * Detiene el temporizador de la cuenta regresiva.
+     * NOTA: No destruye los tweens activos para permitir que el último fade-out termine (arregla el bug de "GO" pegado).
      */
     stop() {
         if (this.countdownTimer) {
             this.countdownTimer.destroy();
             this.countdownTimer = null;
         }
+        // No detenemos los tweens aquí para que el último efecto visual termine naturalmente.
+        // Si se necesita limpieza total (ej. salir de escena), Phaser destruirá los sprites hijos.
+        this.activeTweens = [];
     }
 
     /**
@@ -102,7 +135,6 @@ export class Countdown {
     _showCountdownGraphic(step) {
         let graphicKey = '';
         
-        // --- [CAMBIO] ---
         switch (step) {
             case CountdownStep.THREE: return; // No mostrar imagen para '3'
             case CountdownStep.TWO:   graphicKey = 'countdown_2'; break; // Ready
@@ -110,7 +142,6 @@ export class Countdown {
             case CountdownStep.GO:    graphicKey = 'countdown_go'; break; // Go
             default: return;
         }
-        // --- [FIN DEL CAMBIO] ---
 
         if (!this.scene.textures.exists(graphicKey)) {
             console.warn(`Textura de cuenta regresiva no encontrada: ${graphicKey}`);
@@ -133,24 +164,28 @@ export class Countdown {
         sprite.setAlpha(1);
 
         // Animación de aparición (Scale)
-        this.scene.tweens.add({
+        const scaleTween = this.scene.tweens.add({
             targets: sprite,
             scale: 1,
             duration: this.countdownTimer.delay * 0.4, // 40% del beat
             ease: 'Cubic.easeOut'
         });
+        this.activeTweens.push(scaleTween);
 
         // Animación de desvanecimiento (Alpha)
-        this.scene.tweens.add({
+        const alphaTween = this.scene.tweens.add({
             targets: sprite,
             alpha: 0,
             duration: this.countdownTimer.delay * 0.6, // 60% del beat
             ease: 'Cubic.easeIn',
             delay: this.countdownTimer.delay * 0.4, // Empezar después de la aparición
             onComplete: () => {
-                sprite.destroy();
+                if (sprite.active) sprite.destroy();
+                // Limpiar tweens del array
+                this.activeTweens = this.activeTweens.filter(t => t !== scaleTween && t !== alphaTween);
             }
         });
+        this.activeTweens.push(alphaTween);
     }
 
     /**

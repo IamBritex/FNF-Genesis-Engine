@@ -8,14 +8,14 @@
                     "users": [
                         {
                             "name": "Britex",
-                            "description": "Lead Programmer",
+                            "description": "Main Programmer",
                             "icon": "BritexIcon",
                             "link": "https://www.youtube.com/@ImBritex",
                             "bgColor": "#2C003E"
                         },
                         {
                             "name": "KettuMark",
-                            "description": "Secondary Programmer",
+                            "description": "Visual Programmer",
                             "icon": "MarkIcon",
                             "link": "https://www.youtube.com/@KettuMark",
                             "bgColor": "#ffb800"
@@ -27,7 +27,7 @@
                     "users": [
                         {
                             "name": "Proto",
-                            "description": "Main Artist",
+                            "description": "UI Artist",
                             "icon": "poto",
                             "link": "https://youtube.com/@protoelconejo?si=PJWokPF4OFZTXtRf",
                             "bgColor": "#669966"

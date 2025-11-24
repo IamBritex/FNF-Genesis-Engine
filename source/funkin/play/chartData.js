@@ -58,7 +58,9 @@ export class ChartDataHandler {
           stage: songData.stage,
           needsVoices: songData.needsVoices,
           bpm: songData.bpm,
-          speed: songData.speed // <-- CAMBIO AQUÍ
+          speed: songData.speed,
+          // [MODIFICADO] Extraer créditos para el menú de pausa
+          credits: songData.credits || { Artist: "Unknown", Charter: "Unknown" }
         };
 
         console.log("--- DATOS DEL CHART EXTRAÍDOS (desde ChartDataHandler) ---");

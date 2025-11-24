@@ -79,6 +79,9 @@ class MainMenuState extends Phaser.Scene {
         this.load.audio('selectSound', 'public/sounds/scrollMenu.ogg');
         this.load.audio('confirmSound', 'public/sounds/confirmMenu.ogg');
         this.load.audio('cancelSound', 'public/sounds/cancelMenu.ogg');
+        
+        // Asegurar que la música del menú esté cargada por si venimos de un editor
+        this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
 
         const path = 'public/images/menu/mainmenu/';
         this.load.atlasXML('storymode', `${path}storymode.png`, `${path}storymode.xml`);
@@ -89,13 +92,29 @@ class MainMenuState extends Phaser.Scene {
     }
 
     async create() {
-
-
         if (window.Genesis && window.Genesis.discord) {
             Genesis.discord.setActivity({
                 details: "Menu in Friday Night Funkin'", 
                 state: "Main Menu"
             });
+        }
+        
+        // Lógica de Música: Si no está sonando FreakyMenu, reproducirla
+        if (!this.sound.get('freakyMenu')) {
+            this.sound.add('freakyMenu');
+        }
+        
+        const music = this.sound.get('freakyMenu');
+        if (music && !music.isPlaying) {
+            music.play({ loop: true, volume: 0.7 });
+        } else if (music && music.isPlaying) {
+            if (music.volume < 0.7) {
+                this.tweens.add({
+                    targets: music,
+                    volume: 0.7,
+                    duration: 1000
+                });
+            }
         }
         
         AssetsDriver.setScene(this);

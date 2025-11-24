@@ -26,6 +26,9 @@ class StoryModeState extends Phaser.Scene {
         this.load.audio('scrollSound', 'public/assets/audio/sounds/scrollMenu.ogg');
         this.load.audio('confirmSound', 'public/assets/audio/sounds/confirmMenu.ogg');
         this.load.audio('cancelSound', 'public/assets/audio/sounds/cancelMenu.ogg');
+        
+        // Cargar la música del menú por si venimos de PlayState
+        this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
 
         const difficulties = ['easy', 'normal', 'hard'];
         difficulties.forEach(diff => {
@@ -76,6 +79,20 @@ class StoryModeState extends Phaser.Scene {
             });
         }
         
+        // --- Lógica de Música del Menú ---
+        // Verificar si la música del menú ya existe y se está reproduciendo
+        if (!this.sound.get('freakyMenu')) {
+            this.sound.add('freakyMenu');
+        }
+        
+        const menuMusic = this.sound.get('freakyMenu');
+        
+        // Si no se está reproduciendo (ej. volviendo de PlayState), la iniciamos
+        if (menuMusic && !menuMusic.isPlaying) {
+            menuMusic.play({ loop: true, volume: 0.7 });
+        }
+        // -------------------------------
+
         this.canPressEnter = true;
         this.keyState = {};
         this.registry.remove('selectedWeekIndex');
@@ -325,7 +342,11 @@ class StoryModeState extends Phaser.Scene {
         this.characterCache = {};
          if (this.scoreAnimator) { this.scoreAnimator.stop(); this.scoreAnimator = null; }
         this.tweens.killAll();
-        this.sound.stopAll();
+        
+        // NOTA: No detenemos toda la música aquí (this.sound.stopAll()), 
+        // porque queremos que la música del menú continúe si vamos hacia atrás.
+        // Si vamos a PlayState, la música se detendrá allí o al transicionar.
+        
         this.load.reset();
     }
 }

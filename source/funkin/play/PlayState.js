@@ -13,6 +13,7 @@ import { RatingText } from "./judgments/RatingText.js"
 import { Score } from "./components/Score.js"
 import { Conductor } from "./Conductor.js"
 import { FunWaiting } from "./components/FunWaiting.js"
+import { Pause } from "./Pause.js" 
 
 export class PlayState extends Phaser.Scene {
   constructor() {
@@ -34,20 +35,23 @@ export class PlayState extends Phaser.Scene {
     this.ratingText = null
     this.scoreManager = null
     this.funWaiting = null
+    this.pauseHandler = null // Manejador de Pausa
     this.isWaitingOnLoad = true
 
     this.isInCountdown = false
     this.countdownStartTime = 0
     this.songStartTime = 0
     
-    // [NUEVO] ID único para esta sesión de juego para forzar texturas nuevas
     this.playSessionId = null; 
+    this.deathCounter = 0; // [NUEVO] Contador de muertes
+    
+    // Referencia para el evento de foco
+    this.onWindowBlur = null;
   }
 
   init(data) {
     this.sound.stopAll()
 
-    // Generar un ID único para esta sesión (timestamp + random)
     this.playSessionId = Date.now().toString() + Math.floor(Math.random() * 1000);
     console.log(`PlayState initialized with Session ID: ${this.playSessionId}`);
 
@@ -56,6 +60,7 @@ export class PlayState extends Phaser.Scene {
     this.registry.set("playStateData", undefined)
 
     this.initData = PlayStateData.init(this, finalData)
+    this.deathCounter = 0; // Reiniciar al iniciar
   }
 
   preload() {
@@ -69,7 +74,6 @@ export class PlayState extends Phaser.Scene {
     `
     document.head.appendChild(style)
 
-    // Pasar sessionId a los preloads
     NotesHandler.preload(this, this.playSessionId)
     ChartDataHandler.preloadChart(this, this.initData.targetSongId, this.initData.DifficultyID || "normal")
 
@@ -80,7 +84,8 @@ export class PlayState extends Phaser.Scene {
     PopUpManager.preload(this)
     Countdown.preload(this)
     TimeBar.preload(this)
-    HealthBar.preload(this, this.playSessionId) // Pasar sessionId
+    HealthBar.preload(this, this.playSessionId)
+    Pause.preload(this) // Precargar música de pausa
   }
 
   create() {
@@ -104,6 +109,9 @@ export class PlayState extends Phaser.Scene {
 
     this.popUpManager = new PopUpManager(this, this.cameraManager)
     this.countdown = new Countdown(this, this.cameraManager)
+    
+    // Inicializar sistema de Pausa
+    this.pauseHandler = new Pause(this, this.cameraManager);
 
     this.timeBar = new TimeBar(this)
     this.timeBar.create()
@@ -126,12 +134,10 @@ export class PlayState extends Phaser.Scene {
 
     this.conductor = new Conductor(this.chartData.bpm)
 
-    // Pasar sessionId a HealthBar
     this.healthBar = new HealthBar(this, this.chartData, this.conductor, this.playSessionId)
     
     this.stageHandler = new Stage(this, this.chartData, this.cameraManager, this.conductor)
     
-    // Pasar sessionId a Characters
     this.charactersHandler = new Characters(this, this.chartData, this.cameraManager, this.stageHandler, this.conductor, this.playSessionId)
 
     this.stageHandler.loadStageJSON()
@@ -139,7 +145,6 @@ export class PlayState extends Phaser.Scene {
     this.charactersHandler.loadCharacterJSONs()
     this.healthBar.loadCharacterData()
 
-    // Pasar sessionId a NotesHandler
     this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager, this.conductor, this.playSessionId)
 
     this.cameraManager.assignToUI(this.notesHandler.mainUICADContainer)
@@ -154,6 +159,23 @@ export class PlayState extends Phaser.Scene {
 
     this.load.once("complete", this.onAllDataLoaded, this)
     this.load.start()
+
+    // --- Lógica de Auto-Pausa BLINDADA ---
+    this.onWindowBlur = () => {
+        // 1. Verificar si la escena sigue activa y montada
+        if (!this.scene || !this.sys || !this.sys.isActive()) {
+            return;
+        }
+
+        // 2. Verificar estado de carga y pausa
+        if (!this.isWaitingOnLoad && this.pauseHandler && !this.pauseHandler.isPaused) {
+            console.log("Ventana perdió foco: Auto-pausando juego.");
+            this.pauseHandler.pauseGame();
+        }
+    };
+    
+    // Escuchar el evento blur del juego (cuando se minimiza o cambia de pestaña)
+    this.game.events.on('blur', this.onWindowBlur);
   }
 
   async onAllDataLoaded() {
@@ -231,6 +253,11 @@ export class PlayState extends Phaser.Scene {
       this.isInCountdown = false
 
       this.songAudio = SongPlayer.playSong(this, this.chartData)
+      
+      // [NUEVO] Pasar la referencia del audio al PauseHandler
+      if (this.pauseHandler) {
+          this.pauseHandler.setSongAudio(this.songAudio);
+      }
 
       if (this.songAudio?.inst) {
         const durationMs = this.songAudio.inst.duration * 1000
@@ -262,6 +289,16 @@ export class PlayState extends Phaser.Scene {
   }
 
   update(time, delta) {
+    // [MODIFICADO] Lógica de Pausa
+    // Revisar input de pausa primero
+    if (this.pauseHandler) {
+        this.pauseHandler.update();
+        // Si está pausado, detenemos la actualización del juego
+        if (this.pauseHandler.isPaused) {
+            return; 
+        }
+    }
+
     if (this.isWaitingOnLoad) {
       return
     }
@@ -354,6 +391,13 @@ export class PlayState extends Phaser.Scene {
       gsap.globalTimeline.clear()
     }
 
+    // [FIX CRÍTICO] Limpiar el listener global de 'blur'
+    // Esto evita que la escena intente pausarse después de ser destruida
+    if (this.onWindowBlur) {
+        this.game.events.off('blur', this.onWindowBlur);
+        this.onWindowBlur = null;
+    }
+
     if (this.game && this.game.sound) {
       this.game.sound.stopAll()
     }
@@ -361,6 +405,12 @@ export class PlayState extends Phaser.Scene {
     if (this.songAudio?.inst) this.songAudio.inst.off("complete", this.onSongComplete, this)
     this.load.off("complete", this.onAllDataLoaded, this)
     this.load.off("complete", this.onAllAssetsLoaded, this)
+
+    // [NUEVO] Destruir PauseHandler
+    if (this.pauseHandler) {
+        this.pauseHandler.destroy();
+        this.pauseHandler = null;
+    }
 
     if (this.notesHandler) {
       this.notesHandler.shutdown()
@@ -419,7 +469,6 @@ export class PlayState extends Phaser.Scene {
     ChartDataHandler.shutdown(this, this.initData?.targetSongId, this.initData?.DifficultyID || "normal")
     PlayStateData.shutdown(this)
     
-    // Reset Session ID
     this.playSessionId = null;
 
     console.log("PlayState shutdown complete - all sprites and textures cleaned")

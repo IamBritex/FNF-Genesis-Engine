@@ -83,6 +83,8 @@ export class NotesHandler {
       const keyObj = this.scene.input.keyboard.addKey(keyName)
 
       const onGameplayDown = () => {
+        if (this.scene.pauseHandler && this.scene.pauseHandler.isPaused) return;
+
         if (this.bot && this.bot.isPlayerBotActive) return
         if (!this.activeInput[direction]) {
           this.activeInput[direction] = true
@@ -90,6 +92,8 @@ export class NotesHandler {
         }
       }
       const onGameplayUp = () => {
+        if (this.scene.pauseHandler && this.scene.pauseHandler.isPaused) return;
+
         if (this.bot && this.bot.isPlayerBotActive) return
         if (this.activeInput[direction]) {
           this.activeInput[direction] = false
@@ -104,7 +108,15 @@ export class NotesHandler {
 
     const bKey = this.scene.input.keyboard.addKey("B")
     const onBotKey = () => {
-      if (this.bot) this.bot.togglePlayerBot()
+      if (this.scene.pauseHandler && this.scene.pauseHandler.isPaused) return; // Bloqueo en pausa
+
+      if (this.bot) {
+        this.bot.togglePlayerBot()
+        // [MODIFICADO] Actualizar visualmente el RatingText
+        if (this.scene && this.scene.ratingText) {
+            this.scene.ratingText.setBotPlay(this.bot.isPlayerBotActive);
+        }
+      }
     }
     bKey.on("down", onBotKey)
     this.gameplayInputListeners.push({ keyObj: bKey, downHandler: onBotKey, upHandler: () => {} })
@@ -359,6 +371,11 @@ export class NotesHandler {
       this.ratingManager.processHit(rating, timeDiff)
     }
 
+    // [NUEVO] Si needVoices es true, REACTIVAR la voz del jugador al acertar
+    if (this.chartData.needsVoices && this.scene && this.scene.songAudio && this.scene.songAudio.voices && this.scene.songAudio.voices[0]) {
+      this.scene.songAudio.voices[0].setVolume(1);
+    }
+
     if (noteData.isHoldNote) {
       noteData.isBeingHeld = true
       noteData.holdReleased = false
@@ -406,6 +423,11 @@ export class NotesHandler {
 
     if (this.ratingManager) {
       this.ratingManager.processMiss()
+    }
+
+    // [NUEVO] Si needVoices es true, SILENCIAR la voz del jugador al fallar
+    if (this.chartData.needsVoices && this.scene && this.scene.songAudio && this.scene.songAudio.voices && this.scene.songAudio.voices[0]) {
+      this.scene.songAudio.voices[0].setVolume(0);
     }
 
     dataToUse.tooLate = true

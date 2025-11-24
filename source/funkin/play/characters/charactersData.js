@@ -49,7 +49,11 @@ export class CharactersData {
         }
       }
     } else {
-      console.warn("CharactersData: No se pasó stageContent para extraer los datos del escenario.");
+      console.warn("CharactersData: No se pasó stageContent para extraer los datos del escenario. Usando valores por defecto.");
+      // Valores por defecto estándar para evitar crashes
+      charData.player = { position: [770, 100], scale: 1, layer: 1 };
+      charData.enemy = { position: [100, 100], scale: 1, layer: 1 };
+      charData.playergf = { position: [400, 130], scale: 1, layer: 0 };
     }
 
     return charData;

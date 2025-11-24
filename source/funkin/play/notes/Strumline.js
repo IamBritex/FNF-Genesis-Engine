@@ -10,7 +10,7 @@ export class Strumline {
 
     static OFFSETS = {
         static: { x: 0, y: -48 },
-        press: { x: 30, y: -14 }, 
+        press: { x: 30, y: -18 }, 
         confirm: { x: -1, y: -48 }
     };
 

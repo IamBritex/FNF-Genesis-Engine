@@ -6,7 +6,7 @@ export class StageData {
   /**
    * Extrae los datos del escenario (stage) del chartData.
    * @param {object} chartData - El objeto chartData completo de PlayState.
-   * @returns {object | null} Los datos del escenario, o null si no se encuentran.
+   * @returns {object | null} Los datos del escenario, o 'stage' por defecto si no se encuentran.
    */
   static extract(chartData) {
     if (chartData && chartData.stage) {
@@ -14,7 +14,7 @@ export class StageData {
       return chartData.stage;
     }
     
-    console.warn("StageData: No se encontró 'chartData.stage' en los datos del chart.");
-    return null;
+    console.warn("StageData: No se encontró 'chartData.stage' en los datos del chart. Cargando 'stage' por defecto.");
+    return 'stage';
   }
 }
