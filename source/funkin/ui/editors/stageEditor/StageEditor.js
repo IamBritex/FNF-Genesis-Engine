@@ -69,6 +69,10 @@ export class StageEditor extends Phaser.Scene {
         this.bgCheckerboard = null;
         
         this.loadingScreen = null;
+        
+        // Referencias para limpieza de eventos
+        this.onWindowMouseDown = null;
+        this.onWindowMouseUp = null;
     }
 
     preload() {
@@ -131,8 +135,12 @@ export class StageEditor extends Phaser.Scene {
 
         document.body.classList.add('editor-scope');
 
-        window.addEventListener('mousedown', (e) => { if (e.button === 0) this.sound.play('clickDown'); });
-        window.addEventListener('mouseup', (e) => { if (e.button === 0) this.sound.play('clickUp'); });
+        // CORRECCIÓN: Usar funciones con nombre para poder removerlas después
+        this.onWindowMouseDown = (e) => { if (e.button === 0) this.sound.play('clickDown'); };
+        this.onWindowMouseUp = (e) => { if (e.button === 0) this.sound.play('clickUp'); };
+
+        window.addEventListener('mousedown', this.onWindowMouseDown);
+        window.addEventListener('mouseup', this.onWindowMouseUp);
 
         this.loadingScreen = new LoadingLol(this);
 
@@ -301,6 +309,11 @@ export class StageEditor extends Phaser.Scene {
     shutdown() {
         window.removeEventListener('beforeunload', this.emergencySaveHandler);
         window.removeEventListener('error', this.emergencySaveHandler);
+        
+        // Limpieza de eventos globales de mouse
+        if (this.onWindowMouseDown) window.removeEventListener('mousedown', this.onWindowMouseDown);
+        if (this.onWindowMouseUp) window.removeEventListener('mouseup', this.onWindowMouseUp);
+
         this.load.off('complete');
         this.load.off('filecomplete');
         if (this.editorMusicInstance) this.editorMusicInstance.stop();

@@ -13,7 +13,7 @@ import "../funkin/ui/intro/introDance.js";
 import "../funkin/ui/mainmenu/MainMenuState.js";
 import "../funkin/ui/editors/menu.js";
 import "../funkin/ui/editors/stageEditor/StageEditor.js";
-import "../funkin/ui/editors/character/CharacterEditor.js";
+import "../funkin/ui/editors/animationEditor/animationEditor.js";
 import "../funkin/ui/credits/CreditsState.js";
 import "../funkin/ui/multiplayer/rooms.js";
 

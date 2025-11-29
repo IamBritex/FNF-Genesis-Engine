@@ -25,7 +25,7 @@ class EditorsState extends Phaser.Scene {
 
         this.editorConfig = [
             {
-                key: 'CharacterEditorState',
+                key: 'AnimationEditor',
                 image: 'characterEditor',
                 path: 'public/images/menu/editors/characterEditor.png'
             },

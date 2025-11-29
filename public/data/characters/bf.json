@@ -156,6 +156,7 @@
     },
     {
       "loop": false,
+      "image": "characters/BOYFRIEND-attack",
       "offsets": [
         32,
         33
