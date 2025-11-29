@@ -1,8 +1,8 @@
 import { MenuInputHandler } from './MenuInputHandler.js';
 
-class MainMenuState extends Phaser.Scene {
+class MainMenuScene extends Phaser.Scene {
     constructor() {
-        super({ key: "MainMenuState" });
+        super({ key: "MainMenuScene" });
         this.selectedIndex = 0;
         this.menuItems = [];
         this.canInteract = false;
@@ -29,7 +29,7 @@ class MainMenuState extends Phaser.Scene {
             flash: { x: centerX, y: this.game.config.height / 2, scale: 1.2, scrollFactor: bgScrollFactor, depth: 2 },
             items: [
                 {
-                    id: 'storymode', texture: 'storymode', scene: 'StoryModeState',
+                    id: 'storymode', texture: 'storymode', scene: 'StoryModeScene',
                     x: itemX, y: startY, origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'storymode idle', anim: 'idle', fps: frameRate, loop: true, indices: [0,1,2,3,4,5,6,7,8] },
@@ -37,7 +37,7 @@ class MainMenuState extends Phaser.Scene {
                     ]
                 },
                 {
-                    id: 'freeplay', texture: 'freeplay', scene: 'FreeplayState',
+                    id: 'freeplay', texture: 'freeplay', scene: 'FreeplayScene',
                     x: itemX, y: startY + spacing, origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'freeplay idle', anim: 'idle', fps: frameRate, loop: true },
@@ -53,7 +53,7 @@ class MainMenuState extends Phaser.Scene {
                     ]
                 },
                 {
-                    id: 'options', texture: 'options', scene: 'OptionsState',
+                    id: 'options', texture: 'options', scene: 'OptionsScene',
                     x: itemX, y: startY + (spacing * 3), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'options idle', anim: 'idle', fps: frameRate, loop: true },
@@ -61,7 +61,7 @@ class MainMenuState extends Phaser.Scene {
                     ]
                 },
                 {
-                    id: 'credits', texture: 'credits', scene: 'CreditsState',
+                    id: 'credits', texture: 'credits', scene: 'CreditsScene',
                     x: itemX, y: startY + (spacing * 4), origin: { x: 0.5, y: 0.5 }, depth: 10, scrollFactor: { x: 1, y: 0.4 },
                     animations: [
                         { name: 'credits idle', anim: 'idle', fps: frameRate, loop: true },
@@ -204,4 +204,4 @@ class MainMenuState extends Phaser.Scene {
     }
 }
 
-game.scene.add("MainMenuState", MainMenuState);
+game.scene.add("MainMenuScene", MainMenuScene);

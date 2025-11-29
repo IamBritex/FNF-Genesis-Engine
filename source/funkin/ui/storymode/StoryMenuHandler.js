@@ -127,7 +127,7 @@ export class StoryMenuHandler {
         // 2. Obtener el color de la semana actual
         const currentWeekKey = this.weekKeys[this.scene.selectedWeekIndex];
         const currentWeek = this.weeks[currentWeekKey];
-        const bgData = currentWeek?.bg; // ej: "#FF0000", "0xFF0000", o "stage"
+        const bgData = currentWeek?.bg;
 
         let targetColorNumber;
 
@@ -291,10 +291,10 @@ export class StoryMenuHandler {
         };
 
         // --- 3. Log, Store in Registry, and Disable Input ---
-        console.log("Preparing to start PlayState with:", storyData);
+        console.log("Preparing to start PlayScene with:", storyData);
         // La línea del registry puede ser usada por tu TransitionScene,
         // pero la llamada a scene.start NECESITA los datos.
-        this.scene.registry.set('playStateData', storyData);
+        this.scene.registry.set('PlaySceneData', storyData);
         this.scene.canPressEnter = false; // Disable input
 
         // --- 4. Fade Out and Transition ---
@@ -305,10 +305,10 @@ export class StoryMenuHandler {
 
                 if (transitionScene?.startTransition) {
                      // [CORREGIDO] Pasa los datos de la canción a la escena de transición
-                     transitionScene.startTransition("PlayState", storyData);
+                     transitionScene.startTransition("PlayScene", storyData);
                 } else {
-                     // [CORREGIDO] Pasa los datos de la canción directamente a PlayState
-                     this.scene.scene.start("PlayState", storyData);
+                     // [CORREGIDO] Pasa los datos de la canción directamente a PlayScene
+                     this.scene.scene.start("PlayScene", storyData);
                 }
             }
         });
@@ -359,9 +359,9 @@ export class StoryMenuHandler {
         this.scene.sound.play('cancelSound');
 
         if (this.scene.scene.get("TransitionScene")?.startTransition) {
-             this.scene.scene.get("TransitionScene").startTransition("MainMenuState");
+             this.scene.scene.get("TransitionScene").startTransition("MainMenuScene");
         } else {
-             this.scene.scene.start("MainMenuState");
+             this.scene.scene.start("MainMenuScene");
         }
     }
 

@@ -5,7 +5,7 @@
 export class StageData {
   /**
    * Extrae los datos del escenario (stage) del chartData.
-   * @param {object} chartData - El objeto chartData completo de PlayState.
+   * @param {object} chartData - El objeto chartData completo de PlayScene.
    * @returns {object | null} Los datos del escenario, o 'stage' por defecto si no se encuentran.
    */
   static extract(chartData) {

@@ -190,7 +190,7 @@ export class FreeUI {
             this.scene.cameras.main.fadeOut(fadeDuration, 0, 0, 0, (camera, progress) => {
                 if (progress === 1) {
                     // --- CORRECCIÓN AQUÍ ---
-                    this.scene.scene.start('PlayState', dataToSend);
+                    this.scene.scene.start('PlayScene', dataToSend);
                 }
             });
         });

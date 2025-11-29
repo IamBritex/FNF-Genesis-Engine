@@ -9,7 +9,7 @@ import { HitWindow } from "../judgments/HitWindow.js";
 export class Score {
     
     /**
-     * @param {Phaser.Scene} scene La escena de PlayState
+     * @param {Phaser.Scene} scene La escena de PlayScene
      */
     constructor(scene) {
         this.scene = scene;

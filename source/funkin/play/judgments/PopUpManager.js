@@ -6,7 +6,7 @@
 export class PopUpManager {
 
     /**
-     * @param {Phaser.Scene} scene - La escena (PlayState).
+     * @param {Phaser.Scene} scene - La escena (PlayScene).
      * @param {import('../camera/Camera.js').CameraManager} cameraManager - El gestor de cámaras.
      */
     constructor(scene, cameraManager) {
@@ -82,7 +82,7 @@ export class PopUpManager {
     popUpScore(rating) {
 
         // --- [MODIFICADO] Lógica de Salud (Castigo/Recompensa) ---
-        // 'this.scene' es el PlayState, que tiene los métodos damage() y heal()
+        // 'this.scene' es el PlayScene, que tiene los métodos damage() y heal()
         if (this.scene && typeof this.scene.damage === 'function' && typeof this.scene.heal === 'function') {
             switch(rating) {
                 case 'sick':

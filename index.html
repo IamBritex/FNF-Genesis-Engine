@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,10 +20,22 @@
 </head>
 
 <body>
+
+    <div id="app-loader">
+        <div class="loader">
+            <img class="img-left" src="public/images/ui/load/loadLeft.webp" alt="Left">
+            <img class="img-up" src="public/images/ui/load/loadUp.webp" alt="Up">
+            <img class="img-down" src="public/images/ui/load/loadDown.webp" alt="Down">
+            <img class="img-right" src="public/images/ui/load/loadRight.webp" alt="Right">
+        </div>
+        <div id="loader-text">Loading...</div>
+    </div>
+     
     <div id="game-container"></div>
 
     <script src="source/funkin/sprites/Assets.js"></script>
 
     <script type="module" src="./source/resource/loader.js"></script>
 </body>
+
 </html>

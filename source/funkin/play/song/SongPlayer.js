@@ -94,7 +94,7 @@ export class SongPlayer {
 
   /**
    * Detiene y limpia los sonidos de la canción del caché.
-   * @param {Phaser.Scene} scene - La escena (PlayState).
+   * @param {Phaser.Scene} scene - La escena (PlayScene).
    * @param {object} chartData - El objeto de datos del chart.
    * @param {object} songAudio - El objeto {inst, voices} devuelto por playSong.
    */

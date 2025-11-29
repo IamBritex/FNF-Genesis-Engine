@@ -6,7 +6,7 @@ export class ChartDataHandler {
 
   /**
    * Carga el archivo JSON del chart de la canción.
-   * (Llamado por PlayState.preload)
+   * (Llamado por PlayScene.preload)
    */
   static preloadChart(scene, targetSongId, difficultyId) {
     if (!targetSongId || !difficultyId) {
@@ -32,7 +32,7 @@ export class ChartDataHandler {
 
   /**
    * Obtiene los datos del chart cargados, los procesa y los devuelve.
-   * (Llamado por PlayState.create)
+   * (Llamado por PlayScene.create)
    */
   static processChartData(scene, targetSongId, difficultyId) {
     if (!targetSongId || !difficultyId) {
@@ -81,7 +81,7 @@ export class ChartDataHandler {
 
   /**
    * Limpia los datos del chart del caché de Phaser.
-   * (Llamado por PlayState.shutdown)
+   * (Llamado por PlayScene.shutdown)
    */
   static shutdown(scene, targetSongId, difficultyId) {
     if (!targetSongId || !difficultyId) {

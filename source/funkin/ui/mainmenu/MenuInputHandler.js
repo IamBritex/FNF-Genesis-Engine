@@ -26,7 +26,7 @@ export class MenuInputHandler {
                  * Esto es VITAL para que el 'backdrop-filter' (blur) funcione.
                  */
                 this.scene.canInteract = false; 
-                this.scene.scene.launch('EditorsState');
+                this.scene.scene.launch('EditorsScene');
             }
         };
 

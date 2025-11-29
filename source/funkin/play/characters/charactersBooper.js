@@ -49,7 +49,7 @@ export class CharacterBooper {
   }
 
   /**
-   * Debe ser llamado desde PlayState.update()
+   * Debe ser llamado desde PlayScene.update()
    * @param {number} songPosition - El tiempo actual de la canción en ms.
    */
   update(songPosition) {

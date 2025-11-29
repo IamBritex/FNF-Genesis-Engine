@@ -4,7 +4,7 @@
  *
  * [MODIFICADO] Versión Híbrida:
  * - Modo Activo (para StageEditor): Usa start(), stop() y update(delta).
- * - Modo Pasivo (para PlayState): Usa updateFromSong(songPosition).
+ * - Modo Pasivo (para PlayScene): Usa updateFromSong(songPosition).
  */
 export class Conductor {
 
@@ -153,7 +153,7 @@ export class Conductor {
     }
     
     /**
-     * Actualiza el conductor (Modo Pasivo/PlayState).
+     * Actualiza el conductor (Modo Pasivo/PlayScene).
      * @param {number} songPosition El tiempo actual de la canción en ms.
      */
     updateFromSong(songPosition) {

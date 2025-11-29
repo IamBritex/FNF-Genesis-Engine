@@ -1,8 +1,8 @@
 import Alphabet from "../../../utils/Alphabet.js";
 
-class CreditsState extends Phaser.Scene {
+class CreditsScene extends Phaser.Scene {
     constructor() {
-        super('CreditsState');
+        super('CreditsScene');
         this.iconJumpTweens = new Map();
         this.currentColor = 0x000000;
         this.targetColor = 0x000000;
@@ -191,7 +191,7 @@ class CreditsState extends Phaser.Scene {
         
         // Esperar a que la animación llegue a la mitad antes de cambiar de escena
         this.time.delayedCall(50, () => {
-            this.scene.get("TransitionScene").startTransition("MainMenuState");
+            this.scene.get("TransitionScene").startTransition("MainMenuScene");
         });
     }
 
@@ -251,7 +251,7 @@ class CreditsState extends Phaser.Scene {
             } else if (pressedKey === controls.accept || pressedKey === 'ENTER') {
                 this.openSelectedUserLink();
             } else if (pressedKey === controls.back || pressedKey === 'ESCAPE' || pressedKey === 'BACKSPACE') {
-                this.scene.get("TransitionScene").startTransition("MainMenuState");
+                this.scene.get("TransitionScene").startTransition("MainMenuScene");
             }
         });
     }
@@ -390,4 +390,4 @@ class CreditsState extends Phaser.Scene {
     }
 }
 
-game.scene.add('CreditsState', CreditsState);
+game.scene.add('CreditsScene', CreditsScene);

@@ -1,10 +1,10 @@
 // ====== ARCHIVO: StoryModeState.js ======
 import { StoryMenuHandler } from './StoryMenuHandler.js';
-import { PlayState } from '../../play/PlayState.js';
+import { PlayScene } from '../../play/PlayScene.js';
 
-class StoryModeState extends Phaser.Scene {
+class StoryModeScene extends Phaser.Scene {
     constructor() {
-        super({ key: "StoryModeState" });
+        super({ key: "StoryModeScene" });
         this.weeks = {};
         this.weekKeys = [];
         this.selectedWeekIndex = 0;
@@ -27,7 +27,7 @@ class StoryModeState extends Phaser.Scene {
         this.load.audio('confirmSound', 'public/assets/audio/sounds/confirmMenu.ogg');
         this.load.audio('cancelSound', 'public/assets/audio/sounds/cancelMenu.ogg');
         
-        // Cargar la música del menú por si venimos de PlayState
+        // Cargar la música del menú por si venimos de PlayScene
         this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
 
         const difficulties = ['easy', 'normal', 'hard'];
@@ -87,7 +87,7 @@ class StoryModeState extends Phaser.Scene {
         
         const menuMusic = this.sound.get('freakyMenu');
         
-        // Si no se está reproduciendo (ej. volviendo de PlayState), la iniciamos
+        // Si no se está reproduciendo (ej. volviendo de PlayScene), la iniciamos
         if (menuMusic && !menuMusic.isPlaying) {
             menuMusic.play({ loop: true, volume: 0.7 });
         }
@@ -141,11 +141,11 @@ class StoryModeState extends Phaser.Scene {
                 this.initializeScene();
             } catch (error) {
                 console.error("Error loading initial assets:", error);
-                this.scene.start("MainMenuState");
+                this.scene.start("MainMenuScene");
             }
         } else {
             console.warn("No visible weeks found for Story Mode");
-            this.scene.start("MainMenuState");
+            this.scene.start("MainMenuScene");
         }
     }
 
@@ -341,15 +341,10 @@ class StoryModeState extends Phaser.Scene {
         this.weeks = {};
         this.characterCache = {};
          if (this.scoreAnimator) { this.scoreAnimator.stop(); this.scoreAnimator = null; }
-        this.tweens.killAll();
-        
-        // NOTA: No detenemos toda la música aquí (this.sound.stopAll()), 
-        // porque queremos que la música del menú continúe si vamos hacia atrás.
-        // Si vamos a PlayState, la música se detendrá allí o al transicionar.
-        
+        this.tweens.killAll();        
         this.load.reset();
     }
 }
 
-globalThis.PlayState = PlayState;
-game.scene.add("StoryModeState", StoryModeState);
+globalThis.PlayScene = PlayScene;
+game.scene.add("StoryModeScene", StoryModeScene);

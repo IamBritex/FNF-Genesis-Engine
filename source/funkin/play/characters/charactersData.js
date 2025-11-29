@@ -7,7 +7,7 @@ export class CharactersData {
   
   /**
    * Extrae los NOMBRES de los personajes y datos del chartData.
-   * @param {object} chartData - El objeto chartData completo de PlayState.
+   * @param {object} chartData - El objeto chartData completo de PlayScene.
    * @returns {object | null} Objeto con { player, enemy, gfVersion, bpm, speed }
    */
   static extractChartData(chartData) {

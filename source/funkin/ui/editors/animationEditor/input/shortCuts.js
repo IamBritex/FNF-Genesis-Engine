@@ -85,7 +85,7 @@ function executeAction(action) {
             if (scene.saveZipModule) scene.saveZipModule.save();
             break;
         case 'EXIT':
-            scene.scene.start('MainMenuState');
+            scene.scene.start('MainMenuScene');
             break;
             
         // --- Acciones de CharacterPreview ---

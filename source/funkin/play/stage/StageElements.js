@@ -8,7 +8,7 @@ export const IMAGE_ORIGIN = { x: 0.5, y: 0.5 };
 
 export class StageElements {
   /**
-   * @param {Phaser.Scene} scene - La escena de PlayState.
+   * @param {Phaser.Scene} scene - La escena de PlayScene.
    * @param {string} stageDataKey - El nombre del escenario (ej. "school").
    * @param {import('../camera/Camera.js').CameraManager} cameraManager - El gestor de cámaras.
    * @param {import('../Conductor.js').Conductor} conductor - El gestor de BPM.

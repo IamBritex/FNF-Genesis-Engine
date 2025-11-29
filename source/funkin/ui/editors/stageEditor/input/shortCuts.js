@@ -183,5 +183,5 @@ function executeAction(action) {
  */
 export function exitEditor(scene) {
     // Aquí puedes agregar un cuadro de confirmación si hay cambios sin guardar
-    scene.scene.start('MainMenuState');
+    scene.scene.start('MainMenuScene');
 }

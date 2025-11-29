@@ -1,6 +1,6 @@
 /**
  * Escena modal para el menú de editores.
- * Se lanza sobre 'MainMenuState' y utiliza elementos DOM para el fondo borroso y las opciones.
+ * Se lanza sobre 'MainMenuScene' y utiliza elementos DOM para el fondo borroso y las opciones.
  */
 class EditorsState extends Phaser.Scene {
     
@@ -9,7 +9,7 @@ class EditorsState extends Phaser.Scene {
      */
     constructor() {
         super({
-            key: 'EditorsState',
+            key: 'EditorsScene',
             plugins: {
                 dom: {
                     createContainer: true
@@ -89,7 +89,7 @@ class EditorsState extends Phaser.Scene {
         /**
          * Este es el CSS que aplica el blur.
          * 'backdrop-filter' SOLO funciona si la escena de detrás
-         * (MainMenuState) sigue visible (no pausada).
+         * (MainMenuScene) sigue visible (no pausada).
          */
         const overlayHTML = `
             <div id="editors-overlay" style="width: 1280px; height: 720px;">
@@ -229,7 +229,7 @@ class EditorsState extends Phaser.Scene {
             onComplete: () => {
                 this.cleanupDOMElements();
                 // Detener la escena de fondo (MainMenu) antes de cambiar
-                this.scene.stop('MainMenuState');
+                this.scene.stop('MainMenuScene');
 
                 const transition = this.scene.get('TransitionScene');
                 if (transition?.startTransition) {
@@ -263,7 +263,7 @@ class EditorsState extends Phaser.Scene {
                 this.cleanupDOMElements();
                 
                 // En lugar de reanudar, le devolvemos la interactividad
-                const mainMenu = this.scene.get('MainMenuState');
+                const mainMenu = this.scene.get('MainMenuScene');
                 if (mainMenu) {
                     mainMenu.canInteract = true;
                 }

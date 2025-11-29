@@ -1,6 +1,6 @@
 /**
  * Camera.js
- * Módulo para gestionar las 4 cámaras principales de PlayState.
+ * Módulo para gestionar las 4 cámaras principales de PlayScene.
  */
 export class CameraManager {
 

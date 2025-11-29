@@ -1,4 +1,4 @@
-import { PlayStateData } from "./PlayStateData.js"
+import { PlaySceneData } from "./PlaySceneData.js"
 import { SongPlayer } from "./song/SongPlayer.js"
 import { ChartDataHandler } from "./chartData.js"
 import { NotesHandler } from "./notes/NotesHandler.js"
@@ -15,9 +15,9 @@ import { Conductor } from "./Conductor.js"
 import { FunWaiting } from "./components/FunWaiting.js"
 import { Pause } from "./Pause.js" 
 
-export class PlayState extends Phaser.Scene {
+export class PlayScene extends Phaser.Scene {
   constructor() {
-    super({ key: "PlayState" })
+    super({ key: "PlayScene" })
     this.initData = null
     this.chartData = null
     this.assetsLoaded = false
@@ -53,13 +53,13 @@ export class PlayState extends Phaser.Scene {
     this.sound.stopAll()
 
     this.playSessionId = Date.now().toString() + Math.floor(Math.random() * 1000);
-    console.log(`PlayState initialized with Session ID: ${this.playSessionId}`);
+    console.log(`PlayScene initialized with Session ID: ${this.playSessionId}`);
 
-    const registryData = this.registry.get("playStateData")
+    const registryData = this.registry.get("PlaySceneData")
     const finalData = registryData || data
-    this.registry.set("playStateData", undefined)
+    this.registry.set("PlaySceneData", undefined)
 
-    this.initData = PlayStateData.init(this, finalData)
+    this.initData = PlaySceneData.init(this, finalData)
     this.deathCounter = 0; // Reiniciar al iniciar
   }
 
@@ -377,7 +377,7 @@ export class PlayState extends Phaser.Scene {
   }
 
   exitToMenu() {
-    const nextSceneKey = this.initData?.isStoryMode ? "StoryModeState" : "FreeplayState"
+    const nextSceneKey = this.initData?.isStoryMode ? "StoryModeScene" : "FreeplayScene"
     this.scene.start(nextSceneKey)
   }
 
@@ -467,12 +467,12 @@ export class PlayState extends Phaser.Scene {
 
     SongPlayer.shutdown(this, this.chartData, this.songAudio)
     ChartDataHandler.shutdown(this, this.initData?.targetSongId, this.initData?.DifficultyID || "normal")
-    PlayStateData.shutdown(this)
+    PlaySceneData.shutdown(this)
     
     this.playSessionId = null;
 
-    console.log("PlayState shutdown complete - all sprites and textures cleaned")
+    console.log("PlayScene shutdown complete - all sprites and textures cleaned")
   }
 }
 
-game.scene.add("PlayState", PlayState);
+game.scene.add("PlayScene", PlayScene );

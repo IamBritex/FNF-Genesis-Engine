@@ -108,6 +108,6 @@ export class NavMethods {
     }
 
     exitEditor() {
-        this.scene.scene.start('MainMenuState');
+        this.scene.scene.start('MainMenuScene');
     }
 }

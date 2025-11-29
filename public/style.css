@@ -1,7 +1,231 @@
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     border: none;
     overflow: hidden;
     background-color: #000;
+}
+
+#app-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease-out;
+    perspective: 800px;
+}
+
+.loader {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    transform-style: preserve-3d;
+    margin-bottom: 30px;
+    /* Usamos 'linear' porque controlamos la velocidad con los porcentajes (%) de abajo.
+               Esto garantiza que no haya curvas de frenado automáticas que lo detengan. */
+    animation: spinContinuous 4s linear infinite;
+}
+
+.loader img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0px 10px 10px rgba(0, 0, 0, 0.5));
+    opacity: 0;
+    backface-visibility: hidden;
+    /* Transición rápida para que no se note el corte de opacidad */
+    transition: opacity 0.05s;
+    will-change: transform, opacity;
+}
+
+/* --- ANIMACIÓN DE BARRIDO CONTINUO (NO STOP) --- */
+/* La magia está en los tiempos:
+           Del 0% al 4%: Se mueve 95 grados (MUY RÁPIDO - ENTRADA)
+           Del 4% al 21%: Se mueve solo 6 grados (MUY LENTO - VISIBLE) -> ¡Aquí está la suavidad!
+           Del 21% al 25%: Se mueve 95 grados (MUY RÁPIDO - SALIDA)
+        */
+@keyframes spinContinuous {
+
+    /* 1. LEFT (Gira en Y) */
+    0% {
+        transform: rotateY(-90deg);
+    }
+
+    4% {
+        transform: rotateY(4deg);
+    }
+
+    /* Entra y se pasa un pelín */
+    21% {
+        transform: rotateY(-4deg);
+    }
+
+    /* Cruza lentamente el centro */
+    25% {
+        transform: rotateY(-90deg);
+    }
+
+    /* Sale rápido */
+
+    /* 2. UP (Gira en X) */
+    25.01% {
+        transform: rotateX(90deg);
+    }
+
+    29% {
+        transform: rotateX(-4deg);
+    }
+
+    46% {
+        transform: rotateX(4deg);
+    }
+
+    50% {
+        transform: rotateX(90deg);
+    }
+
+    /* 3. DOWN (Gira en X inv) */
+    50.01% {
+        transform: rotateX(-90deg);
+    }
+
+    54% {
+        transform: rotateX(4deg);
+    }
+
+    71% {
+        transform: rotateX(-4deg);
+    }
+
+    75% {
+        transform: rotateX(-90deg);
+    }
+
+    /* 4. RIGHT (Gira en Y inv) */
+    75.01% {
+        transform: rotateY(90deg);
+    }
+
+    79% {
+        transform: rotateY(-4deg);
+    }
+
+    96% {
+        transform: rotateY(4deg);
+    }
+
+    100% {
+        transform: rotateY(90deg);
+    }
+}
+
+/* --- VISIBILIDAD DE IMÁGENES --- */
+/* Ajustadas para coincidir con la fase "lenta" de la animación */
+
+.img-left {
+    animation: vis-left 4s linear infinite;
+}
+
+@keyframes vis-left {
+    0% {
+        opacity: 0;
+    }
+
+    2% {
+        opacity: 1;
+    }
+
+    23% {
+        opacity: 1;
+    }
+
+    25% {
+        opacity: 0;
+    }
+}
+
+.img-up {
+    animation: vis-up 4s linear infinite;
+}
+
+@keyframes vis-up {
+    25% {
+        opacity: 0;
+    }
+
+    27% {
+        opacity: 1;
+    }
+
+    48% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.img-down {
+    animation: vis-down 4s linear infinite;
+}
+
+@keyframes vis-down {
+    50% {
+        opacity: 0;
+    }
+
+    52% {
+        opacity: 1;
+    }
+
+    73% {
+        opacity: 1;
+    }
+
+    75% {
+        opacity: 0;
+    }
+}
+
+.img-right {
+    animation: vis-right 4s linear infinite;
+}
+
+@keyframes vis-right {
+    75% {
+        opacity: 0;
+    }
+
+    77% {
+        opacity: 1;
+    }
+
+    98% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* TEXTO */
+#loader-text {
+    color: #ffffff;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
 }

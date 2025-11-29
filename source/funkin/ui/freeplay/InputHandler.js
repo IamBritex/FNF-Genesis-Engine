@@ -58,6 +58,6 @@ export class InputHandler {
         }
 
         // --- CORRECCIÓN AQUÍ ---
-        this.scene.scene.start('MainMenuState');
+        this.scene.scene.start('MainMenuScene');
     }
 }

@@ -7,7 +7,7 @@ import Alphabet from "../../utils/Alphabet.js";
  */
 export class Pause {
     /**
-     * @param {Phaser.Scene} scene - La escena PlayState.
+     * @param {Phaser.Scene} scene - La escena PlayScene.
      * @param {import('./camera/Camera.js').CameraManager} cameraManager - Gestor de cámaras.
      */
     constructor(scene, cameraManager) {

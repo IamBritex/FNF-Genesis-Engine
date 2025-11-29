@@ -7,7 +7,7 @@
 export class FunWaiting {
 
     /**
-     * @param {Phaser.Scene} scene - La escena (PlayState).
+     * @param {Phaser.Scene} scene - La escena (PlayScene).
      * @param {import('../camera/Camera.js').CameraManager} cameraManager - El gestor de cámaras.
      */
     constructor(scene, cameraManager) {
@@ -24,7 +24,7 @@ export class FunWaiting {
 
     /**
      * Crea la superposición negra inmediatamente.
-     * Debe llamarse al inicio de PlayState.create().
+     * Debe llamarse al inicio de PlayScene.create().
      */
     createOverlay() {
         if (!this.cameraManager) {

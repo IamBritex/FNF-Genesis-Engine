@@ -13,16 +13,31 @@ class IntroMenu extends Phaser.Scene {
     
     this.startY = 300;
     this.lineSpacing = 55;
+
+    // Variables para la sincronización (Conductor)
+    this.introEvents = [];
+    this.currentEventIndex = 0;
   }
 
   preload() {
+    // --- CARGA DE ASSETS PROPIOS (IntroMenu) ---
     this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
     this.load.image("newgrounds", "public/assets/images/states/IntroMenu/newgrounds_logo.png");
-    
     this.load.text("introRandomText", "public/data/ui/randomText.txt");
     this.load.json("introData", "public/data/ui/intro.json");
-
     this.load.atlas("bold", "public/assets/images/UI/bold.png", "public/assets/images/UI/bold.json");
+
+    // --- FORWARD LOADING: Cargar assets de la SIGUIENTE escena (introDance) ---
+    // Esto asegura que la transición sea instantánea
+    this.load.atlasXML("gfDance", "public/images/menu/intro/gfDanceTitle.png", "public/images/menu/intro/gfDanceTitle.xml");
+    this.load.atlasXML("logoBumpin", "public/images/menu/intro/logoBumpin.png", "public/images/menu/intro/logoBumpin.xml");
+    this.load.atlasXML("titleEnter", "public/images/menu/intro/titleEnter.png", "public/images/menu/intro/titleEnter.xml");
+    
+    this.load.audio("confirm", "public/sounds/confirmMenu.ogg");
+    this.load.audio("girlfriendsRingtone", "public/music/girlfriendsRingtone.ogg");
+    
+    // Shader para el Easter Egg
+    this.load.text("rainbowShader", "public/shaders/RainbowShader.frag");
   }
 
   create() {
@@ -42,10 +57,12 @@ class IntroMenu extends Phaser.Scene {
       return;
     }
 
+    // 1. Preparar datos de sincronización
     const bpm = sequence.bpm;
     const steps = sequence.steps;
-    const beatTime = (60 / bpm) * 1000;
+    const beatTime = (60 / bpm) * 1000; // Duración de un beat en ms
 
+    // 2. Preparar textos aleatorios
     const textFile = this.cache.text.get("introRandomText");
     this.randomTextPairs = textFile
       .split("\n")
@@ -55,32 +72,61 @@ class IntroMenu extends Phaser.Scene {
         return parts.length >= 2 ? parts : [parts[0], ""];
       });
 
-    this.music = this.sound.add("freakyMenu", { loop: true });
-    this.music.play();
-
+    // 3. Inicializar variables de escena
     this.texts = [];
     this.imageObj = null;
     this.currentYOffset = 0;
     this.sceneEnded = false;
     this.currentRandomPair = null;
 
-    steps.forEach(step => {
-      const delay = step.beat * beatTime; 
-      
-      this.time.delayedCall(delay, () => {
-        if (this.sceneEnded) return;
-        
-        this.processJsonStep(step);
-      }, this);
-    });
+    // 4. CONVERTIR PASOS A EVENTOS DE TIEMPO (CONDUCTOR)
+    // En lugar de programarlos, creamos una lista con el tiempo exacto en que deben ocurrir.
+    this.introEvents = steps.map(step => ({
+        ...step,
+        targetTime: step.beat * beatTime // Tiempo exacto en milisegundos
+    }));
+
+    // Asegurarnos que estén ordenados cronológicamente
+    this.introEvents.sort((a, b) => a.targetTime - b.targetTime);
+    this.currentEventIndex = 0;
+
+    // 5. Iniciar música
+    this.music = this.sound.add("freakyMenu", { loop: true });
+    this.music.play();
 
     this.input.keyboard.on("keydown-ENTER", this.skipScene, this);
   }
 
   /**
-   * Procesa un paso individual del JSON de la intro.
-   * @param {object} step - El objeto de paso del JSON.
+   * EL CORAZÓN DE LA SINCRONIZACIÓN:
+   * Se ejecuta en cada frame del juego.
    */
+  update(time, delta) {
+    // Si la escena terminó o la música no suena, no hacemos nada
+    if (this.sceneEnded || !this.music || !this.music.isPlaying) return;
+
+    // Obtenemos la posición actual de la canción en milisegundos
+    // this.music.seek devuelve segundos, multiplicamos por 1000.
+    const currentSongTime = this.music.seek * 1000;
+
+    // Revisamos si ya alcanzamos el tiempo del siguiente evento
+    // Usamos un while por si el framerate bajó y debemos procesar varios eventos de golpe
+    while (this.currentEventIndex < this.introEvents.length) {
+        const nextEvent = this.introEvents[this.currentEventIndex];
+
+        // Si el tiempo de la canción es mayor o igual al tiempo objetivo del evento...
+        if (currentSongTime >= nextEvent.targetTime) {
+            // ...ejecutamos el evento
+            this.processJsonStep(nextEvent);
+            // ...y avanzamos al siguiente índice
+            this.currentEventIndex++;
+        } else {
+            // Si no hemos llegado al tiempo, salimos del bucle
+            break;
+        }
+    }
+  }
+
   processJsonStep(step) {
     if (step.clear) {
       this.texts.forEach((t) => t.destroy());
@@ -112,7 +158,6 @@ class IntroMenu extends Phaser.Scene {
       this.currentYOffset += 100;
     }
 
-    // 4. Ejecutar acciones
     if (step.action) {
       switch (step.action) {
         case "random-text-1":
@@ -132,10 +177,6 @@ class IntroMenu extends Phaser.Scene {
     }
   }
 
-  /**
-   * Crea y muestra una línea de texto con la fuente Alphabet.
-   * @param {string} textString - El texto a mostrar.
-   */
   displayTextLine(textString) {
     if (!textString) return;
 
@@ -149,22 +190,16 @@ class IntroMenu extends Phaser.Scene {
     this.currentYOffset += this.lineSpacing;
   }
 
-  /**
-   * Salta la intro y transiciona a la siguiente escena.
-   */
   skipScene() {
     if (this.sceneEnded) return;
     this.sceneEnded = true;
 
-    // ¡Importante! Cancela todos los 'delayedCall' pendientes
-    this.time.removeAllEvents(); 
+    // Al usar el update loop, no necesitamos cancelar timers, 
+    // solo poner la bandera sceneEnded a true detiene el proceso.
     
     this.scene.get("FlashEffect").startTransition("introDance");
   }
 
-  /**
-   * Obtiene un par de textos aleatorios del array.
-   */
   getRandomTextPair() {
     if (this.randomTextPairs.length === 0) return ["PART 1", "PART 2"];
     const randomIndex = Math.floor(Math.random() * this.randomTextPairs.length);
@@ -186,8 +221,8 @@ class IntroMenu extends Phaser.Scene {
       this.imageObj = null;
     }
     
-    this.input.keyboard.off("keydown-ENTER", this.skipScene, this);    
-    this.time.removeAllEvents();
+    this.input.keyboard.off("keydown-ENTER", this.skipScene, this);
+    this.introEvents = []; // Limpiar eventos
   }
 }
 

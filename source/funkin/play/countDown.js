@@ -17,7 +17,7 @@ const CountdownStep = {
 export class Countdown {
 
     /**
-     * @param {Phaser.Scene} scene - La escena (PlayState)
+     * @param {Phaser.Scene} scene - La escena (PlayScene)
      * @param {import("./camera/Camera.js").CameraManager} cameraManager 
      */
     constructor(scene, cameraManager) {

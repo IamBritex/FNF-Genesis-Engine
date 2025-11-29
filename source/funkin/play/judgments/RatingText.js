@@ -16,7 +16,7 @@ export class RatingText {
                 y: scene.scale.height - 30 
             },
             style: {
-                // --- [MODIFICADO] Usar la fuente cargada en PlayState ---
+                // --- [MODIFICADO] Usar la fuente cargada en PlayScene ---
                 fontFamily: 'VCR OSD Mono', 
                 fontSize: '20px',
                 color: '#FFFFFF',

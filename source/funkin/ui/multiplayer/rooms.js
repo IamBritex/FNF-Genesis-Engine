@@ -32,7 +32,7 @@ class RoomsScene extends Phaser.Scene {
         // --- MODIFICADO ---
         // Crea la instancia de la UI y le pasa la función de callback
         // this.uiPanel = new UI(this); // <- Tu versión
-        this.uiPanel = new UI(this, () => this.startPlayState()); // <- Versión corregida
+        this.uiPanel = new UI(this, () => this.startPlayScene()); // <- Versión corregida
         // --- FIN DE MODIFICADO ---
 
         // Prepara el sonido de "cancelar"
@@ -67,7 +67,7 @@ class RoomsScene extends Phaser.Scene {
 
         // Cuando el fade-out termine, cambia a la escena del menú principal
         this.cameras.main.once('camerafadeoutcomplete', () => {
-             this.scene.start('MainMenuState');
+             this.scene.start('MainMenuScene');
         });
     }
 
@@ -75,7 +75,7 @@ class RoomsScene extends Phaser.Scene {
      * --- FUNCIÓN QUE FALTABA ---
      * Se llama al hacer clic en "Create Room" desde la UI.
      */
-    startPlayState() {
+    startPlayScene() {
         // Evita doble clic si la transición ya está en curso
         if (this.cameras.main.fadeEffect.isRunning) {
             return;
@@ -87,18 +87,18 @@ class RoomsScene extends Phaser.Scene {
         // Inicia un fade-out
         this.cameras.main.fadeOut(500, 0, 0, 0);
 
-        // Cuando termine el fade-out, cambia a PlayState con datos por defecto
+        // Cuando termine el fade-out, cambia a PlayScene con datos por defecto
         this.cameras.main.once('camerafadeoutcomplete', () => {
             
-            // Datos por defecto para PlayState
+            // Datos por defecto para PlayScene
             const defaultPlayData = {
                 targetSongId: 'Bopeebo',
                 DifficultyID: 'normal',
                 isStoryMode: false 
             };
             
-             // ¡Aquí es donde se inicia el PlayState!
-             this.scene.start('PlayState', defaultPlayData);
+             // ¡Aquí es donde se inicia el PlayScene!
+             this.scene.start('PlayScene', defaultPlayData);
         });
     }
 

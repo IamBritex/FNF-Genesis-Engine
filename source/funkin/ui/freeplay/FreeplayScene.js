@@ -3,9 +3,9 @@ import { FreeUI } from './FreeUI.js';
 import { InputHandler } from './InputHandler.js';
 import { HealthIcon } from '../../play/components/healthIcon.js';
 
-class FreeplayState extends Phaser.Scene {
+class FreeplayScene extends Phaser.Scene {
   constructor() {
-    super({ key: "FreeplayState" });
+    super({ key: "FreeplayScene" });
     this.songs = [];
     this.bg = null;
     
@@ -20,12 +20,7 @@ class FreeplayState extends Phaser.Scene {
     this.load.audio('scrollSound', 'public/sounds/scrollMenu.ogg');
     this.load.audio('confirmSound', 'public/sounds/confirmMenu.ogg');
     this.load.audio('cancelSound', 'public/sounds/cancelMenu.ogg');
-    
-    // Asegurar que la música del menú esté disponible
     this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
-
-    // --- PRECARGA OBLIGATORIA DEL FALLBACK 'FACE' ---
-    // Cargamos explícitamente el icono 'face' para que esté disponible si otro falla
     HealthIcon.preload(this, 'face', 'freeplay_session');
   }
 
@@ -56,35 +51,29 @@ class FreeplayState extends Phaser.Scene {
     );
 
     try {
-      // 1. Cargar datos de canciones
       this.songs = await loadSongsFromWeeklist(this.cache);
 
       if (!this.songs || this.songs.length === 0) {
         throw new Error("No songs found. Check weekList.txt and week JSON files.");
       }
 
-      // 2. Precargar Iconos de Enemigos
       const iconsToLoad = new Set();
       this.songs.forEach(song => {
-          // Si la canción tiene icono, lo agendamos para cargar.
           if (song.icon) iconsToLoad.add(song.icon);
       });
 
       iconsToLoad.forEach(iconName => {
-          // Usamos 'freeplay_session' para coincidir con IconSongEnemy
           HealthIcon.preload(this, iconName, 'freeplay_session');
       });
 
-      // Esperar a que los iconos terminen de cargar antes de mostrar la UI
       this.load.once('complete', () => {
           this.initModules();
       });
       
-      // Iniciar carga de los iconos
       this.load.start();
 
     } catch (error) {
-      console.error("Error creating FreeplayState:", error);
+      console.error("Error creating FreePlayScene:", error);
       this.add.text(
         this.cameras.main.width / 2,
         this.cameras.main.height / 2,
@@ -116,4 +105,4 @@ class FreeplayState extends Phaser.Scene {
   }
 }
 
-game.scene.add("FreeplayState", FreeplayState);
+game.scene.add("FreeplayScene", FreeplayScene);

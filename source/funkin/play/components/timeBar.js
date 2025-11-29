@@ -85,7 +85,7 @@ export class TimeBar {
             (this.barHeight * this.scaleFactor) / 2,
             '0:00',
             {
-                // --- [MODIFICADO] Usar la fuente cargada en PlayState ---
+                // --- [MODIFICADO] Usar la fuente cargada en PlayScene ---
                 fontFamily: 'VCR OSD Mono',
                 fontSize: '36px',
                 color: '#FFFFFF',

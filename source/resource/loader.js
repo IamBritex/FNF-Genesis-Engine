@@ -1,20 +1,63 @@
-import "../funkin/API/genesis.js";
-import "../core/phaser/game.js";
+/**
+ * loader.js
+ * Carga secuencial de módulos para actualizar la UI de carga.
+ */
 
-// 2. CARGAR ESCENAS (En orden, ahora window.game ya existe)
-// Nota: Phaser cargará estos scripts y ellos se auto-registrarán con game.scene.add
-import "../funkin/effects/TransitionScene.js";
-import "../funkin/play/PlayState.js";
-import "../funkin/ui/storymode/StoryModeState.js";
-import "../funkin/ui/freeplay/FreeplayState.js";
-import "../funkin/effects/flash.js";
-import "../funkin/ui/intro/introText.js";
-import "../funkin/ui/intro/introDance.js";
-import "../funkin/ui/mainmenu/MainMenuState.js";
-import "../funkin/ui/editors/menu.js";
-import "../funkin/ui/editors/stageEditor/StageEditor.js";
-import "../funkin/ui/editors/animationEditor/animationEditor.js";
-import "../funkin/ui/credits/CreditsState.js";
-import "../funkin/ui/multiplayer/rooms.js";
+// Lista de módulos a cargar con su nombre visible
+const modulesToLoad = [
+    { name: "Genesis API", path: "../funkin/API/genesis.js" },
+    { name: "Phaser Core", path: "../core/phaser/game.js" },
+    { name: "Transitions", path: "../funkin/effects/TransitionScene.js" },
+    { name: "Play Scene", path: "../funkin/play/PlayScene.js" },
+    { name: "Story Mode", path: "../funkin/ui/storymode/StoryModeScene.js" },
+    { name: "Freeplay", path: "../funkin/ui/freeplay/FreeplayScene.js" },
+    { name: "Effects", path: "../funkin/effects/flash.js" },
+    { name: "Intro Text", path: "../funkin/ui/intro/introText.js" },
+    { name: "Intro Dance", path: "../funkin/ui/intro/introDance.js" },
+    { name: "Main Menu", path: "../funkin/ui/mainmenu/MainMenuScene.js" },
+    { name: "Editors", path: "../funkin/ui/editors/menu.js" },
+    { name: "Stage Editor", path: "../funkin/ui/editors/stageEditor/StageEditor.js" },
+    { name: "Anime uwu", path: "../funkin/ui/editors/animationEditor/animationEditor.js" },
+    { name: "Credits", path: "../funkin/ui/credits/CreditsScene.js" },
+    { name: "Multiplayer", path: "../funkin/ui/multiplayer/rooms.js" }
+];
 
-console.log("Sistema de módulos cargado en orden correcto.");
+async function loadGameModules() {
+    const textElement = document.getElementById('loader-text');
+    
+    try {
+        // Recorremos la lista y cargamos uno por uno
+        for (const mod of modulesToLoad) {
+            if (textElement) {
+                textElement.innerText = `Loading ${mod.name}...`;
+            }
+
+            await import(mod.path);
+            
+        }
+
+        console.log("Todos los módulos cargados.");
+        
+        // 3. Finalizar carga
+        const loader = document.getElementById('app-loader');
+        if (loader) {
+            if (textElement) textElement.innerText = "Ready!";
+            
+            // Transición de salida
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.remove();
+            }, 500);
+        }
+
+    } catch (error) {
+        console.error("Error cargando módulos:", error);
+        if (textElement) {
+            textElement.innerText = "Error Loading Game Assets";
+            textElement.style.color = "red";
+        }
+    }
+}
+
+// Iniciar el proceso
+loadGameModules();
