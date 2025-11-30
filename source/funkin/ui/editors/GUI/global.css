@@ -28,7 +28,7 @@
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
-    z-index: 9999; /* Nivel inferior al contenedor de la ventana */
+    z-index: 999; /* Nivel inferior al contenedor de la ventana */
     pointer-events: all;
 }
 
