@@ -14,6 +14,7 @@ import { Score } from "./components/Score.js"
 import { Conductor } from "./Conductor.js"
 import { FunWaiting } from "./components/FunWaiting.js"
 import { Pause } from "./Pause.js" 
+import { NoteSkin } from "./notes/NoteSkin.js" // Importar NoteSkin
 
 export class PlayScene extends Phaser.Scene {
   constructor() {
@@ -35,7 +36,7 @@ export class PlayScene extends Phaser.Scene {
     this.ratingText = null
     this.scoreManager = null
     this.funWaiting = null
-    this.pauseHandler = null // Manejador de Pausa
+    this.pauseHandler = null 
     this.isWaitingOnLoad = true
 
     this.isInCountdown = false
@@ -43,10 +44,11 @@ export class PlayScene extends Phaser.Scene {
     this.songStartTime = 0
     
     this.playSessionId = null; 
-    this.deathCounter = 0; // [NUEVO] Contador de muertes
+    this.deathCounter = 0; 
     
-    // Referencia para el evento de foco
     this.onWindowBlur = null;
+    
+    this.tempNoteSkin = null; // Helper temporal para carga
   }
 
   init(data) {
@@ -60,7 +62,7 @@ export class PlayScene extends Phaser.Scene {
     this.registry.set("PlaySceneData", undefined)
 
     this.initData = PlaySceneData.init(this, finalData)
-    this.deathCounter = 0; // Reiniciar al iniciar
+    this.deathCounter = 0; 
   }
 
   preload() {
@@ -85,7 +87,7 @@ export class PlayScene extends Phaser.Scene {
     Countdown.preload(this)
     TimeBar.preload(this)
     HealthBar.preload(this, this.playSessionId)
-    Pause.preload(this) // Precargar música de pausa
+    Pause.preload(this) 
   }
 
   create() {
@@ -110,7 +112,6 @@ export class PlayScene extends Phaser.Scene {
     this.popUpManager = new PopUpManager(this, this.cameraManager)
     this.countdown = new Countdown(this, this.cameraManager)
     
-    // Inicializar sistema de Pausa
     this.pauseHandler = new Pause(this, this.cameraManager);
 
     this.timeBar = new TimeBar(this)
@@ -134,6 +135,12 @@ export class PlayScene extends Phaser.Scene {
 
     this.conductor = new Conductor(this.chartData.bpm)
 
+    // --- [NUEVO: PASO 1 CARGA DE SKIN] ---
+    // Instanciar NoteSkin y precargar JSON
+    this.tempNoteSkin = new NoteSkin(this, this.chartData);
+    this.tempNoteSkin.preloadJSON();
+    // -------------------------------------
+
     this.healthBar = new HealthBar(this, this.chartData, this.conductor, this.playSessionId)
     
     this.stageHandler = new Stage(this, this.chartData, this.cameraManager, this.conductor)
@@ -145,41 +152,35 @@ export class PlayScene extends Phaser.Scene {
     this.charactersHandler.loadCharacterJSONs()
     this.healthBar.loadCharacterData()
 
-    this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager, this.conductor, this.playSessionId)
-
-    this.cameraManager.assignToUI(this.notesHandler.mainUICADContainer)
-    this.notesHandler.mainUICADContainer.setDepth(2)
-
-    if (this.notesHandler.notesContainer) {
-      this.cameraManager.assignToUI(this.notesHandler.notesContainer)
-      this.notesHandler.notesContainer.setDepth(2)
-    }
+    // [IMPORTANTE] NO creamos NotesHandler aquí todavía. Esperamos a que cargue el skin.
 
     SongPlayer.loadSongAudio(this, this.initData.targetSongId, this.chartData)
 
     this.load.once("complete", this.onAllDataLoaded, this)
     this.load.start()
 
-    // --- Lógica de Auto-Pausa BLINDADA ---
     this.onWindowBlur = () => {
-        // 1. Verificar si la escena sigue activa y montada
         if (!this.scene || !this.sys || !this.sys.isActive()) {
             return;
         }
-
-        // 2. Verificar estado de carga y pausa
         if (!this.isWaitingOnLoad && this.pauseHandler && !this.pauseHandler.isPaused) {
             console.log("Ventana perdió foco: Auto-pausando juego.");
             this.pauseHandler.pauseGame();
         }
     };
     
-    // Escuchar el evento blur del juego (cuando se minimiza o cambia de pestaña)
     this.game.events.on('blur', this.onWindowBlur);
   }
 
   async onAllDataLoaded() {
     if (this.assetsLoaded) return
+
+    // --- [NUEVO: PASO 2 CARGA DE SKIN] ---
+    // El JSON del skin ya cargó, ahora cargamos las texturas (Atlas)
+    if (this.tempNoteSkin) {
+        this.tempNoteSkin.loadAssets();
+    }
+    // -------------------------------------
 
     if (this.stageHandler) {
       this.stageHandler.loadStageImages()
@@ -218,6 +219,19 @@ export class PlayScene extends Phaser.Scene {
       this.charactersHandler.createAnimationsAndSprites()
     }
 
+    // --- [NUEVO: CREACIÓN DIFERIDA DE NOTESHANDLER] ---
+    // Ahora que los assets del skin están cargados, es seguro crear NotesHandler
+    this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager, this.conductor, this.playSessionId)
+
+    this.cameraManager.assignToUI(this.notesHandler.mainUICADContainer)
+    this.notesHandler.mainUICADContainer.setDepth(2)
+
+    if (this.notesHandler.notesContainer) {
+      this.cameraManager.assignToUI(this.notesHandler.notesContainer)
+      this.notesHandler.notesContainer.setDepth(2)
+    }
+    // --------------------------------------------------
+
     if (this.notesHandler && this.charactersHandler) {
       this.notesHandler.setCharactersHandler(this.charactersHandler)
     }
@@ -254,7 +268,6 @@ export class PlayScene extends Phaser.Scene {
 
       this.songAudio = SongPlayer.playSong(this, this.chartData)
       
-      // [NUEVO] Pasar la referencia del audio al PauseHandler
       if (this.pauseHandler) {
           this.pauseHandler.setSongAudio(this.songAudio);
       }
@@ -289,11 +302,8 @@ export class PlayScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    // [MODIFICADO] Lógica de Pausa
-    // Revisar input de pausa primero
     if (this.pauseHandler) {
         this.pauseHandler.update();
-        // Si está pausado, detenemos la actualización del juego
         if (this.pauseHandler.isPaused) {
             return; 
         }
@@ -391,8 +401,6 @@ export class PlayScene extends Phaser.Scene {
       gsap.globalTimeline.clear()
     }
 
-    // [FIX CRÍTICO] Limpiar el listener global de 'blur'
-    // Esto evita que la escena intente pausarse después de ser destruida
     if (this.onWindowBlur) {
         this.game.events.off('blur', this.onWindowBlur);
         this.onWindowBlur = null;
@@ -406,7 +414,6 @@ export class PlayScene extends Phaser.Scene {
     this.load.off("complete", this.onAllDataLoaded, this)
     this.load.off("complete", this.onAllAssetsLoaded, this)
 
-    // [NUEVO] Destruir PauseHandler
     if (this.pauseHandler) {
         this.pauseHandler.destroy();
         this.pauseHandler = null;
@@ -470,6 +477,7 @@ export class PlayScene extends Phaser.Scene {
     PlaySceneData.shutdown(this)
     
     this.playSessionId = null;
+    this.tempNoteSkin = null;
 
     console.log("PlayScene shutdown complete - all sprites and textures cleaned")
   }

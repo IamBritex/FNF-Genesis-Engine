@@ -1,0 +1,26 @@
+{
+    "asset": "Funkin",
+    "scale": 0.7,
+    "strumline": {
+        "image": "noteStrumline",
+        "offsets": {
+            "static": { "x": 0, "y": -48 },
+            "press": { "x": 30, "y": -18 },
+            "confirm": { "x": -1, "y": -48 }
+        }
+    },
+    "notes": {
+        "image": "notes",
+        "offsets": {
+            "x": 30,
+            "y": 30
+        }
+    },
+    "sustain": {
+        "image": "NOTE_hold_assets",
+        "offsets": {
+            "pieceHeight": 44,
+            "pieceOverlap": -40
+        }
+    }
+}

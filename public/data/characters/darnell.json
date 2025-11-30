@@ -1,0 +1,101 @@
+{
+    "image": "characters/darnell",
+    "scale": 1,
+    "sing_duration": 4,
+    "healthicon": "darnell",
+    "animations": [
+        {
+            "anim": "idle",
+            "name": "Idle",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                0,
+                0
+            ]
+        },
+        {
+            "anim": "singUP",
+            "name": "Pose Up",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                -14,
+                8
+            ]
+        },
+        {
+            "anim": "singDOWN",
+            "name": "Pose Down",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                -17,
+                -10
+            ]
+        },
+        {
+            "anim": "singLEFT",
+            "name": "Pose Left",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                2,
+                1
+            ]
+        },
+        {
+            "anim": "singRIGHT",
+            "name": "Pose Right",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                0,
+                0
+            ]
+        },
+        {
+            "anim": "light",
+            "name": "Light Can",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                -5,
+                -5
+            ]
+        },
+        {
+            "anim": "upReady",
+            "name": "Kick Up",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                -4,
+                0
+            ]
+        },
+        {
+            "anim": "FIRE",
+            "name": "Knee Forward",
+            "fps": 24,
+            "loop": false,
+            "indices": [],
+            "offsets": [
+                -40,
+                -5
+            ]
+        }
+    ],
+    "healthbar_colors": [
+        116,
+        95,
+        178
+    ]
+}

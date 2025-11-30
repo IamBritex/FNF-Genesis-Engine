@@ -17,6 +17,7 @@ const modulesToLoad = [
     { name: "Main Menu", path: "../funkin/ui/mainmenu/MainMenuScene.js" },
     { name: "Editors", path: "../funkin/ui/editors/menu.js" },
     { name: "Stage Editor", path: "../funkin/ui/editors/stageEditor/StageEditor.js" },
+    { name: "Chart Editor", path: "../funkin/ui/editors/chartEditor/ChartEditor.js" },
     { name: "Anime uwu", path: "../funkin/ui/editors/animationEditor/animationEditor.js" },
     { name: "Credits", path: "../funkin/ui/credits/CreditsScene.js" },
     { name: "Multiplayer", path: "../funkin/ui/multiplayer/rooms.js" }

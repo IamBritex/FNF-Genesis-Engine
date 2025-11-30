@@ -1,39 +1,16 @@
 import { NoteDirection } from './NoteDirection.js';
 
-/**
- * NoteSpawner.js
- * Módulo responsable de precargar los assets de notas y crear los sprites individuales.
- */
 export class NoteSpawner {
 
-    static ATLAS_KEY = 'notes'; 
-
     /**
-     * Precarga los assets necesarios para las notas.
-     * [MODIFICADO] Usa sessionId para clave única.
+     * @param {import('../NoteSkin.js').NoteSkin} noteSkin 
      */
-    static preload(scene, sessionId) {
-        const skinName = 'Funkin'; 
-        const basePath = `public/images/noteSkins/${skinName}/`;
-        const texturePath = `${basePath}notes.png`;
-        const atlasPath = `${basePath}notes.xml`;
+    static spawnNoteSprite(scene, noteData, noteSkin, strumlineContainers, noteOffsetX = 0) {
+        if (!noteData || strumlineContainers.length <= noteData.noteDirection) return null;
 
-        // Clave única por sesión
-        const key = sessionId ? `${NoteSpawner.ATLAS_KEY}_${sessionId}` : NoteSpawner.ATLAS_KEY;
-
-        if (!scene.textures.exists(key)) {
-            scene.load.atlasXML(key, texturePath, atlasPath);
-        }
-    }
-
-    /**
-     * Crea un sprite de nota basado en los datos de la nota parseada.
-     */
-    static spawnNoteSprite(scene, noteData, scale, strumlineContainers, noteOffsetX = 0, sessionId) {
-        if (!noteData || strumlineContainers.length <= noteData.noteDirection || !strumlineContainers[noteData.noteDirection]) {
-            console.error("NoteSpawner.spawnNoteSprite: Datos de nota o strumline inválidos.", noteData);
-            return null;
-        }
+        const skinData = noteSkin.getSkinData();
+        const textureKey = noteSkin.getTextureKey('notes'); // ej: notes_Funkin
+        const scale = skinData.scale || 0.7;
 
         const dirName = NoteDirection.getName(noteData.noteDirection);
         const capDirName = dirName.charAt(0).toUpperCase() + dirName.slice(1);
@@ -41,27 +18,29 @@ export class NoteSpawner {
 
         const targetStrumContainer = strumlineContainers[noteData.noteDirection];
         const targetX = targetStrumContainer.x + noteOffsetX; 
-        
         const initialY = -100; 
 
-        // Usar clave única
-        const key = sessionId ? `${NoteSpawner.ATLAS_KEY}_${sessionId}` : NoteSpawner.ATLAS_KEY;
+        // Leer offsets de nota del JSON
+        const offsets = skinData.notes?.offsets || { x: 0, y: 0 };
 
-        if (scene.textures.exists(key) && scene.textures.get(key).has(frameName)) {
-            const noteSprite = scene.add.sprite(targetX, initialY, key, frameName);
+        if (scene.textures.exists(textureKey) && scene.textures.get(textureKey).has(frameName)) {
+            const noteSprite = scene.add.sprite(targetX + offsets.x, initialY + offsets.y, textureKey, frameName);
+            
             noteSprite.setScale(scale);
             noteSprite.setOrigin(0.5, 0.5);
             noteSprite.setDepth(100); 
             noteSprite.setVisible(false); 
 
+            // Pasar datos útiles
             noteSprite.noteData = noteData; 
             noteSprite.isPlayerNote = noteData.isPlayerNote; 
             noteSprite.noteDirection = noteData.noteDirection;
             noteSprite.strumTime = noteData.strumTime;
+            noteSprite.skinOffsets = offsets; // Guardar offsets por si se necesitan reajustar
 
             return noteSprite;
         } else {
-            console.error(`NoteSpawner.spawnNoteSprite: Frame ${frameName} no encontrado en ${key}.`);
+            console.error(`NoteSpawner: Frame ${frameName} no encontrado en ${textureKey}.`);
             return null;
         }
     }

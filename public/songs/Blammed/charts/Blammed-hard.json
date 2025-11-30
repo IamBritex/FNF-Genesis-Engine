@@ -2438,6 +2438,7 @@
 		"bpm": 165,
 		"speed": 2.3,
 		"Artist": "Kawai Sprite",
-  		"Charter": "fabs + Spazkid"
+  		"Charter": "fabs + Spazkid",
+		"noteSkin" : "Funkin"
 	}
 }

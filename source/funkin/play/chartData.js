@@ -59,11 +59,10 @@ export class ChartDataHandler {
           needsVoices: songData.needsVoices,
           bpm: songData.bpm,
           speed: songData.speed,
-          // [MODIFICADO] Extraer créditos para el menú de pausa
-          credits: songData.credits || { Artist: "Unknown", Charter: "Unknown" }
+          credits: songData.credits || null,
+          noteSkin: songData.noteSkin || "Funkin"
         };
 
-        console.log("--- DATOS DEL CHART EXTRAÍDOS (desde ChartDataHandler) ---");
         console.log(extractedData);
         
         return extractedData; // Devolvemos los datos
