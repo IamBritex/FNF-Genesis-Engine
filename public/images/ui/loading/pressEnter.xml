@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="pressEnter.png">
+	<!-- Created with Adobe Animate version 20.5.1.31044 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="press to start образец 10000" x="0" y="146" width="430" height="36" frameX="0" frameY="-20" frameWidth="529" frameHeight="72" rotated="false"/>
+	<SubTexture name="press to start образец 10001" x="0" y="146" width="430" height="36" frameX="0" frameY="-20" frameWidth="529" frameHeight="72" rotated="false"/>
+	<SubTexture name="press to start образец 10002" x="0" y="0" width="511" height="72" frameX="-18" frameY="0" frameWidth="529" frameHeight="72" rotated="false"/>
+	<SubTexture name="press to start образец 10003" x="0" y="0" width="511" height="72" frameX="-18" frameY="0" frameWidth="529" frameHeight="72" rotated="false"/>
+	<SubTexture name="press to start образец 10004" x="0" y="74" width="493" height="70" frameX="-27" frameY="-1" frameWidth="529" frameHeight="72" rotated="false"/>
+	<SubTexture name="press to start образец 10005" x="0" y="74" width="493" height="70" frameX="-27" frameY="-1" frameWidth="529" frameHeight="72" rotated="false"/>
+</TextureAtlas>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=300, height=600">
+    <meta name="window" content="draggable=true, minimize=false, close=false, overlay=false, title=EXPLORADOR">
+    <style>
+        .dock-content {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            color: #ccc;
+            font-family: 'VCR', sans-serif;
+        }
+
+        .dock-section {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #444;
+        }
+
+        .dock-header {
+            font-size: 11px;
+            font-weight: bold;
+            color: #888;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #444;
+        }
+
+        .dock-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .dock-row .val {
+            color: white;
+        }
+
+        .dock-list-item {
+            padding: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .dock-list-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dock-list-item.active {
+            background: #663399;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dock-content">
+        <div class="dock-section">
+            <div class="dock-header">ESCENARIO</div>
+            <div class="dock-row"><span>Nombre:</span> <span class="val">Stage 1</span></div>
+            <div class="dock-row"><span>Zoom:</span> <span class="val">1.0x</span></div>
+        </div>
+        <div class="dock-section">
+            <div class="dock-header">CAPAS</div>
+            <div class="dock-list">
+                <div class="dock-list-item active">BF (Player)</div>
+                <div class="dock-list-item">GF (Speaker)</div>
+                <div class="dock-list-item">Dad (Opponent)</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

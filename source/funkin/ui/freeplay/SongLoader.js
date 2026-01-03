@@ -1,29 +1,29 @@
+import ModHandler from "../../../core/ModHandler.js";
+
 /**
- * Carga canciones leyendo 'weekList.txt' y luego cada 'weekName.json'.
- * @param {Phaser.Cache.BaseCache} cache - La caché de la escena de Phaser (scene.cache).
- * @returns {Promise<Array<Object>>} Una promesa que se resuelve con la lista de canciones.
+ * Carga canciones combinando weekList base y mods.
  */
 export async function loadSongsFromWeeklist(cache) {
   const songList = [];
-  const weekListText = cache.text.get('weekList');
 
-  if (!weekListText) {
-    throw new Error("weekList.txt not found in cache. Did preload fail?");
-  }
+  // 1. Obtener lista combinada desde ModHandler
+  const weekNames = await ModHandler.getCombinedWeekList(cache);
 
-  const weekNames = weekListText.trim().split('\n').map(w => w.trim()).filter(w => w.length > 0);
   const loadPromises = [];
 
+  // 2. Cargar JSONs
   for (const weekName of weekNames) {
-    const weekPath = `public/data/weeks/${weekName}.json`;
+    // Usar ModHandler.getPath para encontrar el JSON donde sea que esté
+    const weekPath = ModHandler.getPath('data', `weeks/${weekName}.json`);
+
     loadPromises.push(
       fetch(weekPath)
         .then(response => {
-          if (!response.ok) throw new Error(`HTTP ${response.status} for ${weekName}.json`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
           return response.json().then(jsonData => ({ jsonData, weekName }));
         })
         .catch(err => {
-          console.warn(`Failed to load or parse ${weekName}.json:`, err);
+          // console.warn(...) 
           return null;
         })
     );
@@ -31,32 +31,30 @@ export async function loadSongsFromWeeklist(cache) {
 
   const results = await Promise.allSettled(loadPromises);
 
+  // 3. Procesar resultados (Igual que antes)
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value) {
       const { jsonData: weekData, weekName } = result.value;
 
       if (weekData.tracks && Array.isArray(weekData.tracks)) {
         for (const trackList of weekData.tracks) {
-          if (Array.isArray(trackList)) {
-            for (const songName of trackList) {
-              if (typeof songName === 'string') {
-                songList.push({
-                  displayName: songName,
-                  icon: weekData.weekCharacters ? weekData.weekCharacters[0] : 'dad',
-                  difficulties: ["easy", "normal", "hard"],
-                  weekName: weekData.weekName || weekName
-                });
-              }
+          // Soportar tanto array simple ["Bopeebo"] como array de arrays [["Bopeebo", ...]]
+          const songs = Array.isArray(trackList) ? trackList : [trackList];
+
+          for (const songName of songs) {
+            if (typeof songName === 'string') {
+              songList.push({
+                displayName: songName,
+                icon: weekData.weekCharacters ? weekData.weekCharacters[0] : 'face',
+                difficulties: ["easy", "normal", "hard"],
+                weekName: weekData.weekName || weekName,
+                // Color opcional si quieres agregarlo al freeplay
+                color: weekData.weekBackground || '#FFFFFF'
+              });
             }
           }
         }
-      } else {
-        // Mantenemos este log, ya que indica un problema potencial con los datos
-        console.warn(`Week ${weekData.weekName || 'UNKNOWN'} has no 'tracks' array.`);
       }
-    } else if (result.status === 'rejected') {
-      // Mantenemos el log de error
-      console.error("A week failed to load:", result.reason);
     }
   }
 

@@ -14,6 +14,10 @@ struct AppConfig {
     std::wstring appID = L"com.genesis.engine";
     int width = 1280; int height = 720; 
     int minWidth = 800; int minHeight = 600;
+    
+    // [NUEVO] Límite de FPS configurable
+    int fpsLimit = 300; 
+
     bool startMaximized = false; bool resizable = true; bool fullscreen = false;
     bool frame = true; bool alwaysOnTop = false; bool singleInstance = true; bool devTools = true;
 };
@@ -24,17 +28,13 @@ struct AppConfig {
  */
 class ConfigLoader {
 public:
-    /**
-     * Carga y parsea el archivo JSON de configuración.
-     * @param {std::wstring} exeDir - Directorio del ejecutable.
-     * @returns {AppConfig} La configuración cargada.
-     */
     static AppConfig Load(std::wstring exeDir) {
         AppConfig c;
         std::ifstream f(exeDir + L"\\windowConfig.json");
         if (!f.is_open()) return c;
         std::stringstream buffer; buffer << f.rdbuf(); std::string json = buffer.str();
         
+        // Helpers de parseo simple
         auto getStr = [&](std::string k) {
             size_t p = json.find("\"" + k + "\""); if (p == std::string::npos) return std::string("");
             size_t co = json.find(":", p); size_t fQ = json.find("\"", co + 1);
@@ -58,6 +58,9 @@ public:
         
         c.width = getInt("width", 1280); c.height = getInt("height", 720);
         c.minWidth = getInt("minWidth", 800); c.minHeight = getInt("minHeight", 600);
+        
+        // [NUEVO] Cargar FPS desde el JSON (Default: 300)
+        c.fpsLimit = getInt("fpsLimit", 300);
         
         c.startMaximized = getBool("startMaximized", false); c.resizable = getBool("resizable", true);
         c.fullscreen = getBool("fullscreen", false); c.frame = getBool("frame", true);

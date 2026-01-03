@@ -1,0 +1,412 @@
+<style>
+    /* =========================================
+       PROFILE SPECIFIC STYLES
+       ========================================= */
+
+    /* --- LAYOUT PRINCIPAL --- */
+    .profile-container {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        box-sizing: border-box;
+        overflow-y: auto;
+        scrollbar-width: none;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .profile-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* --- TARJETA DE CABECERA (Banner + Identidad) --- */
+    .profile-header-card {
+        width: 100%;
+        min-height: 250px;
+        position: relative;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 20px;
+    }
+
+    .header-banner {
+        width: 100%;
+        height: 180px;
+        background-color: #000;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .header-banner img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+
+    .header-banner:hover img {
+        opacity: 1;
+    }
+
+    .identity-row {
+        display: flex;
+        align-items: flex-end;
+        padding: 0 40px;
+        margin-top: -60px;
+        gap: 25px;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* AVATAR */
+    .avatar-wrapper {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 6px solid #1e1e1e;
+        /* Color oscuro del fondo general */
+        background: #000;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .avatar-wrapper:hover {
+        transform: scale(1.05);
+        border-color: #fff;
+    }
+
+    .avatar-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-wrapper::after {
+        content: "DOUBLE CLICK";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Consolas', monospace;
+        font-size: 0.8rem;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .avatar-wrapper:hover::after {
+        opacity: 1;
+    }
+
+    /* INFO TEXTO */
+    .user-info {
+        margin-bottom: 15px;
+        flex: 1;
+    }
+
+    .username-display {
+        font-family: 'Consolas', monospace;
+        font-weight: 900;
+        font-size: 2.5rem;
+        color: white;
+        text-transform: uppercase;
+        text-shadow: 3px 3px 0px #000;
+        cursor: text;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        padding: 0 5px;
+        display: inline-block;
+    }
+
+    .username-display:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .username-display:focus {
+        background: #000;
+        outline: none;
+        border-color: #ff9900;
+        box-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+    }
+
+    .user-tag {
+        font-family: 'Consolas', monospace;
+        color: #aaa;
+        font-size: 1.1rem;
+        margin-top: -5px;
+        font-weight: bold;
+    }
+
+    /* --- CUERPO Y SECCIONES --- */
+    .profile-body {
+        padding: 0 40px 40px 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .section-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .section-label-clean {
+        font-family: 'Consolas', sans-serif;
+        font-weight: bold;
+        font-size: 1.2rem;
+        color: #ff9900;
+        text-transform: uppercase;
+    }
+
+    .section-label {
+        /* Legacy label para logros */
+        font-family: 'Consolas', sans-serif;
+        font-weight: bold;
+        font-size: 1.2rem;
+        color: #ff9900;
+        text-transform: uppercase;
+        margin-bottom: 15px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        display: inline-block;
+    }
+
+    .section-divider {
+        width: 100%;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        margin-bottom: 20px;
+    }
+
+    /* Botón Pequeño (Toggle) */
+    .unified-btn-small {
+        height: 30px;
+        padding: 0 15px;
+        font-family: 'Consolas', monospace;
+        font-weight: bold;
+        font-size: 0.9rem;
+        background: transparent;
+        color: #fff;
+        border: 2px solid #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: all 0.2s;
+    }
+
+    .unified-btn-small:hover {
+        background: #fff;
+        color: #000;
+    }
+
+    /* --- VISTA NUMERICA --- */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+
+    .stat-card {
+        background: rgba(0, 0, 0, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-family: 'Consolas', monospace;
+        font-size: 2rem;
+        color: #fff;
+        font-weight: 900;
+    }
+
+    .stat-name {
+        font-family: sans-serif;
+        font-size: 0.8rem;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* --- VISTA GRAFICA (TRENDS) --- */
+    .graphs-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .trend-card {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .trend-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: 'Consolas', monospace;
+    }
+
+    .trend-title {
+        color: #aaa;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .trend-current {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .svg-container {
+        width: 100%;
+        height: 80px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* --- LOGROS --- */
+    .achievements-grid {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .medal-item {
+        width: 80px;
+        height: 80px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        border: 3px solid #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: transform 0.2s, border-color 0.2s;
+        cursor: help;
+    }
+
+    .medal-item img {
+        width: 70%;
+        height: 70%;
+        object-fit: contain;
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+    }
+
+    .medal-item:hover {
+        transform: translateY(-5px) scale(1.1);
+        border-color: #ffeb3b;
+        background: rgba(255, 235, 59, 0.1);
+    }
+
+    /* Input Oculto */
+    #hidden-avatar-input {
+        display: none;
+    }
+</style>
+
+<div class="profile-container">
+    <div class="profile-header-card">
+        <div class="header-banner"><img src="public\images\menu\options\banner_placeholdeer.png"></div>
+        <div class="identity-row">
+            <div class="avatar-wrapper" id="avatar-trigger"><img src="public\images\menu\options\bf_placeholder.png"
+                    id="live-avatar"></div>
+            <input type="file" id="hidden-avatar-input" accept="image/png, image/jpeg, image/gif">
+            <div class="user-info">
+                <div class="username-display" id="editable-username" contenteditable="false" spellcheck="false">
+                    BOYFRIEND</div>
+                <div class="user-tag">#FNF-PLAYER</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-body">
+
+        <div>
+            <div class="section-header-row">
+                <div class="section-label-clean">Player Statistics</div>
+                <button class="unified-btn-small" id="btn-toggle-stats">VIEW TRENDS 📈</button>
+            </div>
+            <div class="section-divider"></div>
+
+            <div id="stats-numeric-view">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: #4caf50;">92%</div>
+                        <div class="stat-name">Avg Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: #2196f3;">420</div>
+                        <div class="stat-name">Total Wins</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: #ffeb3b;">S+</div>
+                        <div class="stat-name">Highest Rank</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: #f44336;">12k</div>
+                        <div class="stat-name">Total Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stats-graph-view" style="display: none;">
+                <div class="graphs-grid">
+                    <div class="trend-card">
+                        <div class="trend-header"><span class="trend-title">Accuracy History</span><span
+                                class="trend-current" style="color: #4caf50;">92%</span></div>
+                        <div class="svg-container" id="graph-accuracy" data-color="#4caf50"></div>
+                    </div>
+                    <div class="trend-card">
+                        <div class="trend-header"><span class="trend-title">Wins (Last 7 Days)</span><span
+                                class="trend-current" style="color: #2196f3;">+12</span></div>
+                        <div class="svg-container" id="graph-wins" data-color="#2196f3"></div>
+                    </div>
+                    <div class="trend-card">
+                        <div class="trend-header"><span class="trend-title">Rank Performance</span><span
+                                class="trend-current" style="color: #ffeb3b;">Peak: S+</span></div>
+                        <div class="svg-container" id="graph-rank" data-color="#ffeb3b"></div>
+                    </div>
+                    <div class="trend-card">
+                        <div class="trend-header"><span class="trend-title">Score Growth</span><span
+                                class="trend-current" style="color: #f44336;">12.4k</span></div>
+                        <div class="svg-container" id="graph-score" data-color="#f44336"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <div class="section-label">Latest Achievements</div>
+            <div class="achievements-grid">
+                <div class="medal-item" title="A Challenger Appears!"><img
+                        src="public\images\ui\medals\achallengerappears.png"></div>
+                <div class="medal-item" title="Visual Novelty"><img src="public\images\ui\medals\avisualnovelty.png">
+                </div>
+                <div class="medal-item" title="Destressing"><img src="public\images\ui\medals\destressing.png"></div>
+                <div class="medal-item" title="Getting Freaky"><img src="public\images\ui\medals\gettingfreaky.png">
+                </div>
+                <div class="medal-item" style="opacity: 0.3; border-style: dashed;"><span
+                        style="font-size: 2rem; color: #555;">?</span></div>
+            </div>
+        </div>
+    </div>
+</div>

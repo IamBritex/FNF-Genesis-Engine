@@ -1,384 +1,310 @@
 /**
- * source/funkin/ui/editors/window.js
- * Un sistema de ventanas modulares HTML/CSS para Phaser.
+ * source/funkin/ui/editors/utils/window.js
+ * Motor de Ventanas Modulares (V9 - Zero-Size Wrapper Fix).
  */
 export class ModularWindow {
-    
+
     static openPopups = [];
+    static _listenersInitialized = false;
 
     static initGlobalListeners() {
         if (ModularWindow._listenersInitialized) return;
         ModularWindow._listenersInitialized = true;
-
         window.addEventListener('beforeunload', () => {
-            ModularWindow.openPopups.forEach(popup => {
-                if (popup && !popup.closed) {
-                    popup.close();
-                }
-            });
+            ModularWindow.openPopups.forEach(p => !p.closed && p.close());
             ModularWindow.openPopups = [];
         });
     }
 
-    constructor(scene, config) {
+    constructor(scene, htmlContentOrConfig) {
         ModularWindow.initGlobalListeners();
-
         this.scene = scene;
-        this.config = this.applyDefaults(config);
-        
-        this.domElement = null;
-        this.windowElement = null; 
-        
-        this.isDragging = false;
-        this.dragStartX = 0;
-        this.dragStartY = 0;
-        this.windowStartX = 0;
-        this.windowStartY = 0;
-        this.dragTopLimit = 30; 
-        
-        this.onDestroy = null; 
-        
-        this.originalParent = null;
-        this.popupWindow = null;
 
-        this.createWindow();
-        this.addListeners();
-        
-        if (this.config.move) {
-            this.addDragListeners();
+        this.onDragStart = null;
+        this.onDragMove = null;
+        this.onDragEnd = null;
+
+        let htmlContent = '';
+        let configOverride = {};
+
+        if (typeof htmlContentOrConfig === 'string') {
+            htmlContent = htmlContentOrConfig;
+        } else if (typeof htmlContentOrConfig === 'object') {
+            configOverride = htmlContentOrConfig;
+            htmlContent = typeof htmlContentOrConfig.content === 'function' 
+                ? htmlContentOrConfig.content() 
+                : (htmlContentOrConfig.content || '');
         }
+
+        if (!htmlContent.includes('global.css')) {
+            const globalLink = '<link rel="stylesheet" href="source/funkin/ui/editors/GUI/global.css">';
+            htmlContent = htmlContent.includes('</head>') 
+                ? htmlContent.replace('</head>', `${globalLink}\n</head>`) 
+                : `<head>${globalLink}</head>` + htmlContent;
+        }
+        
+        this.htmlContent = htmlContent;
+        const parser = new DOMParser();
+        this.doc = parser.parseFromString(this.htmlContent, 'text/html');
+        this.config = { ...this._parseConfig(this.doc), ...configOverride };
+
+        this.domElement = null;
+        this.windowNode = null;
+        this.popupWindow = null;
+        this.onDestroy = null;
+
+        this.isDragging = false;
+        this.dragOffset = { x: 0, y: 0 };
+        this.scaleFactors = { x: 1, y: 1 };
+        
+        this.isMinimized = false;
+        this.originalHeight = 'auto';
+        this.isDocked = false; 
+
+        this._createDOM();
 
         try {
-            // Reproducir sonido de apertura si existe
-            if (this.scene.cache.audio.exists('editorOpen')) {
-                this.scene.sound.play('editorOpen');
-            }
-        } catch (e) {
-            console.warn("No se pudo reproducir el sonido 'editorOpen'.");
-        }
+            if (this.scene.cache.audio.exists('editorOpen')) this.scene.sound.play('editorOpen');
+        } catch (e) { }
     }
 
-    applyDefaults(config) {
-        return {
-            width: config.width || 400,
-            height: config.height !== undefined ? config.height : 300,
-            x: config.x !== undefined ? config.x : null,
-            y: config.y !== undefined ? config.y : null,
-            title: config.title || 'Ventana',
-            close: config.close || false,
-            maximize: config.maximize || false,
-            minimize: config.minimize || false,
-            popup: config.popup || false, 
-            overlay: config.overlay || false,
-            move: config.move || false,
-            content: config.content || (() => { return ''; }),
-            styleOfContent: config.styleOfContent || (() => { return ''; })
-        };
-    }
-
-    createWindow() {
-        const sceneWidth = this.scene.scale.width;
-        const sceneHeight = this.scene.scale.height;
-
-        const initialTop = this.config.y !== null ? this.config.y : (sceneHeight - (this.config.height === 'auto' ? 300 : this.config.height)) / 2;
-        const initialLeft = this.config.x !== null ? this.config.x : (sceneWidth - this.config.width) / 2;
-        const heightStyle = this.config.height === 'auto' ? '' : `height: ${this.config.height}px;`;
-
-        // Overlay fijo para cubrir toda la pantalla
-        const overlayStyle = this.config.overlay ? `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            z-index: 10; /* Overlay debajo de la ventana */
-            pointer-events: auto;
-        ` : '';
-
-        // La ventana tiene un z-index mayor que el overlay
-        const windowZIndex = 'z-index: 20;';
-
-        const containerStyle = `width: ${sceneWidth}px; height: ${sceneHeight}px; pointer-events: none;`;
-
-        // Rutas de iconos corregidas: public/images/ui/editors/
-        const iconPath = "public/images/ui/editors";
+    _parseConfig(doc) {
+        const config = { width: 400, height: 'auto', draggable: true, overlay: false, popup: false, minimize: true, close: true, title: 'Ventana' };
+        const getMeta = (n) => doc.querySelector(`meta[name="${n}"]`)?.getAttribute('content') || '';
         
-        const html = `
-            <div class="modular-window-container" id="window-${this.scene.sys.sceneKey}" style="${containerStyle}">
-                ${this.config.overlay ? `<div class="modular-window-overlay" style="${overlayStyle}"></div>` : ''}
+        getMeta('viewport').split(',').forEach(p => {
+            const [k, v] = p.split('=').map(s => s.trim());
+            if (k === 'width') config.width = parseInt(v);
+            if (k === 'height') config.height = parseInt(v);
+        });
 
-                <div class="modular-window" style="width: ${this.config.width}px; ${heightStyle} top: ${initialTop}px; left: ${initialLeft}px; ${windowZIndex}">
-                    
-                    <div class="window-title-bar" style="cursor: ${this.config.move ? 'grab' : 'default'};">
-                        <span class="window-title">${this.config.title}</span>
-                        <div class="window-buttons">
-                            ${this.config.popup ? `<button class="window-btn" data-action="popup" title="Abrir en nueva ventana"><img src="${iconPath}/open_in_new.svg" alt="Pop"></button>` : ''}
-                            ${this.config.minimize ? `<button class="window-btn" data-action="minimize"><img src="${iconPath}/minimize.png" alt="_"></button>` : ''}
-                            ${this.config.maximize ? `<button class="window-btn" data-action="maximize"><img src="${iconPath}/maximize.png" alt="[]"></button>` : ''}
-                            ${this.config.close ? `<button class="window-btn close" data-action="close"><img src="${iconPath}/close.png" alt="X"></button>` : ''}
-                        </div>
-                    </div>
-                    
-                    <div class="window-content">
-                        <style>
-                            ${this.config.styleOfContent()}
-                        </style>
-                        ${this.config.content()}
-                    </div>
-                </div>
-            </div>
+        getMeta('window').split(',').forEach(p => {
+            const [k, v] = p.split('=').map(s => s.trim());
+            if (['draggable','popup','overlay','minimize','close'].includes(k)) config[k] = (v === 'true');
+            if (k === 'title') config.title = v;
+        });
+        
+        const t = doc.querySelector('title');
+        if (t && !config.title) config.title = t.textContent;
+        return config;
+    }
+
+    _createDOM() {
+        this.domElement = this.scene.add.dom(0, 0).createElement('div');
+        this.domElement.setOrigin(0, 0);
+        
+        // [FIX CRÍTICO] Tamaño 0x0 para no bloquear clics en otras áreas
+        // overflow: visible permite que la ventana se vea aunque el contenedor sea 0x0
+        this.domElement.node.style.cssText = `
+            width: 0px; 
+            height: 0px; 
+            overflow: visible;
+            pointer-events: none !important; 
+            position: absolute; 
+            top: 0; 
+            left: 0;
+            z-index: 10;
         `;
 
-        this.domElement = this.scene.add.dom(0, 0).setOrigin(0, 0).createFromHTML(html);
-        this.domElement.setPerspective(800);
-        this.windowElement = this.domElement.node.querySelector('.modular-window');
+        const styles = Array.from(this.doc.querySelectorAll('style')).map(s => s.outerHTML).join('');
+        const links = Array.from(this.doc.querySelectorAll('link')).map(l => l.outerHTML).join('');
         
-        // Evitar propagación de eventos al juego
-        const stopPropagation = (e) => e.stopPropagation();
-        this.windowElement.addEventListener('mousedown', stopPropagation);
-        this.windowElement.addEventListener('wheel', stopPropagation);
-        this.windowElement.addEventListener('pointerdown', stopPropagation);
+        if (!this.doc.querySelector('.modular-window')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'modular-window';
+            
+            // La ventana interna SÍ recibe eventos
+            wrapper.style.cssText = 'pointer-events: auto !important; position: absolute;';
+            
+            wrapper.innerHTML = `
+                <div class="window-header window-drag-handle">
+                    <span class="window-title">${this.config.title}</span>
+                    <div class="window-controls"></div>
+                </div>
+                <div class="window-content">${this.doc.body ? this.doc.body.innerHTML : ''}</div>
+            `;
+            
+            this.domElement.node.innerHTML = links + styles;
+            this.domElement.node.appendChild(wrapper);
+            this.windowNode = wrapper;
+        } else {
+            this.domElement.node.innerHTML = links + styles + this.doc.body.innerHTML;
+            this.windowNode = this.domElement.node.querySelector('.modular-window');
+            if (this.windowNode) {
+                this.windowNode.style.pointerEvents = 'auto';
+                this.windowNode.style.position = 'absolute';
+            }
+        }
+
+        if (this.windowNode) {
+            if (this.config.width) this.windowNode.style.width = `${this.config.width}px`;
+            if (this.config.height) {
+                this.windowNode.style.height = (this.config.height === 'auto') ? 'auto' : `${this.config.height}px`;
+            }
+            this.originalHeight = this.windowNode.style.height || 'auto';
+            this._injectControls();
+        }
 
         if (this.config.overlay) {
-            const overlay = this.domElement.node.querySelector('.modular-window-overlay');
-            if (overlay) {
-                overlay.addEventListener('mousedown', stopPropagation);
-                overlay.addEventListener('wheel', stopPropagation);
-                overlay.addEventListener('pointerdown', stopPropagation);
-            }
+            const ov = document.createElement('div');
+            ov.className = 'modular-overlay';
+            // El overlay debe ocupar toda la pantalla, así que lo forzamos fuera del flujo 0x0
+            ov.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: auto; background: rgba(0,0,0,0.7);';
+            this.domElement.node.insertBefore(ov, this.domElement.node.firstChild);
+        }
+
+        this._runScripts();
+        this._attachListeners();
+    }
+
+    _injectControls() {
+        if (!this.windowNode) return;
+        const header = this.windowNode.querySelector('.window-header');
+        if (!header) return;
+
+        let c = header.querySelector('.window-controls');
+        if (!c) {
+            c = document.createElement('div');
+            c.className = 'window-controls';
+            header.appendChild(c);
+        }
+        c.innerHTML = ''; 
+
+        if (this.config.minimize) {
+            const b = document.createElement('button');
+            b.className = 'win-btn minimize';
+            b.innerHTML = `<img src="public/images/ui/editors/minimize.svg" alt="_">`;
+            b.onclick = (e) => { e.stopPropagation(); this.toggleMinimize(b); };
+            c.appendChild(b);
+        }
+        if (this.config.close) {
+            const b = document.createElement('button');
+            b.className = 'win-btn close';
+            b.innerHTML = `<img src="public/images/ui/editors/close.svg" alt="X">`;
+            b.onclick = (e) => { e.stopPropagation(); this.destroy(); };
+            c.appendChild(b);
         }
     }
 
-    addListeners() {
-        if (!this.domElement) return;
-        this.bindWindowButtons(this.domElement.node);
-    }
-
-    bindWindowButtons(container) {
-        const buttons = container.querySelectorAll('.window-btn');
-        buttons.forEach(button => {
-            const newBtn = button.cloneNode(true);
-            button.parentNode.replaceChild(newBtn, button);
-
-            newBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const action = e.currentTarget.dataset.action;
-                switch(action) {
-                    case 'close': 
-                        if (this.popupWindow && !this.popupWindow.closed) this.popupWindow.close();
-                        else this.destroy(); 
-                        break;
-                    case 'maximize': console.log('Acción: Maximizar (no implementado)'); break;
-                    case 'minimize': this.toggleMinimize(); break;
-                    case 'popup': this.openInPopup(); break;
-                }
-            });
-        });
-    }
-
-    openInPopup() {
-        const w = this.config.width || 800;
-        const h = (this.config.height === 'auto' || !this.config.height) ? 600 : this.config.height;
-        
-        this.originalParent = this.windowElement.parentNode;
-
-        const specs = `width=${w},height=${h},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes,alwaysOnTop=yes,frame=false`;
-        this.popupWindow = window.open("", "_blank", specs);
-        
-        if (!this.popupWindow) return;
-
-        ModularWindow.openPopups.push(this.popupWindow);
-
-        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
-        styles.forEach(styleNode => {
-            this.popupWindow.document.head.appendChild(styleNode.cloneNode(true));
-        });
-
-        const electronStyle = this.popupWindow.document.createElement('style');
-        electronStyle.innerHTML = `
-            .window-title-bar {
-                -webkit-app-region: drag; 
-                cursor: default; 
-                padding-top: 5px; 
-            }
-            .window-buttons, .window-btn {
-                -webkit-app-region: no-drag;
-                cursor: pointer;
-            }
-        `;
-        this.popupWindow.document.head.appendChild(electronStyle);
-
-        const newBody = this.popupWindow.document.body;
-        newBody.style.backgroundColor = '#2a1836';
-        newBody.style.margin = '0';
-        newBody.style.height = '100%';
-        newBody.style.overflow = 'hidden';
-        newBody.style.display = 'flex';
-        newBody.style.flexDirection = 'column';
-
-        const content = this.windowElement.querySelector('.window-content');
-        const titleBar = this.windowElement.querySelector('.window-title-bar');
-        
-        const buttonsToHide = titleBar.querySelectorAll('.window-btn:not(.close)');
-        buttonsToHide.forEach(btn => btn.style.display = 'none');
-
-        newBody.appendChild(titleBar);
-        newBody.appendChild(content);
-
-        content.style.height = '100%';
-        content.style.borderRadius = '0';
-        titleBar.style.borderRadius = '0';
-        titleBar.style.cursor = 'default'; 
-
-        this.domElement.setVisible(false);
-
-        this.popupWindow.addEventListener('beforeunload', () => {
-            const idx = ModularWindow.openPopups.indexOf(this.popupWindow);
-            if (idx > -1) ModularWindow.openPopups.splice(idx, 1);
-
-            buttonsToHide.forEach(btn => btn.style.display = 'block');
-
-            content.style.height = ''; 
-            content.style.borderRadius = '';
-            titleBar.style.borderRadius = '';
-            titleBar.style.cursor = this.config.move ? 'grab' : 'default';
-
-            if (this.originalParent && this.windowElement) {
-                this.windowElement.appendChild(titleBar);
-                this.windowElement.appendChild(content);
-                
-                this.domElement.setVisible(true);
-                this.bindWindowButtons(this.windowElement);
-            }
-            
-            this.popupWindow = null;
-        });
-    }
-
-    toggleMinimize() {
-        const content = this.windowElement.querySelector('.window-content');
-        const isMinimized = content.style.display === 'none';
-        if (isMinimized) {
-            content.style.display = 'block'; 
-            this.windowElement.style.height = this.config.height !== 'auto' ? `${this.config.height}px` : 'auto';
+    toggleMinimize(btn) {
+        this.isMinimized = !this.isMinimized;
+        const content = this.windowNode.querySelector('.window-content');
+        if (this.isMinimized) {
+            this.originalHeight = this.windowNode.style.height || `${this.windowNode.offsetHeight}px`;
+            this.windowNode.classList.add('minimized');
+            if(content) content.style.display = 'none';
+            this.windowNode.style.height = '35px';
         } else {
-            content.style.display = 'none';
-            this.windowElement.style.height = 'auto'; 
+            this.windowNode.classList.remove('minimized');
+            if(content) content.style.display = 'flex';
+            this.windowNode.style.height = this.originalHeight;
         }
     }
 
-    addDragListeners() {
-        const titleBar = this.domElement.node.querySelector('.window-title-bar');
-        if (!titleBar) return;
+    _runScripts() {
+        this.doc.querySelectorAll('script').forEach(s => {
+            const ns = document.createElement('script');
+            ns.textContent = s.textContent;
+            this.domElement.node.appendChild(ns);
+        });
+    }
 
-        const onDragStart = (e) => {
-            if (e.button !== 0) return;
-            e.preventDefault(); 
-            this.isDragging = true;
-            this.dragStartX = e.clientX;
-            this.dragStartY = e.clientY;
-            this.windowStartX = parseFloat(this.windowElement.style.left);
-            this.windowStartY = parseFloat(this.windowElement.style.top);
-            titleBar.style.cursor = 'grabbing';
-            document.body.style.userSelect = 'none';
-        };
-
-        const onDragMove = (e) => {
-            if (!this.isDragging) return;
-            const dx = e.clientX - this.dragStartX;
-            const dy = e.clientY - this.dragStartY;
-            let newX = this.windowStartX + dx;
-            let newY = this.windowStartY + dy;
-
-            const screenWidth = this.scene.scale.width;
-            const screenHeight = this.scene.scale.height;
-            const windowWidth = this.windowElement.offsetWidth;
-            const windowHeight = this.windowElement.offsetHeight;
-
-            newX = Math.max(0, Math.min(newX, screenWidth - windowWidth));
-            newY = Math.max(this.dragTopLimit, Math.min(newY, screenHeight - windowHeight));
-
-            this.windowElement.style.left = `${newX}px`;
-            this.windowElement.style.top = `${newY}px`;
-        };
-
-        const onDragEnd = (e) => {
-            if (this.isDragging) {
-                this.isDragging = false;
-                titleBar.style.cursor = 'grab';
-                document.body.style.userSelect = 'auto';
+    _attachListeners() {
+        const root = this.domElement.node;
+        if (this.config.draggable && this.windowNode) {
+            const handle = this.windowNode.querySelector('.window-drag-handle') || this.windowNode.querySelector('.window-header');
+            if (handle) {
+                this._boundDragStart = this._onDragStart.bind(this);
+                this._boundDragMove = this._onDragMove.bind(this);
+                this._boundDragEnd = this._onDragEnd.bind(this);
+                handle.addEventListener('mousedown', this._boundDragStart);
+                window.addEventListener('mousemove', this._boundDragMove);
+                window.addEventListener('mouseup', this._boundDragEnd);
             }
-        };
+        }
+        if (this.windowNode) {
+            // Traer al frente al hacer clic
+            this.windowNode.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                // Subir z-index temporalmente para estar encima de otras ventanas
+                this.windowNode.style.zIndex = '1001';
+            });
+            this.windowNode.addEventListener('wheel', e => e.stopPropagation());
+        }
+    }
+
+    _onDragStart(e) {
+        if (['BUTTON', 'A', 'INPUT', 'IMG', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+        if (this.onDragStart) this.onDragStart(e);
+        if (this.isDocked) return;
+
+        this.isDragging = true;
+        const rect = this.windowNode.getBoundingClientRect();
         
-        titleBar.addEventListener('mousedown', onDragStart);
-        window.addEventListener('mousemove', onDragMove);
-        window.addEventListener('mouseup', onDragEnd);
+        // Al usar container 0x0, el parentRect siempre está en 0,0 visualmente si el canvas no tiene margin
+        // Pero calculamos igual por si acaso
+        const parentRect = this.windowNode.parentElement.getBoundingClientRect();
+        
+        this.scaleFactors.x = parentRect.width > 0 ? parentRect.width / this.scene.scale.width : 1;
+        this.scaleFactors.y = parentRect.height > 0 ? parentRect.height / this.scene.scale.height : 1;
+        
+        // Si el contenedor es 0x0, asumimos escala 1 para evitar divisiones por cero
+        if (this.domElement.node.offsetWidth === 0) {
+             this.scaleFactors.x = 1;
+             this.scaleFactors.y = 1;
+        }
 
-        this.dragListeners = { onDragStart, onDragMove, onDragEnd };
+        this.dragOffset.x = e.clientX - rect.left;
+        this.dragOffset.y = e.clientY - rect.top;
+
+        this.windowNode.style.transform = 'none';
+        this.windowNode.style.margin = '0';
+        
+        // Coordenadas absolutas
+        // Como el padre es 0x0 y está en top:0 left:0, la posición CSS es prácticamente la posición visual
+        const logicLeft = (rect.left - parentRect.left) / this.scaleFactors.x;
+        const logicTop = (rect.top - parentRect.top) / this.scaleFactors.y;
+        
+        this.windowNode.style.left = `${logicLeft}px`;
+        this.windowNode.style.top = `${logicTop}px`;
+        this.windowNode.style.zIndex = '1001'; // Traer al frente
     }
 
+    _onDragMove(e) {
+        if (!this.isDragging || !this.windowNode) return;
+        e.preventDefault();
+
+        const parentRect = this.windowNode.parentElement.getBoundingClientRect();
+        const mouseRelX = e.clientX - parentRect.left;
+        const mouseRelY = e.clientY - parentRect.top;
+
+        const logicX = (mouseRelX - this.dragOffset.x) / this.scaleFactors.x;
+        const logicY = (mouseRelY - this.dragOffset.y) / this.scaleFactors.y;
+
+        this.windowNode.style.left = `${logicX}px`;
+        this.windowNode.style.top = `${logicY}px`;
+
+        if (this.onDragMove) this.onDragMove(e, logicX, logicY);
+    }
+
+    _onDragEnd(e) {
+        if (this.isDragging) {
+            this.isDragging = false;
+            if (this.windowNode) this.windowNode.style.zIndex = '100'; // Restaurar nivel normal
+            if (this.onDragEnd) this.onDragEnd(e);
+        }
+    }
+
+    openInPopup() { /* ... */ }
+    
     destroy() {
-        if (this.popupWindow && !this.popupWindow.closed) {
-            this.popupWindow.close(); 
+        if (this.popupWindow && !this.popupWindow.closed) this.popupWindow.close();
+        if (this._boundDragMove) {
+            window.removeEventListener('mousemove', this._boundDragMove);
+            window.removeEventListener('mouseup', this._boundDragEnd);
         }
-
-        if (this.domElement) {
-            try { 
-                if (this.scene.cache.audio.exists('editorClose')) {
-                    this.scene.sound.play('editorClose'); 
-                }
-            } catch (e) {}
-
-            if (this.config.move && this.dragListeners && this.domElement.node) {
-                const titleBar = this.domElement.node.querySelector('.window-title-bar');
-                if (titleBar) titleBar.removeEventListener('mousedown', this.dragListeners.onDragStart);
-                window.removeEventListener('mousemove', this.dragListeners.onDragMove);
-                window.removeEventListener('mouseup', this.dragListeners.onDragEnd);
-            }
-            
-            this.domElement.destroy();
-            this.domElement = null;
-
-            if (this.onDestroy) this.onDestroy();
-        }
-    }
-
-    static getWindowCSS() {
-        const scrollTrackColor = '#4a2c66'; 
-        const scrollThumbColor = '#7a4fcf'; 
-        const scrollThumbBorder = '#4a2c66'; 
-
-        return `
-            .modular-window-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9000; }
-            .modular-window {
-                position: absolute; background-color: #4a2c66; border: 2px solid #7a4fcf; border-radius: 8px;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; font-family: Arial, sans-serif;
-                pointer-events: auto; resize: none; max-width: 90vw; max-height: 90vh; overflow: hidden;
-            }
-            .window-title-bar {
-                background-color: #663399; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
-                border-top-left-radius: 6px; border-top-right-radius: 6px; user-select: none; flex-shrink: 0;
-            }
-            .window-title { color: white; font-weight: bold; pointer-events: none; }
-            .window-buttons { display: flex; }
-            .window-btn {
-                background: transparent; border: none; width: 20px; height: 20px; margin-left: 8px; border-radius: 4px; cursor: pointer; padding: 5px;
-            }
-            .window-btn img { width: 100%; height: 100%; display: block; pointer-events: none; }
-            .window-btn.close:hover { background-color: #e64a4a; }
-            .window-btn.not(.close):hover { background-color: #999; }
-            
-            .window-content {
-                padding: 15px; flex-grow: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; color: white; background-color: #4a2c66;
-                border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; position: relative;
-            }
-            .window-content::-webkit-scrollbar { width: 10px; }
-            .window-content::-webkit-scrollbar-track { background: ${scrollTrackColor}; border-bottom-right-radius: 6px; }
-            .window-content::-webkit-scrollbar-thumb { background-color: ${scrollThumbColor}; border-radius: 4px; border: 2px solid ${scrollThumbBorder}; }
-            .window-content::-webkit-scrollbar-thumb:hover { background-color: #8b63d6; }
-        `;
+        if (this.domElement) this.domElement.destroy();
+        if (this.onDestroy) this.onDestroy();
     }
 }

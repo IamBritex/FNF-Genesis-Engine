@@ -1,7 +1,7 @@
 {
 	"song": {
 		"player": "bf",
-		"events": ["Events.json"],
+		"events": true,
 		"gfVersion": "gf",
 		"enemy": "dad",
 		"notes": [
@@ -807,7 +807,7 @@
 		"needsVoices": false,
 		"speed": 1,
 		"bpm": 100,
-  		"Artist": "ThatAndyGuy (feat. Saruky)",
-  		"Charter": "Fabs + Spazkid"
+		"Artist": "ThatAndyGuy (feat. Saruky)",
+		"Charter": "Fabs + Spazkid"
 	}
 }

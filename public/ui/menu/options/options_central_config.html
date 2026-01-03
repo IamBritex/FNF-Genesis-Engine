@@ -1,0 +1,87 @@
+<style>
+    .glass-panel-center-options {
+        width: 700px;
+        height: 60vh;
+        /* Altura fija total */
+
+        background-color: rgba(30, 30, 30, 0.4);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        will-change: backdrop-filter;
+        transform: translateZ(0);
+
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        /* Flexbox para organizar Header arriba y Contenido abajo */
+        display: flex;
+        flex-direction: column;
+
+        overflow: hidden;
+        /* Importante: que nada se salga del borde redondeado */
+
+        color: white;
+        font-family: 'Consolas', monospace;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .center-header {
+        width: 100%;
+        /* Altura fija del titulo */
+        height: 80px;
+        flex-shrink: 0;
+        /* Evita que se aplaste */
+
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 2px solid rgba(0, 0, 0, 0.8);
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #center-title-canvas {
+        width: 90%;
+        height: 80%;
+        object-fit: contain;
+        filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    }
+
+    /* --- AQUI ESTABA EL ERROR CORREGIDO --- */
+    .config-content {
+        width: 100%;
+
+        /* ANTES: height: 100%; (Esto causaba el desborde de 80px) */
+        /* AHORA: flex: 1; (Ocupa el espacio restante exacto) */
+        flex: 1;
+
+        /* Aseguramos que el contenido interno maneje su propio tamaño */
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        /* Alineamos arriba para que el scroll empiece bien */
+
+        overflow: hidden;
+        /* El scroll lo maneja el hijo (options-list-container), no este div */
+        position: relative;
+    }
+
+    .config-placeholder {
+        margin-top: 50px;
+        font-size: 0.8rem;
+        opacity: 0.5;
+        font-style: italic;
+    }
+</style>
+
+<div class="glass-panel-center-options">
+    <div class="center-header">
+        <canvas id="center-title-canvas" width="600" height="100"></canvas>
+    </div>
+
+    <div class="config-content">
+        <div class="config-placeholder">
+            < Select a category>
+        </div>
+    </div>
+</div>

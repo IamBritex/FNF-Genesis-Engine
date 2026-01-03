@@ -1,4 +1,4 @@
-import { HealthIcon } from '../../play/components/healthIcon.js';
+import { HealthIcon } from '../../play/health/healthIcon.js';
 
 export class IconSongEnemy extends Phaser.GameObjects.Container {
     /**
@@ -11,14 +11,14 @@ export class IconSongEnemy extends Phaser.GameObjects.Container {
         super(scene, x, y);
         this.scene = scene;
         this.iconName = iconName || 'face';
-        
+
         this.sessionId = 'freeplay_session';
 
         // La clase HealthIcon maneja internamente el fallback a 'face'
         // si no encuentra la textura solicitada.
         this.healthIcon = new HealthIcon(this.scene, this.iconName, false, false, this.sessionId);
-        
-        this.healthIcon.bpm = 102; 
+
+        this.healthIcon.bpm = 102;
 
         this.createIcon();
     }

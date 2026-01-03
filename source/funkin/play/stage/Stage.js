@@ -1,5 +1,6 @@
 import { StageData } from "./StageData.js"
 import { StageElements } from "./StageElements.js"
+import ModHandler from "../../../core/ModHandler.js" // Importante
 
 export class Stage {
   constructor(scene, chartData, cameraManager, conductor) {
@@ -16,11 +17,16 @@ export class Stage {
   loadStageJSON() {
     if (!this.stageDataKey) return
     this.stageKey = `StageJSON_${this.stageDataKey}`
-    const specificPath = `public/data/stages/${this.stageDataKey}.json`
+
+    // [MODIFICADO] Ruta dinámica para el JSON del stage (ej: 'stage.json' o 'philly.json')
+    const specificPath = ModHandler.getPath('data', `stages/${this.stageDataKey}.json`);
+
     if (!this.scene.cache.json.exists(this.stageKey)) {
       this.scene.load.json(this.stageKey, specificPath)
     }
-    const defaultPath = "public/data/stages/stage.json"
+
+    // [MODIFICADO] Carga segura del stage por defecto
+    const defaultPath = ModHandler.getPath('data', "stages/stage.json");
     if (!this.scene.cache.json.exists(this.defaultStageKey)) {
       this.scene.load.json(this.defaultStageKey, defaultPath)
     }
@@ -35,7 +41,10 @@ export class Stage {
       this.stageElements.stageDataKey = "stage"
       this.stageElements.spritesheetHandler.stageDataKey = "stage"
     }
+
     if (this.stageElements) {
+      // OJO: StageElements.js también necesitará usar ModHandler 
+      // si quieres que las imágenes de fondo se modifiquen.
       this.stageElements.preloadImages(this.stageContent)
     }
   }
@@ -60,7 +69,6 @@ export class Stage {
           const namePath = item.namePath
           const textureKey = `stage_${finalStageKey}_${namePath}`
 
-          // Step 1: Remove animations if spritesheet
           if (item.type === "spritesheet") {
             const anims = this.scene.anims.anims.entries
             const keysToDelete = []
@@ -72,7 +80,6 @@ export class Stage {
             keysToDelete.forEach((k) => this.scene.anims.remove(k))
           }
 
-          // Step 2: Remove texture
           if (this.scene.textures.exists(textureKey)) {
             this.scene.textures.remove(textureKey)
           }
@@ -80,7 +87,6 @@ export class Stage {
       }
     }
 
-    // Step 3: Clean up JSONs
     if (this.stageKey && this.scene.cache.json.exists(this.stageKey)) {
       this.scene.cache.json.remove(this.stageKey)
     }

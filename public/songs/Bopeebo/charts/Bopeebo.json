@@ -1,6 +1,7 @@
 {
 	"song": {
 		"player": "bf",
+		"events": true,
 		"notes": [
 			{
 				"sectionNotes": [
@@ -846,7 +847,7 @@
 		"needsVoices": false,
 		"bpm": 100,
 		"speed": 1,
-  		"Artis": "ThatAndyGuy (feat. Saruky)",
-  		"Charter": "Fabs + Spazkid"
+		"Artis": "ThatAndyGuy (feat. Saruky)",
+		"Charter": "Fabs + Spazkid"
 	}
 }

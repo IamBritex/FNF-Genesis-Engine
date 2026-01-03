@@ -1,5 +1,5 @@
-import coreWindow from "./coreWindow.js";
 import { initVolumeControl, VolumeUIScene } from "../soundtray/styleSoundtray.js";
+import { touchHere } from "../touchHere.js";
 import { CrashHandler } from "../CrashHandler.js";
 
 // Main game configuration
@@ -8,12 +8,12 @@ const gameConfig = {
   width: 1280,
   height: 720,
   parent: "game-container",
-  
+
   dom: {
     createContainer: true
   },
 
-  scene: [coreWindow, VolumeUIScene],
+  scene: [touchHere, VolumeUIScene],
   backgroundColor: "#000000",
   scale: {
     mode: Phaser.Scale.FIT,

@@ -1,6 +1,9 @@
+import ModHandler from "../../../core/ModHandler.js";
+
 /**
  * SongPlayer.js
  * Módulo encargado de cargar y reproducir los assets de la canción.
+ * Integra el sistema de Mods para cargar audio desde carpetas personalizadas.
  */
 export class SongPlayer {
 
@@ -12,27 +15,37 @@ export class SongPlayer {
       console.error("SongPlayer.loadSongAudio: Faltan datos (targetSongId o chartData).");
       return;
     }
-    
+
     const songName = chartData.song;
-    const SONG_PATH_BASE = 'public/songs';
-    const songPath = `${SONG_PATH_BASE}/${targetSongId}/song`;
-    const timestamp = Date.now(); 
+    const timestamp = Date.now();
+
+    // [LÓGICA SEGURA]: Esta función encapsula el "If Mod -> Load Mod, Else -> Load Base"
+    const loadAudio = (key, fileName) => {
+      if (!scene.cache.audio.exists(key)) {
+        // Construimos la ruta interna: "nombreCancion/song/archivo.ogg"
+        const internalPath = `${targetSongId}/song/${fileName}`;
+
+        // Aquí ocurre la magia: ModHandler verifica si el archivo existe en el mod.
+        // Si existe -> devuelve URL del mod (https://mods.genesis/...)
+        // Si no -> devuelve URL base (public/songs/...)
+        const finalUrl = ModHandler.getPath('songs', internalPath);
+
+        scene.load.audio(key, `${finalUrl}?t=${timestamp}`);
+        console.log(`SongPlayer: Cargando ${key} desde ${finalUrl}`);
+      }
+    };
 
     const instKey = `Inst_${songName}`;
-    // Verificar si ya existe para no recargar y duplicar claves si algo falla
-    if (!scene.cache.audio.exists(instKey)) {
-        scene.load.audio(instKey, `${songPath}/Inst.ogg?t=${timestamp}`);
-        console.log(`SongPlayer: Iniciando carga de ${instKey} (Inst.ogg)`);
-    }
+    loadAudio(instKey, 'Inst.ogg');
 
     if (chartData.needsVoices) {
       const playerKey = `Voices-Player_${songName}`;
       const opponentKey = `Voices-Opponent_${songName}`;
-      if (!scene.cache.audio.exists(playerKey)) scene.load.audio(playerKey, `${songPath}/Voices-Player.ogg?t=${timestamp}`);
-      if (!scene.cache.audio.exists(opponentKey)) scene.load.audio(opponentKey, `${songPath}/Voices-Opponent.ogg?t=${timestamp}`);
+      loadAudio(playerKey, 'Voices-Player.ogg');
+      loadAudio(opponentKey, 'Voices-Opponent.ogg');
     } else {
       const voicesKey = `Voices_${songName}`;
-      if (!scene.cache.audio.exists(voicesKey)) scene.load.audio(voicesKey, `${songPath}/Voices.ogg?t=${timestamp}`);
+      loadAudio(voicesKey, 'Voices.ogg');
     }
   }
 
@@ -94,9 +107,6 @@ export class SongPlayer {
 
   /**
    * Detiene y limpia los sonidos de la canción del caché.
-   * @param {Phaser.Scene} scene - La escena (PlayScene).
-   * @param {object} chartData - El objeto de datos del chart.
-   * @param {object} songAudio - El objeto {inst, voices} devuelto por playSong.
    */
   static shutdown(scene, chartData, songAudio) {
     // 1. Detener los sonidos que están en reproducción
@@ -106,10 +116,10 @@ export class SongPlayer {
         songAudio.inst.destroy(); // Asegurar destrucción del objeto
       }
       if (songAudio.voices) {
-          songAudio.voices.forEach(voice => {
-              voice.stop();
-              voice.destroy();
-          });
+        songAudio.voices.forEach(voice => {
+          voice.stop();
+          voice.destroy();
+        });
       }
     }
 

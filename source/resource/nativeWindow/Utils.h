@@ -7,6 +7,11 @@
 #include <fstream>
 #include <vector>
 #include <commdlg.h>
+#include <algorithm> // Para transform (lowercase)
+#include <wincrypt.h> // Para decodificar Base64
+
+// Link automático a la librería de criptografía de Windows
+#pragma comment(lib, "Crypt32.lib")
 
 namespace fs = std::filesystem;
 
@@ -16,11 +21,6 @@ namespace fs = std::filesystem;
  */
 namespace Utils {
 
-    /**
-     * Convierte std::string (UTF-8) a std::wstring (Wide Char).
-     * @param {std::string} str - La cadena a convertir.
-     * @returns {std::wstring} La cadena convertida.
-     */
     inline std::wstring ToWString(const std::string& str) {
         if (str.empty()) return std::wstring();
         int size = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
@@ -29,11 +29,6 @@ namespace Utils {
         return wstr;
     }
 
-    /**
-     * Convierte std::wstring (Wide Char) a std::string (UTF-8).
-     * @param {std::wstring} wstr - La cadena ancha a convertir.
-     * @returns {std::string} La cadena UTF-8.
-     */
     inline std::string ToString(const std::wstring& wstr) {
         if (wstr.empty()) return std::string();
         int size = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
@@ -43,31 +38,68 @@ namespace Utils {
     }
 
     /**
-     * Guarda contenido en la carpeta AppData/Roaming de la aplicación.
-     * @param {std::wstring} appID - ID de la aplicación (nombre de la carpeta).
-     * @param {std::wstring} filename - Nombre del archivo.
-     * @param {std::wstring} content - Contenido a guardar.
+     * Crea un directorio (y sus padres) dentro de AppData/Roaming/AppID.
      */
-    inline void SaveToAppData(std::wstring appID, std::wstring filename, std::wstring content) {
+    inline void CreateDir(std::wstring appID, std::wstring relativePath) {
         PWSTR path = NULL;
         if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &path))) {
             fs::path appDataPath(path); CoTaskMemFree(path);
-            fs::path fullPath = appDataPath / appID / filename;
+            fs::path targetDir = appDataPath / appID / relativePath;
             try {
-                if (fullPath.has_parent_path()) fs::create_directories(fullPath.parent_path());
-                std::ofstream outfile(fullPath, std::ios::binary);
-                outfile << ToString(content);
-                outfile.close();
+                fs::create_directories(targetDir);
             } catch (...) {}
         }
     }
 
     /**
-     * Carga contenido desde la carpeta AppData/Roaming.
-     * @param {std::wstring} appID - ID de la aplicación.
-     * @param {std::wstring} filename - Nombre del archivo a leer.
-     * @returns {std::wstring} Contenido del archivo o cadena vacía si falla.
+     * Guarda contenido en la carpeta AppData/Roaming.
+     * - Crea automáticamente carpetas si no existen.
+     * - Detecta imágenes por extensión y decodifica Base64.
      */
+    inline void SaveToAppData(std::wstring appID, std::wstring filename, std::wstring content) {
+        PWSTR path = NULL;
+        if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &path))) {
+            fs::path appDataPath(path); CoTaskMemFree(path);
+            
+            // Construye la ruta completa (ej: .../com.genesis.engine/screenshoot/foto.png)
+            fs::path fullPath = appDataPath / appID / filename;
+
+            try {
+                // Crear directorios padres si no existen
+                if (fullPath.has_parent_path()) {
+                    fs::create_directories(fullPath.parent_path());
+                }
+
+                // 1. Detectar si es imagen por su extensión
+                std::wstring ext = fullPath.extension().wstring();
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                
+                bool isImage = (ext == L".png" || ext == L".jpg" || ext == L".jpeg" || ext == L".webp");
+
+                // 2. Si es imagen, decodificar Base64 a Binario
+                if (isImage) {
+                    DWORD binarySize = 0;
+                    // CRYPT_STRING_BASE64_ANY intenta detectar headers (data:image/...) o raw base64
+                    if (CryptStringToBinaryW(content.c_str(), 0, CRYPT_STRING_BASE64_ANY, NULL, &binarySize, NULL, NULL)) {
+                        std::vector<BYTE> binaryData(binarySize);
+                        if (CryptStringToBinaryW(content.c_str(), 0, CRYPT_STRING_BASE64_ANY, binaryData.data(), &binarySize, NULL, NULL)) {
+                            std::ofstream outfile(fullPath, std::ios::binary);
+                            outfile.write(reinterpret_cast<char*>(binaryData.data()), binarySize);
+                            outfile.close();
+                            return; // Terminado, no guardar como texto
+                        }
+                    }
+                }
+
+                // 3. Guardado estándar para texto/JSON (si no es imagen o falló el decode)
+                std::ofstream outfile(fullPath, std::ios::binary);
+                outfile << ToString(content);
+                outfile.close();
+
+            } catch (...) {}
+        }
+    }
+
     inline std::wstring LoadFromAppData(std::wstring appID, std::wstring filename) {
         PWSTR path = NULL;
         if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &path))) {
@@ -84,12 +116,6 @@ namespace Utils {
         return L"";
     }
 
-    /**
-     * Abre un cuadro de diálogo nativo para seleccionar archivos.
-     * @param {HWND} hWnd - Handle de la ventana padre.
-     * @param {std::wstring} filters - Filtros de archivo (ej: "Text Files|*.txt").
-     * @returns {std::wstring} Ruta del archivo seleccionado.
-     */
     inline std::wstring OpenFileDialog(HWND hWnd, std::wstring filters) {
         OPENFILENAMEW ofn;
         wchar_t szFile[260] = { 0 };

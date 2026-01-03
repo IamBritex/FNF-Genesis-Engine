@@ -1,6 +1,6 @@
-import { PlaySceneData } from "./PlaySceneData.js"
+import { PlaySceneData } from "./data/PlaySceneData.js"
 import { SongPlayer } from "./song/SongPlayer.js"
-import { ChartDataHandler } from "./chartData.js"
+import { ChartDataHandler } from "./data/chartData.js"
 import { NotesHandler } from "./notes/NotesHandler.js"
 import { CameraManager } from "./camera/Camera.js"
 import { Stage } from "./stage/Stage.js"
@@ -8,13 +8,17 @@ import { Characters } from "./characters/Characters.js"
 import { PopUpManager } from "./judgments/PopUpManager.js"
 import { Countdown } from "./countDown.js"
 import { TimeBar } from "./components/timeBar.js"
-import { HealthBar } from "./components/healthBar.js"
+import { HealthBar } from "./health/healthBar.js"
 import { RatingText } from "./judgments/RatingText.js"
-import { Score } from "./components/Score.js"
-import { Conductor } from "./Conductor.js"
+import { Score } from "./judgments/Score.js"
+import { Conductor } from "./data/Conductor.js"
 import { FunWaiting } from "./components/FunWaiting.js"
-import { Pause } from "./Pause.js" 
-import { NoteSkin } from "./notes/NoteSkin.js" // Importar NoteSkin
+import { NoteSkin } from "./notes/NoteSkin.js"
+import { ScriptHandler } from "./scripting/ScriptHandler.js"
+import ModHandler from "../../core/ModHandler.js"
+
+// [NUEVO] Importar el módulo de limpieza
+import { PlaySceneCleanup } from "./components/PlaySceneCleanup.js"
 
 export class PlayScene extends Phaser.Scene {
   constructor() {
@@ -36,24 +40,25 @@ export class PlayScene extends Phaser.Scene {
     this.ratingText = null
     this.scoreManager = null
     this.funWaiting = null
-    this.pauseHandler = null 
-    this.isWaitingOnLoad = true
+    this.scriptHandler = null
 
+    this.isWaitingOnLoad = true
     this.isInCountdown = false
     this.countdownStartTime = 0
     this.songStartTime = 0
-    
-    this.playSessionId = null; 
-    this.deathCounter = 0; 
-    
+
+    this.playSessionId = null;
+    this.deathCounter = 0;
     this.onWindowBlur = null;
-    
-    this.tempNoteSkin = null; // Helper temporal para carga
+    this.tempNoteSkin = null;
+
+    this.pauseKeys = null;
+
+    // UI de Pausa (Ahora manejada por PauseScene, pero guardamos teclas aquí)
   }
 
   init(data) {
     this.sound.stopAll()
-
     this.playSessionId = Date.now().toString() + Math.floor(Math.random() * 1000);
     console.log(`PlayScene initialized with Session ID: ${this.playSessionId}`);
 
@@ -62,7 +67,7 @@ export class PlayScene extends Phaser.Scene {
     this.registry.set("PlaySceneData", undefined)
 
     this.initData = PlaySceneData.init(this, finalData)
-    this.deathCounter = 0; 
+    this.deathCounter = data.deathCounter || 0;
   }
 
   preload() {
@@ -87,32 +92,32 @@ export class PlayScene extends Phaser.Scene {
     Countdown.preload(this)
     TimeBar.preload(this)
     HealthBar.preload(this, this.playSessionId)
-    Pause.preload(this) 
+
+    // PauseScene es global o se añade dinámicamente, no necesitamos preload específico aquí si ya está en game.js
   }
 
   create() {
-
     if (window.Genesis && window.Genesis.discord) {
-        Genesis.discord.setActivity({
-            details: `Playing ${this.initData.targetSongId}`, 
-            state: "Play State"
-        });
+      Genesis.discord.setActivity({
+        details: `Playing ${this.initData.targetSongId}`,
+        state: "Play State"
+      });
     }
+
+    this.pauseKeys = this.input.keyboard.addKeys({
+      enter: Phaser.Input.Keyboard.KeyCodes.ENTER,
+      esc: Phaser.Input.Keyboard.KeyCodes.ESC
+    });
 
     this.assetsLoaded = false
     this.isWaitingOnLoad = true
 
     this.cameraManager = new CameraManager(this)
-
     this.funWaiting = new FunWaiting(this, this.cameraManager)
     this.funWaiting.createOverlay()
-
     this.scoreManager = new Score(this)
-
     this.popUpManager = new PopUpManager(this, this.cameraManager)
     this.countdown = new Countdown(this, this.cameraManager)
-    
-    this.pauseHandler = new Pause(this, this.cameraManager);
 
     this.timeBar = new TimeBar(this)
     this.timeBar.create()
@@ -133,26 +138,53 @@ export class PlayScene extends Phaser.Scene {
       return
     }
 
+    if (this.chartData.events === true) {
+      console.log("[PlayScene] Events: true detectado. Buscando Events.json...");
+
+      const songId = this.initData.targetSongId;
+      const eventsKey = `Events_${songId}`;
+      const eventsPath = ModHandler.getPath('songs', `${songId}/charts/Events.json`);
+
+      this.load.json(eventsKey, eventsPath);
+
+      this.load.once('complete', () => {
+        const eventsJson = this.cache.json.get(eventsKey);
+        if (eventsJson && Array.isArray(eventsJson.events)) {
+          this.chartData.events = eventsJson.events;
+        } else {
+          this.chartData.events = [];
+        }
+        this.continueCreate();
+      });
+
+      this.load.start();
+      return;
+    }
+
+    this.continueCreate();
+  }
+
+  async continueCreate() {
     this.conductor = new Conductor(this.chartData.bpm)
 
-    // --- [NUEVO: PASO 1 CARGA DE SKIN] ---
-    // Instanciar NoteSkin y precargar JSON
+    this.scriptHandler = new ScriptHandler(this);
+    if (this.chartData.events && Array.isArray(this.chartData.events)) {
+      await this.scriptHandler.loadEventScripts(this.chartData.events);
+    }
+
+    this.conductor.on('beat', (beat) => this.scriptHandler.call('onBeatHit', beat));
+    this.conductor.on('step', (step) => this.scriptHandler.call('onStepHit', step));
+
     this.tempNoteSkin = new NoteSkin(this, this.chartData);
     this.tempNoteSkin.preloadJSON();
-    // -------------------------------------
 
     this.healthBar = new HealthBar(this, this.chartData, this.conductor, this.playSessionId)
-    
     this.stageHandler = new Stage(this, this.chartData, this.cameraManager, this.conductor)
-    
     this.charactersHandler = new Characters(this, this.chartData, this.cameraManager, this.stageHandler, this.conductor, this.playSessionId)
 
     this.stageHandler.loadStageJSON()
-
     this.charactersHandler.loadCharacterJSONs()
     this.healthBar.loadCharacterData()
-
-    // [IMPORTANTE] NO creamos NotesHandler aquí todavía. Esperamos a que cargue el skin.
 
     SongPlayer.loadSongAudio(this, this.initData.targetSongId, this.chartData)
 
@@ -160,37 +192,22 @@ export class PlayScene extends Phaser.Scene {
     this.load.start()
 
     this.onWindowBlur = () => {
-        if (!this.scene || !this.sys || !this.sys.isActive()) {
-            return;
-        }
-        if (!this.isWaitingOnLoad && this.pauseHandler && !this.pauseHandler.isPaused) {
-            console.log("Ventana perdió foco: Auto-pausando juego.");
-            this.pauseHandler.pauseGame();
-        }
+      if (!this.scene || !this.sys || !this.sys.isActive()) return;
+      if (!this.isWaitingOnLoad && this.sys.settings.active) {
+        console.log("Ventana perdió foco: Auto-pausando juego.");
+        this.triggerPause();
+      }
     };
-    
     this.game.events.on('blur', this.onWindowBlur);
   }
 
   async onAllDataLoaded() {
     if (this.assetsLoaded) return
 
-    // --- [NUEVO: PASO 2 CARGA DE SKIN] ---
-    // El JSON del skin ya cargó, ahora cargamos las texturas (Atlas)
-    if (this.tempNoteSkin) {
-        this.tempNoteSkin.loadAssets();
-    }
-    // -------------------------------------
-
-    if (this.stageHandler) {
-      this.stageHandler.loadStageImages()
-    }
-    if (this.charactersHandler) {
-      this.charactersHandler.processAndLoadImages()
-    }
-    if (this.healthBar) {
-      this.healthBar.preloadIcons()
-    }
+    if (this.tempNoteSkin) this.tempNoteSkin.loadAssets();
+    if (this.stageHandler) this.stageHandler.loadStageImages()
+    if (this.charactersHandler) this.charactersHandler.processAndLoadImages()
+    if (this.healthBar) this.healthBar.preloadIcons()
 
     this.load.once("complete", this.onAllAssetsLoaded, this)
     this.load.start()
@@ -212,17 +229,10 @@ export class PlayScene extends Phaser.Scene {
       this.ratingText.container.setDepth(101)
     }
 
-    if (this.stageHandler) {
-      this.stageHandler.createStageElements()
-    }
-    if (this.charactersHandler) {
-      this.charactersHandler.createAnimationsAndSprites()
-    }
+    if (this.stageHandler) this.stageHandler.createStageElements()
+    if (this.charactersHandler) this.charactersHandler.createAnimationsAndSprites()
 
-    // --- [NUEVO: CREACIÓN DIFERIDA DE NOTESHANDLER] ---
-    // Ahora que los assets del skin están cargados, es seguro crear NotesHandler
     this.notesHandler = new NotesHandler(this, this.chartData, this.scoreManager, this.conductor, this.playSessionId)
-
     this.cameraManager.assignToUI(this.notesHandler.mainUICADContainer)
     this.notesHandler.mainUICADContainer.setDepth(2)
 
@@ -230,15 +240,14 @@ export class PlayScene extends Phaser.Scene {
       this.cameraManager.assignToUI(this.notesHandler.notesContainer)
       this.notesHandler.notesContainer.setDepth(2)
     }
-    // --------------------------------------------------
 
     if (this.notesHandler && this.charactersHandler) {
       this.notesHandler.setCharactersHandler(this.charactersHandler)
     }
 
-    if (this.charactersHandler) {
-      this.charactersHandler.startBeatSystem()
-    }
+    if (this.charactersHandler) this.charactersHandler.startBeatSystem()
+
+    if (this.scriptHandler) this.scriptHandler.call('onCreatePost');
 
     if (this.funWaiting) {
       this.funWaiting.startFadeOut(() => {
@@ -253,31 +262,25 @@ export class PlayScene extends Phaser.Scene {
 
   startGameLogic() {
     if (!this.scene || !this.conductor) return
-
     this.isInCountdown = true
 
     const beatLengthMs = this.conductor.crochet
-
     this.countdownStartTime = this.time.now
     this.songStartTime = this.countdownStartTime + beatLengthMs * 5
 
+    if (this.scriptHandler) this.scriptHandler.call('onStartCountdown');
+
     this.countdown.performCountdown(beatLengthMs, () => {
       if (!this.scene) return
-
       this.isInCountdown = false
 
+      if (this.scriptHandler) this.scriptHandler.call('onSongStart');
+
       this.songAudio = SongPlayer.playSong(this, this.chartData)
-      
-      if (this.pauseHandler) {
-          this.pauseHandler.setSongAudio(this.songAudio);
-      }
 
       if (this.songAudio?.inst) {
         const durationMs = this.songAudio.inst.duration * 1000
-        if (this.timeBar) {
-          this.timeBar.setTotalDuration(durationMs)
-        }
-
+        if (this.timeBar) this.timeBar.setTotalDuration(durationMs)
         this.songAudio.inst.on("complete", this.onSongComplete, this)
       }
     })
@@ -287,30 +290,61 @@ export class PlayScene extends Phaser.Scene {
     if (!this.keyI || !this.cameraManager || !this.cameraManager.gameCamera) return
     const moveSpeed = 1000 * (delta / 1000)
 
-    if (this.keyI.isDown) {
-      this.cameraManager.gameCamera.scrollY -= moveSpeed
+    if (this.keyI.isDown) this.cameraManager.gameCamera.scrollY -= moveSpeed
+    if (this.keyK.isDown) this.cameraManager.gameCamera.scrollY += moveSpeed
+    if (this.keyJ.isDown) this.cameraManager.gameCamera.scrollX -= moveSpeed
+    if (this.keyL.isDown) this.cameraManager.gameCamera.scrollX += moveSpeed
+  }
+
+  triggerPause() {
+    if (this.songAudio) {
+      if (this.songAudio.inst && this.songAudio.inst.isPlaying) this.songAudio.inst.pause();
+      if (this.songAudio.voices) {
+        this.songAudio.voices.forEach(v => { if (v.isPlaying) v.pause(); });
+      }
     }
-    if (this.keyK.isDown) {
-      this.cameraManager.gameCamera.scrollY += moveSpeed
+
+    const diff = this.initData.DifficultyID ? this.initData.DifficultyID.toUpperCase() : "NORMAL";
+    this.scene.launch('PauseScene', {
+      parent: this,
+      songName: this.initData.targetSongId,
+      difficulty: diff,
+      deaths: this.deathCounter
+    });
+
+    this.scene.pause();
+  }
+
+  resumeFromPause() {
+    if (this.songAudio) {
+      if (this.songAudio.inst && this.songAudio.inst.isPaused) this.songAudio.inst.resume();
+      if (this.songAudio.voices) {
+        this.songAudio.voices.forEach(v => { if (v.isPaused) v.resume(); });
+      }
     }
-    if (this.keyJ.isDown) {
-      this.cameraManager.gameCamera.scrollX -= moveSpeed
-    }
-    if (this.keyL.isDown) {
-      this.cameraManager.gameCamera.scrollX += moveSpeed
-    }
+    this.scene.resume();
   }
 
   update(time, delta) {
-    if (this.pauseHandler) {
-        this.pauseHandler.update();
-        if (this.pauseHandler.isPaused) {
-            return; 
-        }
+    if (!this.isWaitingOnLoad) {
+      if (Phaser.Input.Keyboard.JustDown(this.pauseKeys.enter) || Phaser.Input.Keyboard.JustDown(this.pauseKeys.esc)) {
+        this.triggerPause();
+        return;
+      }
     }
 
-    if (this.isWaitingOnLoad) {
-      return
+    if (this.isWaitingOnLoad) return
+
+    if (this.scriptHandler && this.assetsLoaded) {
+      this.scriptHandler.call('onUpdate', delta, time);
+
+      let currentPos = 0;
+      if (this.isInCountdown) {
+        currentPos = time - this.songStartTime;
+      } else if (this.songAudio?.inst?.isPlaying) {
+        currentPos = this.songAudio.inst.seek * 1000;
+      }
+      this.scriptHandler.processEvents(currentPos);
     }
 
     this.debugCameraControls(delta)
@@ -318,16 +352,10 @@ export class PlayScene extends Phaser.Scene {
     if (!this.assetsLoaded) return
 
     let songPosition
-
     if (this.isInCountdown) {
       songPosition = time - this.songStartTime
-
-      if (this.charactersHandler) {
-        this.charactersHandler.update(songPosition)
-      }
-      if (this.notesHandler) {
-        this.notesHandler.update(songPosition)
-      }
+      if (this.charactersHandler) this.charactersHandler.update(songPosition)
+      if (this.notesHandler) this.notesHandler.update(songPosition)
     } else {
       if (!this.songAudio?.inst?.isPlaying) {
         if (this.charactersHandler) this.charactersHandler.update(0)
@@ -338,19 +366,11 @@ export class PlayScene extends Phaser.Scene {
       songPosition = this.songAudio.inst.seek * 1000
 
       if (this.notesHandler) this.notesHandler.update(songPosition)
-      if (this.charactersHandler) {
-        this.charactersHandler.update(songPosition)
-      }
+      if (this.charactersHandler) this.charactersHandler.update(songPosition)
     }
 
-    if (this.conductor) {
-      this.conductor.updateFromSong(songPosition)
-    }
-
-    if (this.timeBar) {
-      this.timeBar.update(songPosition)
-    }
-
+    if (this.conductor) this.conductor.updateFromSong(songPosition)
+    if (this.timeBar) this.timeBar.update(songPosition)
     if (this.healthBar) {
       this.healthBar.updateHealth(delta / 1000)
       this.healthBar.updateBeatBounce(songPosition, delta)
@@ -358,18 +378,15 @@ export class PlayScene extends Phaser.Scene {
   }
 
   damage(amount = 1) {
-    if (this.healthBar) {
-      this.healthBar.damage(amount)
-    }
+    if (this.healthBar) this.healthBar.damage(amount)
   }
 
   heal(amount = 1) {
-    if (this.healthBar) {
-      this.healthBar.heal(amount)
-    }
+    if (this.healthBar) this.healthBar.heal(amount)
   }
 
   onSongComplete() {
+    if (this.scriptHandler) this.scriptHandler.call('onSongEnd');
     if (!this.initData.isStoryMode) {
       this.exitToMenu()
       return
@@ -383,104 +400,20 @@ export class PlayScene extends Phaser.Scene {
     const nextSongId = this.initData.playlistSongIds[nextIndex]
     this.initData.currentSongIndex = nextIndex
     this.initData.targetSongId = nextSongId
+    this.initData.deathCounter = this.deathCounter;
     this.scene.restart(this.initData)
   }
 
   exitToMenu() {
     const nextSceneKey = this.initData?.isStoryMode ? "StoryModeScene" : "FreeplayScene"
+    this.scene.stop('PauseScene');
     this.scene.start(nextSceneKey)
   }
 
+  // [MODIFICADO] Método shutdown refactorizado
   shutdown() {
-    this.input.keyboard.removeAllKeys()
-    this.input.removeAllListeners()
-    this.time.removeAllEvents()
-    this.tweens.killAll()
-
-    if (window.gsap) {
-      gsap.globalTimeline.clear()
-    }
-
-    if (this.onWindowBlur) {
-        this.game.events.off('blur', this.onWindowBlur);
-        this.onWindowBlur = null;
-    }
-
-    if (this.game && this.game.sound) {
-      this.game.sound.stopAll()
-    }
-
-    if (this.songAudio?.inst) this.songAudio.inst.off("complete", this.onSongComplete, this)
-    this.load.off("complete", this.onAllDataLoaded, this)
-    this.load.off("complete", this.onAllAssetsLoaded, this)
-
-    if (this.pauseHandler) {
-        this.pauseHandler.destroy();
-        this.pauseHandler = null;
-    }
-
-    if (this.notesHandler) {
-      this.notesHandler.shutdown()
-      this.notesHandler = null
-    }
-    if (this.charactersHandler) {
-      this.charactersHandler.shutdown()
-      this.charactersHandler = null
-    }
-    if (this.stageHandler) {
-      this.stageHandler.shutdown()
-      this.stageHandler = null
-    }
-
-    this.children.removeAll(true)
-
-    if (this.healthBar) {
-      this.healthBar.destroy()
-      this.healthBar = null
-    }
-    if (this.timeBar) {
-      this.timeBar.destroy()
-      this.timeBar = null
-    }
-    if (this.ratingText) {
-      this.ratingText.destroy()
-      this.ratingText = null
-    }
-    if (this.scoreManager) {
-      this.scoreManager.destroy()
-      this.scoreManager = null
-    }
-    if (this.funWaiting) {
-      this.funWaiting.destroy()
-      this.funWaiting = null
-    }
-    if (this.cameraManager) {
-      this.cameraManager.shutdown(this)
-      this.cameraManager = null
-    }
-    if (this.popUpManager) {
-      this.popUpManager.shutdown()
-      this.popUpManager = null
-    }
-    if (this.countdown) {
-      this.countdown.stop()
-      this.countdown = null
-    }
-
-    if (this.conductor) {
-      this.conductor.stop()
-      this.conductor = null
-    }
-
-    SongPlayer.shutdown(this, this.chartData, this.songAudio)
-    ChartDataHandler.shutdown(this, this.initData?.targetSongId, this.initData?.DifficultyID || "normal")
-    PlaySceneData.shutdown(this)
-    
-    this.playSessionId = null;
-    this.tempNoteSkin = null;
-
-    console.log("PlayScene shutdown complete - all sprites and textures cleaned")
+    PlaySceneCleanup.shutdown(this);
   }
 }
 
-game.scene.add("PlayScene", PlayScene );
+game.scene.add("PlayScene", PlayScene);

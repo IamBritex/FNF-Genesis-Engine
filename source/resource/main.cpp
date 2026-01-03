@@ -18,7 +18,7 @@
 
 using namespace Microsoft::WRL;
 
-// Variable global necesaria para WndProc, ya que es un callback del sistema
+// Variable global necesaria para WndProc
 AppConfig globalConfig;
 
 /**
@@ -26,7 +26,6 @@ AppConfig globalConfig;
  * @description Procesa los mensajes de la ventana de Windows.
  */
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    // Controller static para mantener la referencia
     static ComPtr<ICoreWebView2Controller> controller;
 
     switch (message) {
@@ -46,7 +45,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         DiscordClient::Get().Shutdown(); 
         PostQuitMessage(0); 
         break;
-    // Recibe el controller desde WebViewManager
     case WM_USER + 1: 
         controller = (ICoreWebView2Controller*)lParam; 
         break;
@@ -58,7 +56,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 /**
  * @function WinMain
- * @description Punto de entrada principal. Actúa solo como controlador.
+ * @description Punto de entrada principal.
  */
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow) {
     // 1. Obtener rutas y configuración
@@ -122,7 +120,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow) {
     }
     UpdateWindow(hWnd);
 
-    // 6. Iniciar WebView (Delega toda la lógica compleja)
+    // 6. Iniciar WebView (Con flags de 300FPS en Initialize)
     WebViewManager::Initialize(hWnd, exeDir, globalConfig);
 
     // 7. Loop de Mensajes

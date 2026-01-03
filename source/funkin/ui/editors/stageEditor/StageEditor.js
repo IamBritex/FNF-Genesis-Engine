@@ -16,7 +16,7 @@ import { initKeyInputs, initMouseInputs } from './input/shortCuts.js';
 import navConfig from './components/NavButtonsConfig.js';
 import { NavMethods } from './components/NavMethods.js';
 import { EditorMethods } from './components/EditorMethods.js';
-import { updateStageBackground } from '../utils/checkboard.js'; 
+import { updateStageBackground } from '../utils/checkboard.js';
 import { GlobalEditorConfig } from '../utils/GlobalEditorConfig.js';
 import { ToastManager } from '../utils/Toast.js';
 import { ElementClipboard } from './input/ElementClipboard.js';
@@ -67,9 +67,9 @@ export class StageEditor extends Phaser.Scene {
         this.emergencySaveHandler = null;
         this.globalConfig = null;
         this.bgCheckerboard = null;
-        
+
         this.loadingScreen = null;
-        
+
         // Referencias para limpieza de eventos
         this.onWindowMouseDown = null;
         this.onWindowMouseUp = null;
@@ -118,12 +118,8 @@ export class StageEditor extends Phaser.Scene {
         this.load.audio('editorsMusic', 'public/music/chartEditorLoop.ogg');
         this.load.audio('menuMusic', 'public/music/FreakyMenu.mp3');
 
-        const styleElement = document.createElement('style');
-        styleElement.id = 'modular-window-css';
-        styleElement.innerHTML = ModularWindow.getWindowCSS();
-        if (!document.getElementById('modular-window-css')) {
-            document.head.appendChild(styleElement);
-        }
+        // [CORRECCIÓN] Eliminada la llamada a ModularWindow.getWindowCSS() 
+        // ya que el nuevo sistema de ventanas maneja los estilos internamente o via HTML.
     }
 
     create() {
@@ -135,7 +131,6 @@ export class StageEditor extends Phaser.Scene {
 
         document.body.classList.add('editor-scope');
 
-        // CORRECCIÓN: Usar funciones con nombre para poder removerlas después
         this.onWindowMouseDown = (e) => { if (e.button === 0) this.sound.play('clickDown'); };
         this.onWindowMouseUp = (e) => { if (e.button === 0) this.sound.play('clickUp'); };
 
@@ -160,7 +155,7 @@ export class StageEditor extends Phaser.Scene {
         });
 
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.input.on('pointerdown', (pointer) => {});
+        this.input.on('pointerdown', (pointer) => { });
 
         this.toastManager = new ToastManager(this);
 
@@ -195,20 +190,18 @@ export class StageEditor extends Phaser.Scene {
 
         this.navBar = new NavBarMenu(this);
         this.navBar.create(navConfig);
-        if(this.navBar.domElement) this.navBar.domElement.node.classList.add('hidden-ui');
+        if (this.navBar.domElement) this.navBar.domElement.node.classList.add('hidden-ui');
 
-        // --- CARGA ASÍNCRONA DE RECIENTES ---
         this.stageManager.loadRecentStagesList().then(recentStages => {
             const recentFileItems = recentStages.length > 0
                 ? recentStages.map(stageName => ({
                     name: stageName,
                     module: 'Stage',
                     method: `loadRecent-${stageName}`
-                  }))
+                }))
                 : [{ name: '(Vacío)', module: 'None', method: 'null' }];
 
             if (this.navBar) {
-                // Actualizar dinámicamente el menú
                 this.navBar.updateSubmenuItems('Archivo', 'Cargar Reciente', recentFileItems);
             }
         });
@@ -293,7 +286,7 @@ export class StageEditor extends Phaser.Scene {
             if (this.testManager) this.testManager.update(delta);
         } else {
             const panLerpSpeed = elapsedSeconds * 10;
-            
+
             if (this.gameCam) {
                 this.gameCam.scrollX = Phaser.Math.Linear(this.gameCam.scrollX, this.baseScrollX, panLerpSpeed);
                 this.gameCam.scrollY = Phaser.Math.Linear(this.gameCam.scrollY, this.baseScrollY, panLerpSpeed);
@@ -309,8 +302,7 @@ export class StageEditor extends Phaser.Scene {
     shutdown() {
         window.removeEventListener('beforeunload', this.emergencySaveHandler);
         window.removeEventListener('error', this.emergencySaveHandler);
-        
-        // Limpieza de eventos globales de mouse
+
         if (this.onWindowMouseDown) window.removeEventListener('mousedown', this.onWindowMouseDown);
         if (this.onWindowMouseUp) window.removeEventListener('mouseup', this.onWindowMouseUp);
 

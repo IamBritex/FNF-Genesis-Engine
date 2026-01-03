@@ -1,5 +1,5 @@
 /**
- * @fileoverview API Principal de Genesis Engine (Con Discord RPC Nativo)
+ * @fileoverview API Principal de Genesis Engine (Con Discord RPC Nativo y Sistema de Archivos Completo)
  */
 
 const isNative = !!(window.chrome && window.chrome.webview);
@@ -12,7 +12,7 @@ const pendingCallbacks = {};
 if (isNative) {
     window.chrome.webview.addEventListener('message', event => {
         const msg = event.data;
-        
+
         if (msg.startsWith("fileSelected:")) {
             const path = msg.substring(13);
             if (pendingCallbacks.openFile) pendingCallbacks.openFile(path || null);
@@ -22,7 +22,7 @@ if (isNative) {
             const pipeIndex = dataStr.indexOf('|');
             const key = dataStr.substring(0, pipeIndex);
             const content = dataStr.substring(pipeIndex + 1);
-            
+
             if (pendingCallbacks['load_' + key]) {
                 pendingCallbacks['load_' + key](content);
                 delete pendingCallbacks['load_' + key];
@@ -31,7 +31,7 @@ if (isNative) {
         else if (msg.startsWith("dirListed:")) {
             const dataStr = msg.substring(10);
             const pipeIndex = dataStr.indexOf('|');
-            const pathKey = dataStr.substring(0, pipeIndex).replace(/\\/g, '/'); 
+            const pathKey = dataStr.substring(0, pipeIndex).replace(/\\/g, '/');
             const filesStr = dataStr.substring(pipeIndex + 1);
             const files = filesStr ? filesStr.split('|') : [];
             if (pendingCallbacks['list_' + pathKey]) {
@@ -51,7 +51,7 @@ if (isNative) {
 
 const Genesis = {
     env: envType,
-    info: { version: "1.0.0", author: "ImBritex", id: "com.genesis.engine" },
+    info: { version: "1.1.0", author: "Britex", id: "com.genesis.engine" },
 
     path: {
         userData: isNative ? window.__GENESIS_PATHS__?.userData : "localStorage",
@@ -101,17 +101,10 @@ const Genesis = {
     },
 
     discord: {
-        /**
-         * Actualiza la presencia de Discord.
-         * @param {object} data
-         * @param {string} [data.details] Texto superior (ej: "Editando Nivel").
-         * @param {string} [data.state] Texto inferior (ej: "Nivel: Tutorial").
-         */
         setActivity: (data) => {
             if (isNative) {
                 const details = data.details || "";
                 const state = data.state || "";
-                // Enviar mensaje al C++: "discord:Estado|Detalles"
                 window.chrome.webview.postMessage(`discord:${state}|${details}`);
             } else {
                 console.log("[Discord Mock] Activity:", data);
@@ -129,7 +122,42 @@ const Genesis = {
         }
     },
 
+    // --- NUEVA API DE ARCHIVOS GENÉRICA ---
     file: {
+        /**
+         * Crea una carpeta en AppData/Roaming/com.genesis.engine/
+         * @param {string} path - Ruta relativa (ej: "screenshots" o "levels/custom")
+         */
+        createDirectory: (path) => {
+            if (isNative) {
+                window.chrome.webview.postMessage(`createDir:${path}`);
+            } else {
+                console.log(`[Web] Simulando creación de carpeta: ${path}`);
+            }
+        },
+
+        /**
+         * Guarda un archivo en AppData.
+         * Detecta imágenes automáticamente si el contenido es Base64.
+         * @param {string} path - Ruta relativa con extensión (ej: "config.json" o "screenshots/img.png")
+         * @param {string} content - Contenido del archivo (Texto o Base64)
+         */
+        save: (path, content) => {
+            if (isNative) {
+                window.chrome.webview.postMessage(`saveFile:${path}|${content}`);
+            } else {
+                // En web intentamos descargar si es imagen o guardar en localStorage
+                if (typeof content === 'string' && content.startsWith("data:")) {
+                    const a = document.createElement("a");
+                    a.href = content;
+                    a.download = path.split('/').pop();
+                    a.click();
+                } else {
+                    localStorage.setItem(`genesis_${path}`, content);
+                }
+            }
+        },
+
         list: (path) => {
             return new Promise((resolve) => {
                 if (!isNative) {
@@ -141,29 +169,47 @@ const Genesis = {
                 pendingCallbacks['list_' + pathKey] = resolve;
                 window.chrome.webview.postMessage(`listDir:${path}`);
             });
+        },
+
+        load: (path) => {
+            return new Promise((resolve) => {
+                if (!isNative) {
+                    const data = localStorage.getItem(`genesis_${path}`);
+                    resolve(data);
+                    return;
+                }
+                pendingCallbacks['load_' + path] = resolve;
+                window.chrome.webview.postMessage(`loadFile:${path}`);
+            });
         }
     },
 
     storage: {
         save: (key, data) => {
             const content = typeof data === 'object' ? JSON.stringify(data) : data;
-            if (isNative) window.chrome.webview.postMessage(`saveFile:${key}.json|${content}`);
-            else localStorage.setItem(`genesis_${key}`, content);
+
+            let finalName = key;
+            const isImage = typeof content === 'string' && content.startsWith("data:image");
+
+            if (isImage) {
+                // Es imagen: Si el nombre no termina en .png/.jpg, le agregamos .png
+                if (!/\.(png|jpg|jpeg|webp)$/i.test(finalName)) {
+                    finalName += ".png";
+                }
+            } else {
+                // Es JSON/Texto: Mantener comportamiento original (forzar .json)
+                if (!finalName.endsWith(".json")) {
+                    finalName += ".json";
+                }
+            }
+
+            // Usamos la nueva API de archivos internamente
+            Genesis.file.save(finalName, content);
         },
         load: (key) => {
-            return new Promise((resolve) => {
-                if (!isNative) {
-                    const data = localStorage.getItem(`genesis_${key}`);
-                    try { resolve(JSON.parse(data)); } catch(e) { resolve(data); }
-                    return;
-                }
-                pendingCallbacks['load_' + key] = (content) => {
-                    if (!content) resolve(null);
-                    else {
-                        try { resolve(JSON.parse(content)); } catch(e) { resolve(content); }
-                    }
-                };
-                window.chrome.webview.postMessage(`loadFile:${key}`);
+            return Genesis.file.load(key).then(content => {
+                if (!content) return null;
+                try { return JSON.parse(content); } catch (e) { return content; }
             });
         }
     }

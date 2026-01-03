@@ -17,16 +17,19 @@ export class MenuInputHandler {
         this.onKeyDown = () => this.changeSelection(1);
         this.onKeyEnter = () => this.confirmSelection();
         this.onKeyBackspace = () => this.goBack();
-        
+
         this.onKeySeven = () => {
             if (this.scene.canInteract) {
-                /**
-                 * Al lanzar el modal, no pausamos la escena,
-                 * solo le quitamos la interactividad.
-                 * Esto es VITAL para que el 'backdrop-filter' (blur) funcione.
-                 */
-                this.scene.canInteract = false; 
-                this.scene.scene.launch('EditorsScene');
+                // --- CAMBIO SOLICITADO ---
+                this.scene.canInteract = false;
+                this.scene.sound.play('confirmSound');
+
+                // Transición fade out para entrar al Editor limpiamente
+                this.scene.cameras.main.fadeOut(500, 0, 0, 0);
+                this.scene.cameras.main.once('camerafadeoutcomplete', () => {
+                    // Usamos 'start' para cerrar MainMenu e iniciar Editor completamente
+                    this.scene.scene.start('Editor');
+                });
             }
         };
 
@@ -43,7 +46,7 @@ export class MenuInputHandler {
         this.scene.input.keyboard.on('keydown-ENTER', this.onKeyEnter);
         this.scene.input.keyboard.on('keydown-BACKSPACE', this.onKeyBackspace);
         this.scene.input.keyboard.on('keydown-SEVEN', this.onKeySeven);
-        
+
         this.scene.input.on('wheel', this.onWheel);
     }
 
@@ -53,7 +56,7 @@ export class MenuInputHandler {
      */
     changeSelection(change) {
         if (!this.scene.canInteract) return;
-        
+
         this.scene.selectSound.play();
         this.scene.selectedIndex += change;
 
@@ -62,7 +65,7 @@ export class MenuInputHandler {
         } else if (this.scene.selectedIndex >= this.scene.menuItems.length) {
             this.scene.selectedIndex = 0;
         }
-        
+
         this.updateSelection();
     }
 
@@ -79,8 +82,6 @@ export class MenuInputHandler {
             }
         });
 
-        // Con origen 0.5, item.y es el centro.
-        // La cámara debe seguir el centro.
         const targetY = this.scene.menuItems[this.scene.selectedIndex].y;
         this.scene.camFollow.setPosition(this.scene.camFollow.x, targetY);
     }
@@ -90,7 +91,7 @@ export class MenuInputHandler {
      */
     confirmSelection() {
         if (!this.scene.canInteract) return;
-        
+
         this.scene.canInteract = false;
         this.scene.confirmSound.play();
         const selectedItem = this.scene.menuItems[this.scene.selectedIndex];
@@ -129,7 +130,7 @@ export class MenuInputHandler {
      */
     goBack() {
         if (!this.scene.canInteract) return;
-        
+
         this.scene.canInteract = false;
         this.scene.cancelSound.play();
         this.scene.startExitState('introDance');
@@ -137,7 +138,6 @@ export class MenuInputHandler {
 
     /**
      * Limpia todos los listeners del teclado.
-     * Se debe llamar en el 'shutdown' de la escena.
      */
     destroy() {
         this.scene.input.keyboard.off('keydown-UP', this.onKeyUp);
@@ -145,7 +145,7 @@ export class MenuInputHandler {
         this.scene.input.keyboard.off('keydown-ENTER', this.onKeyEnter);
         this.scene.input.keyboard.off('keydown-BACKSPACE', this.onKeyBackspace);
         this.scene.input.keyboard.off('keydown-SEVEN', this.onKeySeven);
-        
+
         this.scene.input.off('wheel', this.onWheel);
     }
 }

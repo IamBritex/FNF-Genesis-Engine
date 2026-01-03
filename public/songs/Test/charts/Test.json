@@ -1,7 +1,7 @@
 {
 	"song": {
 		"player": "bf",
-		"events": [],
+		"events": true,
 		"gfVersion": null,
 		"notes": [
 			{

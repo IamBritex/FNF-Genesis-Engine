@@ -12,31 +12,32 @@
 
 using namespace Microsoft::WRL;
 
-/**
- * @class WebViewManager
- * @description Maneja la creación y eventos del WebView2.
- */
 class WebViewManager {
 public:
-    /**
-     * Inicializa el entorno WebView2.
-     * @param {HWND} hWnd - Ventana principal.
-     * @param {std::wstring} exeDir - Ruta base del ejecutable.
-     * @param {AppConfig} config - Configuración de la aplicación.
-     */
     static void Initialize(HWND hWnd, std::wstring exeDir, AppConfig config) {
         auto options = Make<CoreWebView2EnvironmentOptions>();
         
-        // Flags optimizados para rendimiento
         std::wstring flags = L"";
+        
+        // --- RENDIMIENTO ---
+        flags += L"--use-angle=default "; 
+        flags += L"--ignore-gpu-blocklist "; 
+        flags += L"--enable-gpu-rasterization ";
+        flags += L"--enable-zero-copy ";
+
+        // --- ARRANQUE Y LIMPIEZA ---
+        flags += L"--no-proxy-server "; 
+        flags += L"--disable-background-networking "; 
+        flags += L"--disable-component-update "; 
+        flags += L"--disable-default-apps "; 
+        flags += L"--disable-sync "; 
         flags += L"--allow-file-access-from-files ";
-        flags += L"--disable-web-security ";
+        flags += L"--disable-web-security "; 
+        flags += L"--disable-site-isolation-trials "; 
         flags += L"--renderer-process-limit=1 "; 
-        flags += L"--max-active-webgl-contexts=1 "; 
-        flags += L"--disable-features=Translate,OptimizationHints,MediaRouter,msSmartScreenProtection,SpellCheck,AutofillServerCommunication ";
+        flags += L"--disable-features=Translate,OptimizationHints,MediaRouter,msSmartScreenProtection,SpellCheck,AutofillServerCommunication,BackForwardCache ";
         flags += L"--disable-extensions ";
-        flags += L"--disable-background-networking ";
-        flags += L"--disable-component-update ";
+        flags += L"--disable-breakpad "; 
         
         options->put_AdditionalBrowserArguments(flags.c_str());
 
@@ -49,8 +50,6 @@ public:
                         [hWnd, exeDir, config](HRESULT, ICoreWebView2Controller* c) -> HRESULT {
                             if (!c) return S_FALSE; 
                             c->AddRef();
-                            
-                            // Enviamos el controlador a WndProc para el redimensionado
                             SendMessage(hWnd, WM_USER + 1, 0, (LPARAM)c);
                             
                             RECT b; GetClientRect(hWnd, &b); c->put_Bounds(b);
@@ -60,31 +59,26 @@ public:
                             if (wv3) wv3->SetVirtualHostNameToFolderMapping(L"app.genesis", exeDir.c_str(), COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW);
 
                             ComPtr<ICoreWebView2Settings> settings; wv->get_Settings(&settings);
-                            settings->put_IsScriptEnabled(TRUE); settings->put_IsWebMessageEnabled(TRUE);
+                            settings->put_IsScriptEnabled(TRUE); 
+                            settings->put_IsWebMessageEnabled(TRUE);
                             settings->put_AreDevToolsEnabled(config.devTools ? TRUE : FALSE);
                             settings->put_AreDefaultContextMenusEnabled(FALSE);
+                            settings->put_IsStatusBarEnabled(FALSE); 
 
-                            // Ocultar descargas
-                            ComPtr<ICoreWebView2_4> wv4; wv.As(&wv4);
-                            if (wv4) {
-                                wv4->add_DownloadStarting(Callback<ICoreWebView2DownloadStartingEventHandler>(
-                                    [](ICoreWebView2*, ICoreWebView2DownloadStartingEventArgs* a) -> HRESULT {
-                                        a->put_Handled(TRUE); return S_OK;
-                                    }).Get(), nullptr);
-                            }
+                            // [MODIFICACIÓN CLAVE]
+                            // Hemos eliminado el bloque "add_DownloadStarting" que bloqueaba las descargas.
+                            // Ahora WebView2 permitirá descargar archivos (Capturas, JSONs, etc.) nativamente.
 
-                            // Inyección de variables globales JS
                             std::wstring jsInject = L"window.__GENESIS_PATHS__ = { gameDir: '";
                             for(auto ch : exeDir) { jsInject += (ch == L'\\') ? L"\\\\" : std::wstring(1, ch); }
                             jsInject += L"' };";
+                            
                             wv->AddScriptToExecuteOnDocumentCreated(jsInject.c_str(), nullptr);
-
-                            // Manejo de mensajes (JS -> C++)
+                            
                             wv->add_WebMessageReceived(Callback<ICoreWebView2WebMessageReceivedEventHandler>(
                                 [hWnd, exeDir, config](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
                                     LPWSTR p; args->TryGetWebMessageAsString(&p);
                                     std::wstring msg(p); CoTaskMemFree(p);
-                                    
                                     HandleWebMessage(hWnd, sender, msg, exeDir, config);
                                     return S_OK;
                                 }).Get(), nullptr);
@@ -97,9 +91,6 @@ public:
     }
 
 private:
-    /**
-     * Procesa los mensajes recibidos desde JavaScript.
-     */
     static void HandleWebMessage(HWND hWnd, ICoreWebView2* sender, std::wstring msg, std::wstring exeDir, AppConfig config) {
         if (msg.find(L"resize:") == 0) {
             std::wstring d = msg.substr(7);
@@ -111,14 +102,24 @@ private:
         else if (msg == L"minimize") ShowWindow(hWnd, SW_MINIMIZE);
         else if (msg == L"close") PostMessage(hWnd, WM_CLOSE, 0, 0);
         else if (msg.find(L"setTitle:") == 0) SetWindowTextW(hWnd, msg.substr(9).c_str());
+        
+        // Mantenemos la API de archivos por si quieres guardar cosas internas (config, saves)
+        else if (msg.find(L"createDir:") == 0) {
+            std::wstring dirName = msg.substr(10);
+            Utils::CreateDir(config.appID, dirName);
+        }
         else if (msg.find(L"saveFile:") == 0) {
             std::wstring data = msg.substr(9);
             size_t pipe = data.find(L"|");
-            if (pipe != std::wstring::npos) Utils::SaveToAppData(config.appID, data.substr(0, pipe), data.substr(pipe + 1));
+            if (pipe != std::wstring::npos) 
+                Utils::SaveToAppData(config.appID, data.substr(0, pipe), data.substr(pipe + 1));
         }
         else if (msg.find(L"loadFile:") == 0) {
             std::wstring key = msg.substr(9);
-            std::wstring content = Utils::LoadFromAppData(config.appID, key + L".json");
+            std::wstring filename = key;
+            if (filename.find(L".") == std::wstring::npos) filename += L".json";
+            std::wstring content = Utils::LoadFromAppData(config.appID, filename);
+            if (content.empty() && filename != key) content = Utils::LoadFromAppData(config.appID, key);
             std::wstring reply = L"fileLoaded:" + key + L"|" + content;
             sender->PostWebMessageAsString(reply.c_str());
         }

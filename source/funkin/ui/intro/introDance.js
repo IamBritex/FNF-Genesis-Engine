@@ -18,15 +18,15 @@ class introDance extends Phaser.Scene {
 
   create() {
     this.isTransitioning = false;
-    
+
     // Iniciar transición de fade-in si es necesario
     if (!this.scene.isActive("TransitionScene")) {
       this.scene.launch("TransitionScene");
     }
 
     // --- 1. Configuración de Sprites y Animaciones ---
-    const leftIndices = [30, ...Array.from({length: 15}, (_, i) => i)]; 
-    const rightIndices = Array.from({length: 15}, (_, i) => i + 15);
+    const leftIndices = [30, ...Array.from({ length: 15 }, (_, i) => i)];
+    const rightIndices = Array.from({ length: 15 }, (_, i) => i + 15);
 
     this.createAnimByIndices("gfDanceLeft", "gfDance", "gfDance", leftIndices, 24, false);
     this.createAnimByIndices("gfDanceRight", "gfDance", "gfDance", rightIndices, 24, false);
@@ -37,23 +37,23 @@ class introDance extends Phaser.Scene {
     this.gf = this.add.sprite(560, 50, "gfDance").setOrigin(0, 0);
     this.logo = this.add.sprite(-165, -140, "logoBumpin").setOrigin(0, 0).setScale(1.07);
     this.enterLogo = this.add.sprite(600, 620, "titleEnter").setOrigin(0.5, 0.5);
-    
+
     if (this.anims.exists("enterIdle")) this.enterLogo.play("enterIdle");
 
     // --- 2. Inicializar Controlador de Ritmo (102 BPM) ---
     this.boopController = new IntroDanceBoop(this, 102);
-    
+
     // --- 3. Inicializar Script Secreto (FunScript) ---
     this.funScript = new FunScript(
-        this, 
-        { gf: this.gf, logo: this.logo }, 
-        this.boopController
+      this,
+      { gf: this.gf, logo: this.logo },
+      this.boopController
     );
     this.funScript.start();
 
     // --- 4. Iniciar el ciclo de Beats ---
     this.boopController.start((isLeft) => {
-        this.updateVisualsOnBeat(isLeft);
+      this.updateVisualsOnBeat(isLeft);
     });
 
     this.setupControls();
@@ -62,15 +62,15 @@ class introDance extends Phaser.Scene {
   updateVisualsOnBeat(danceLeft) {
     // 1. Notificar a FunScript para que actualice shaders si es necesario
     if (this.funScript) {
-        this.funScript.beatHit();
+      this.funScript.beatHit();
     }
 
     // 2. Actualizar Animaciones
     if (this.gf && this.anims.exists("gfDanceLeft") && this.anims.exists("gfDanceRight")) {
-        this.gf.play(danceLeft ? "gfDanceRight" : "gfDanceLeft", true);
+      this.gf.play(danceLeft ? "gfDanceRight" : "gfDanceLeft", true);
     }
     if (this.logo && this.anims.exists("logoBumpin")) {
-        this.logo.play("logoBumpin", true);
+      this.logo.play("logoBumpin", true);
     }
   }
 
@@ -84,7 +84,7 @@ class introDance extends Phaser.Scene {
     this.isTransitioning = true;
 
     if (this.funScript) {
-        this.funScript.shutdown();
+      this.funScript.shutdown();
     }
 
     if (this.anims.exists("enterPressed")) this.enterLogo.play("enterPressed");
@@ -99,15 +99,15 @@ class introDance extends Phaser.Scene {
   shutdown() {
     this.isTransitioning = false;
     this.input.keyboard.removeAllListeners("keydown-ENTER");
-    
+
     if (this.boopController) {
-        this.boopController.stop();
-        this.boopController = null;
+      this.boopController.stop();
+      this.boopController = null;
     }
 
     if (this.funScript) {
-        this.funScript.shutdown();
-        this.funScript = null;
+      this.funScript.shutdown();
+      this.funScript = null;
     }
   }
 
@@ -130,6 +130,4 @@ class introDance extends Phaser.Scene {
   }
 }
 
-if (typeof game !== 'undefined') {
-    game.scene.add("introDance", introDance);
-}
+game.scene.add("introDance", introDance);

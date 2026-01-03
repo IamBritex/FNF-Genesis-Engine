@@ -5,15 +5,15 @@ export class FreeUI {
     constructor(scene, songs) {
         this.scene = scene;
         this.songs = songs;
-        
+
         this.grpSongs = null;
         this.scoreText = null;
         this.diffText = null;
-        
+
         this.curSelected = 0;
         this.curDifficulty = 1;
         this.targetScrollY = 0;
-        this.songSpacing = 160; 
+        this.songSpacing = 160;
         this.selectingSong = false;
 
         this.scrollSnd = this.scene.sound.add('scrollSound');
@@ -28,45 +28,41 @@ export class FreeUI {
         for (let i = 0; i < this.songs.length; i++) {
             const song = this.songs[i];
             const displayName = song && typeof song.displayName === 'string' ? song.displayName : 'MISSING_NAME';
-            // Si no hay icono, pasamos 'face' por defecto
             const iconName = song.icon || 'face';
 
             const yPos = i * this.songSpacing;
 
-            // 1. Crear Texto
             const songText = new Alphabet(
-                this.scene, 
-                0, 
-                yPos, 
-                displayName, 
-                true, 
+                this.scene,
+                0,
+                yPos,
+                displayName,
+                true,
                 1.0
             );
             songText.targetY = i;
             this.grpSongs.add(songText);
 
-            // 2. Crear Icono del Enemigo
-            // --- AJUSTE DE POSICIÓN ---
-            const iconX = songText.width + 50; 
-            const iconY = yPos + 8; 
+            const iconX = songText.width + 50;
+            const iconY = yPos + 8;
 
             const iconEnemy = new IconSongEnemy(this.scene, iconX, iconY, iconName);
             iconEnemy.targetY = i;
-            
+
             this.grpSongs.add(iconEnemy);
-            
+
             songText.iconRef = iconEnemy;
         }
 
-        // Textos de UI
+        // Textos de UI - Cambio aquí: this.scene.add.text()
         this.scoreText = this.scene.add.text(
             width * 0.95, 20, "Best Score: 0",
-            { fontFamily: 'VCR', fontSize: "32px", fill: "#fff", align: "right" }
+            { fontFamily: 'vcr', fontSize: "32px", fill: "#fff", align: "right" }
         ).setOrigin(1, 0);
 
         this.diffText = this.scene.add.text(
             width * 0.95, 60, "< NORMAL >",
-            { fontFamily: 'VCR', fontSize: "24px", fill: "#fff", align: "right" }
+            { fontFamily: 'vcr', fontSize: "24px", fill: "#fff", align: "right" }
         ).setOrigin(1, 0);
     }
 
@@ -82,14 +78,14 @@ export class FreeUI {
                 // Lógica para los ICONOS
                 if (child instanceof IconSongEnemy) {
                     const isSelected = child.targetY === this.curSelected;
-                    
+
                     // BOOPING: Solo si está seleccionado
                     if (isSelected) {
                         child.playBeat(time, delta);
                     } else {
                         child.idle();
                     }
-                    
+
                     const targetAlpha = isSelected ? 1.0 : 0.6;
                     child.alpha = Phaser.Math.Linear(child.alpha, targetAlpha, 0.1);
                 }

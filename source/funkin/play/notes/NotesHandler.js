@@ -20,7 +20,6 @@ export class NotesHandler {
     
     // Seguridad: Si por alguna razón no cargó (fallback), intentar cargar
     if (!this.noteSkin.getSkinData()) {
-         console.warn("NotesHandler: Skin Data no listo. Intentando carga de emergencia (puede fallar visualmente este frame).");
          this.noteSkin.loadAssets();
     }
 

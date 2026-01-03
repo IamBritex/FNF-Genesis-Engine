@@ -10,7 +10,7 @@ class IntroMenu extends Phaser.Scene {
     this.currentYOffset = 0;
     this.sceneEnded = false;
     this.currentRandomPair = null;
-    
+
     this.startY = 300;
     this.lineSpacing = 55;
 
@@ -32,26 +32,26 @@ class IntroMenu extends Phaser.Scene {
     this.load.atlasXML("gfDance", "public/images/menu/intro/gfDanceTitle.png", "public/images/menu/intro/gfDanceTitle.xml");
     this.load.atlasXML("logoBumpin", "public/images/menu/intro/logoBumpin.png", "public/images/menu/intro/logoBumpin.xml");
     this.load.atlasXML("titleEnter", "public/images/menu/intro/titleEnter.png", "public/images/menu/intro/titleEnter.xml");
-    
+
     this.load.audio("confirm", "public/sounds/confirmMenu.ogg");
     this.load.audio("girlfriendsRingtone", "public/music/girlfriendsRingtone.ogg");
-    
+
     // Shader para el Easter Egg
     this.load.text("rainbowShader", "public/shaders/RainbowShader.frag");
   }
 
   create() {
     if (window.Genesis && window.Genesis.discord) {
-        console.log("Actualizando estado de Discord...");
-        Genesis.discord.setActivity({
-            details: "Menu in Friday Night Funkin'", 
-            state: "Intro"
-        });
+      console.log("Actualizando estado de Discord...");
+      Genesis.discord.setActivity({
+        details: "Menu in Friday Night Funkin'",
+        state: "Intro"
+      });
     }
 
     const introData = this.cache.json.get("introData");
     const sequence = introData.introSequences.find(s => s.id === 'default');
-    
+
     if (!sequence) {
       console.error("No se encontró la secuencia 'default' en intro.json");
       return;
@@ -82,8 +82,8 @@ class IntroMenu extends Phaser.Scene {
     // 4. CONVERTIR PASOS A EVENTOS DE TIEMPO (CONDUCTOR)
     // En lugar de programarlos, creamos una lista con el tiempo exacto en que deben ocurrir.
     this.introEvents = steps.map(step => ({
-        ...step,
-        targetTime: step.beat * beatTime // Tiempo exacto en milisegundos
+      ...step,
+      targetTime: step.beat * beatTime // Tiempo exacto en milisegundos
     }));
 
     // Asegurarnos que estén ordenados cronológicamente
@@ -112,18 +112,18 @@ class IntroMenu extends Phaser.Scene {
     // Revisamos si ya alcanzamos el tiempo del siguiente evento
     // Usamos un while por si el framerate bajó y debemos procesar varios eventos de golpe
     while (this.currentEventIndex < this.introEvents.length) {
-        const nextEvent = this.introEvents[this.currentEventIndex];
+      const nextEvent = this.introEvents[this.currentEventIndex];
 
-        // Si el tiempo de la canción es mayor o igual al tiempo objetivo del evento...
-        if (currentSongTime >= nextEvent.targetTime) {
-            // ...ejecutamos el evento
-            this.processJsonStep(nextEvent);
-            // ...y avanzamos al siguiente índice
-            this.currentEventIndex++;
-        } else {
-            // Si no hemos llegado al tiempo, salimos del bucle
-            break;
-        }
+      // Si el tiempo de la canción es mayor o igual al tiempo objetivo del evento...
+      if (currentSongTime >= nextEvent.targetTime) {
+        // ...ejecutamos el evento
+        this.processJsonStep(nextEvent);
+        // ...y avanzamos al siguiente índice
+        this.currentEventIndex++;
+      } else {
+        // Si no hemos llegado al tiempo, salimos del bucle
+        break;
+      }
     }
   }
 
@@ -146,15 +146,15 @@ class IntroMenu extends Phaser.Scene {
 
     if (step.img) {
       if (this.imageObj) this.imageObj.destroy();
-      
+
       this.imageObj = this.add.image(
         this.game.config.width / 2,
         this.startY + this.currentYOffset + 80,
         step.img.id
       )
-      .setOrigin(0.5, 0.5)
-      .setScale(step.img.scale || 1);
-      
+        .setOrigin(0.5, 0.5)
+        .setScale(step.img.scale || 1);
+
       this.currentYOffset += 100;
     }
 
@@ -181,10 +181,10 @@ class IntroMenu extends Phaser.Scene {
     if (!textString) return;
 
     const text = new Alphabet(this, 0, 0, textString.toUpperCase(), true, 1);
-    
+
     text.x = (this.game.config.width / 2) - (text.width / 2);
     text.y = this.startY + this.currentYOffset;
-    
+
     this.add.existing(text);
     this.texts.push(text);
     this.currentYOffset += this.lineSpacing;
@@ -194,10 +194,23 @@ class IntroMenu extends Phaser.Scene {
     if (this.sceneEnded) return;
     this.sceneEnded = true;
 
-    // Al usar el update loop, no necesitamos cancelar timers, 
-    // solo poner la bandera sceneEnded a true detiene el proceso.
-    
-    this.scene.get("FlashEffect").startTransition("introDance");
+    // Verificamos si existe el efecto de flash para usarlo
+    if (this.scene.get("FlashEffect")) {
+      // Iniciamos la transición visual (pantalla blanca)
+      this.scene.get("FlashEffect").startTransition("introDance");
+
+      // [CORRECCIÓN CRÍTICA]
+      // Forzamos la detención de esta escena (IntroMenu) después de 200ms.
+      // 200ms es lo que tarda FlashEffect en poner la pantalla totalmente blanca (alpha 1).
+      // Al detenerla aquí, garantizamos que los textos desaparezcan y no se superpongan
+      // con la siguiente escena, incluso si FlashEffect falla en detenerla automáticamente.
+      this.time.delayedCall(200, () => {
+        this.scene.stop("IntroMenu");
+      });
+    } else {
+      // Fallback: Si no hay efecto flash, cambiamos directamente (esto ya detiene la escena actual)
+      this.scene.start("introDance");
+    }
   }
 
   getRandomTextPair() {
@@ -212,15 +225,15 @@ class IntroMenu extends Phaser.Scene {
       this.music.destroy();
       this.music = null;
     }
-    
+
     this.texts.forEach((t) => t.destroy());
     this.texts = [];
-    
+
     if (this.imageObj) {
       this.imageObj.destroy();
       this.imageObj = null;
     }
-    
+
     this.input.keyboard.off("keydown-ENTER", this.skipScene, this);
     this.introEvents = []; // Limpiar eventos
   }

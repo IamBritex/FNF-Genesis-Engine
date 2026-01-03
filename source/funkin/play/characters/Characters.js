@@ -3,14 +3,14 @@ import { CharacterElements } from "./characterElements.js"
 import { CharacterAnimations } from "./charactersAnimations.js"
 import { CharacterBooper } from "./charactersBooper.js"
 import { NoteDirection } from "../notes/NoteDirection.js"
+import ModHandler from "../../../core/ModHandler.js" // Importante
 
 export class Characters {
-  // [MODIFICADO] Acepta sessionId
   constructor(scene, chartData, cameraManager, stageHandler, conductor, sessionId) {
     this.scene = scene
     this.cameraManager = cameraManager
     this.stageHandler = stageHandler
-    this.sessionId = sessionId // Guardar
+    this.sessionId = sessionId
 
     this.chartCharacterNames = CharactersData.extractChartData(chartData)
 
@@ -22,7 +22,6 @@ export class Characters {
 
     this.booper = new CharacterBooper(this.scene, conductor?.bpm || 100)
 
-    // Pasar sessionId
     this.characterElements = new CharacterElements(this.scene, this.cameraManager, this.sessionId)
     this.characterAnimations = new CharacterAnimations(this.scene)
 
@@ -31,14 +30,21 @@ export class Characters {
     this.gf = null
   }
 
+  /**
+   * Carga los JSONs de configuración de cada personaje.
+   * Usa ModHandler para decidir si carga del Mod o del juego base.
+   */
   loadCharacterJSONs() {
     if (!this.chartCharacterNames) return
     const names = this.chartCharacterNames
+
     const loadChar = (key, charName) => {
       if (charName) {
         const charKey = `char_${charName}`
         if (!this.scene.cache.json.exists(charKey)) {
-          const path = `public/data/characters/${charName}.json`
+          // [MODIFICADO] Solicitamos la ruta segura al ModHandler
+          const path = ModHandler.getPath('data', `characters/${charName}.json`);
+
           this.scene.load.json(charKey, path)
           console.log(`Characters.js: Registrando carga de JSON: ${path}`)
         }
@@ -68,17 +74,18 @@ export class Characters {
     const bfJSON = getJSON(this.chartCharacterNames.player)
     const dadJSON = getJSON(this.chartCharacterNames.enemy)
     const gfJSON = getJSON(this.chartCharacterNames.gfVersion)
-    
+
     const loadedJSONs = {}
     if (bfJSON) loadedJSONs[this.chartCharacterNames.player] = bfJSON
     if (dadJSON) loadedJSONs[this.chartCharacterNames.enemy] = dadJSON
     if (gfJSON) loadedJSONs[this.chartCharacterNames.gfVersion] = gfJSON
-    
+
+    // NOTA: Para que las imágenes (PNGs) también sean moddeables, 
+    // CharacterElements.js debe implementar ModHandler en su método 'preloadAtlases'.
     this.characterElements.preloadAtlases(this.chartCharacterNames, this.loadedCharacterJSONs)
   }
 
   createAnimationsAndSprites() {
-    // Pasar sessionId a Animations
     this.characterAnimations.createAllAnimations(this.chartCharacterNames, this.loadedCharacterJSONs, this.sessionId)
     const sprites = this.characterElements.createSprites(
       this.chartCharacterNames,
@@ -129,26 +136,15 @@ export class Characters {
       this.booper.stopBeatSystem()
     }
 
-    if (this.bf) {
-      this.bf.destroy()
-      this.bf = null
-    }
-    if (this.dad) {
-      this.dad.destroy()
-      this.dad = null
-    }
-    if (this.gf) {
-      this.gf.destroy()
-      this.gf = null
-    }
+    if (this.bf) { this.bf.destroy(); this.bf = null; }
+    if (this.dad) { this.dad.destroy(); this.dad = null; }
+    if (this.gf) { this.gf.destroy(); this.gf = null; }
 
     if (this.chartCharacterNames) {
       const names = this.chartCharacterNames
-      // Usar claves con sessionId para limpiar
       const suffix = this.sessionId ? `_${this.sessionId}` : '';
       const keysToRemove = [`char_${names.player}${suffix}`, `char_${names.enemy}${suffix}`, `char_${names.gfVersion}${suffix}`];
 
-      // Step 1: Remove animations
       if (this.scene.anims) {
         const anims = this.scene.anims.anims.entries
         const animKeysToDelete = []
@@ -163,18 +159,12 @@ export class Characters {
         animKeysToDelete.forEach((key) => this.scene.anims.remove(key))
       }
 
-      // Step 2: Remove textures
       keysToRemove.forEach((key) => {
-        if (this.scene.textures.exists(key)) {
-          this.scene.textures.remove(key)
-        }
-        if (this.scene.cache.xml.exists(key)) {
-          this.scene.cache.xml.remove(key)
-        }
+        if (this.scene.textures.exists(key)) this.scene.textures.remove(key)
+        if (this.scene.cache.xml.exists(key)) this.scene.cache.xml.remove(key)
       })
     }
 
-    // Step 3: Clean up cached JSONs
     if (this.loadedCharacterJSONs) {
       this.loadedCharacterJSONs.forEach((content, charName) => {
         const charKey = `char_${charName}`
@@ -184,7 +174,7 @@ export class Characters {
       })
       this.loadedCharacterJSONs.clear()
     }
-    
-    console.log("Characters shutdown complete (session assets cleaned)")
+
+    console.log("Characters shutdown complete")
   }
 }

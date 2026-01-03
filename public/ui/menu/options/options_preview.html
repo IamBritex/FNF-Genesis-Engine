@@ -1,0 +1,110 @@
+<style>
+    /* --- CONTENEDOR PRINCIPAL --- */
+    .glass-panel-preview-options {
+        width: 200px;
+        height: 65vh;
+        /* Igual que la izquierda */
+
+        background-color: rgba(30, 30, 30, 0.4);
+
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        will-change: backdrop-filter;
+        transform: translateZ(0);
+
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+
+        /* Sin padding top para que el header toque el borde superior */
+        padding: 0;
+        overflow: hidden;
+
+        color: white;
+        font-family: 'Consolas', monospace;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        user-select: none;
+    }
+
+    /* --- CABECERA DEL TITULO (Igualada a la Izquierda) --- */
+    .title-canvas-container {
+        width: 100%;
+        height: 90px;
+        /* Aumentado a 90px para igualar la izquierda */
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+        z-index: 10;
+
+        /* Fondo más oscuro y borde negro fuerte como en OptionsCategories */
+        background-color: rgba(30, 30, 30, 0.2);
+        backdrop-filter: blur(15px);
+        /* Más blur en el header */
+        -webkit-backdrop-filter: blur(15px);
+
+        border-bottom: 2px solid rgba(0, 0, 0, 0.8);
+        /* Borde negro grueso */
+        margin-bottom: 0;
+    }
+
+    #preview-title-canvas {
+        /* Ocupar buen espacio para que no se vea aplastado */
+        width: 90%;
+        height: 80%;
+        object-fit: contain;
+    }
+
+    /* --- CAJA DE IMAGEN --- */
+    .preview-box {
+        width: 100%;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    .preview-box span {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    /* IMAGEN */
+    .preview-img-content {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 12px;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s;
+        cursor: help;
+        filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5));
+    }
+
+    .preview-img-content:hover {
+        transform: scale(1.1) rotate(2deg);
+        filter: drop-shadow(0 20px 20px rgba(0, 0, 0, 0.6)) brightness(1.2);
+    }
+</style>
+
+<div class="glass-panel-preview-options">
+    <div class="title-canvas-container">
+        <canvas id="preview-title-canvas" width="400" height="100"></canvas>
+    </div>
+
+    <div class="preview-box">
+        <span id="preview-content-span">
+            <img src="public/images/menu/options/under-construction.png" class="preview-img-content" id="preview-image">
+        </span>
+    </div>
+</div>

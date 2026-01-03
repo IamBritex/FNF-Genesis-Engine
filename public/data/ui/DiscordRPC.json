@@ -1,0 +1,9 @@
+{
+    "DiscordRPC": {
+        "clientID": "add client ID here",
+        "activity": "Discord Rich Presence",
+        "state": "Integrates Discord Rich Presence into the application, allowing users to display their current activity status on Discord.",
+        "timestamp": "1.0.0",
+        "buttons": "Genesis Dev Team"
+    }
+}

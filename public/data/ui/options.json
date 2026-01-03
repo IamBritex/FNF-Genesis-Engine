@@ -1,0 +1,647 @@
+{
+    "GENERAL": [
+        {
+            "type": "select",
+            "id": "opt-lang",
+            "label": "Language",
+            "options": [
+                {
+                    "val": "es",
+                    "text": "ESPAÑOL"
+                },
+                {
+                    "val": "en",
+                    "text": "ENGLISH"
+                },
+                {
+                    "val": "pt",
+                    "text": "PORTUGUÊS"
+                }
+            ],
+            "default": "en"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-discord",
+            "label": "Discord RPC",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-autopause",
+            "label": "Auto Pause",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-updates",
+            "label": "Check Updates",
+            "default": false
+        }
+    ],
+    "GAMEPLAY": [
+        {
+            "type": "select",
+            "id": "opt-scrolldir",
+            "label": "Scroll Direction",
+            "options": [
+                {
+                    "val": "up",
+                    "text": "UPSCROLL"
+                },
+                {
+                    "val": "down",
+                    "text": "DOWNSCROLL"
+                }
+            ],
+            "default": "up"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-middlescroll",
+            "label": "Middle Scroll",
+            "default": false
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-ghosttap",
+            "label": "Ghost Tapping",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-botplay",
+            "label": "Showcase Mode",
+            "default": false
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-reset",
+            "label": "Reset Button",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-instantrespawn",
+            "label": "Instant Respawn",
+            "default": false
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-oppnotes",
+            "label": "Opponent Notes",
+            "default": true
+        }
+    ],
+    "CONTROLS": [
+        {
+            "type": "header",
+            "label": "GAMEPLAY"
+        },
+        {
+            "type": "keybind",
+            "id": "note_left",
+            "label": "Left Note",
+            "keys": [
+                "A",
+                "LEFT"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "note_down",
+            "label": "Down Note",
+            "keys": [
+                "S",
+                "DOWN"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "note_up",
+            "label": "Up Note",
+            "keys": [
+                "W",
+                "UP"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "note_right",
+            "label": "Right Note",
+            "keys": [
+                "D",
+                "RIGHT"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "reset",
+            "label": "Reset",
+            "keys": [
+                "R",
+                null
+            ]
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "UI"
+        },
+        {
+            "type": "keybind",
+            "id": "ui_left",
+            "label": "UI Left",
+            "keys": [
+                "A",
+                "LEFT"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "ui_down",
+            "label": "UI Down",
+            "keys": [
+                "S",
+                "DOWN"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "ui_up",
+            "label": "UI Up",
+            "keys": [
+                "W",
+                "UP"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "ui_right",
+            "label": "UI Right",
+            "keys": [
+                "D",
+                "RIGHT"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "accept",
+            "label": "Accept",
+            "keys": [
+                "SPACE",
+                "ENTER"
+            ]
+        },
+        {
+            "type": "keybind",
+            "id": "back",
+            "label": "Back",
+            "keys": [
+                "BACKSPACE",
+                "ESC"
+            ]
+        }
+    ],
+    "AUDIO": [
+        {
+            "type": "header",
+            "label": "MIXING"
+        },
+        {
+            "type": "slider",
+            "id": "opt-vol-master",
+            "label": "Master Volume",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "suffix": "%",
+            "sound": "scroll"
+        },
+        {
+            "type": "slider",
+            "id": "opt-vol-inst",
+            "label": "Inst Volume",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "suffix": "%",
+            "sound": "scroll"
+        },
+        {
+            "type": "slider",
+            "id": "opt-vol-voices",
+            "label": "Voices Volume",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "suffix": "%",
+            "sound": "scroll"
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "GAMEPLAY AUDIO"
+        },
+        {
+            "type": "slider",
+            "id": "opt-vol-hitsound",
+            "label": "Hit Sound Vol",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "suffix": "%",
+            "sound": "hit"
+        },
+        {
+            "type": "slider",
+            "id": "opt-vol-miss-player",
+            "label": "Player Miss Vol",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "suffix": "%",
+            "sound": "miss"
+        },
+        {
+            "type": "slider",
+            "id": "opt-vol-miss-opp",
+            "label": "Opponent Miss Vol",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 50,
+            "suffix": "%",
+            "sound": "miss"
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "SYNCHRONIZATION"
+        },
+        {
+            "type": "action",
+            "id": "btn-offset-start",
+            "label": "Note Offset",
+            "btnText": "START"
+        }
+    ],
+    "APPEARANCE": [
+        {
+            "type": "header",
+            "label": "VISUAL STYLE"
+        },
+        {
+            "type": "select",
+            "id": "opt-vol-style",
+            "label": "Volume HUD Style",
+            "options": [
+                {
+                    "val": "vslice",
+                    "text": "V-SLICE"
+                },
+                {
+                    "val": "codename",
+                    "text": "CODENAME"
+                },
+                {
+                    "val": "classic",
+                    "text": "CLASSIC"
+                }
+            ],
+            "default": "vslice"
+        },
+        {
+            "type": "select",
+            "id": "opt-note-skin",
+            "label": "Note Skin",
+            "options": [
+                {
+                    "val": "default",
+                    "text": "DEFAULT"
+                },
+                {
+                    "val": "circle",
+                    "text": "CIRCLE"
+                },
+                {
+                    "val": "bar",
+                    "text": "BAR"
+                },
+                {
+                    "val": "pixel",
+                    "text": "PIXEL"
+                }
+            ],
+            "default": "default"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-flashing",
+            "label": "Flashing Lights",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-cam-zooms",
+            "label": "Camera Zooms",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-health-colors",
+            "label": "Health Bar Colors",
+            "default": true
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "HUD ELEMENTS"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-fps-counter",
+            "label": "FPS Counter",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-judge-counter",
+            "label": "Judge Counter",
+            "default": true,
+            "hasSubOptions": true
+        },
+        {
+            "type": "sub_group",
+            "parentId": "opt-judge-counter",
+            "items": [
+                {
+                    "type": "checkbox",
+                    "id": "opt-judge-stack",
+                    "label": "Stack Judgment",
+                    "default": false,
+                    "scale": 0.65
+                },
+                {
+                    "type": "checkbox",
+                    "id": "opt-judge-ms",
+                    "label": "MS Judgment",
+                    "default": false,
+                    "scale": 0.65
+                },
+                {
+                    "type": "action",
+                    "id": "btn-adjust-judge",
+                    "label": "Adjust Judge",
+                    "btnText": "EDIT POS",
+                    "scale": 0.65
+                }
+            ]
+        },
+        {
+            "type": "slider",
+            "id": "opt-lane-alpha",
+            "label": "Lane Transparency",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 0,
+            "suffix": "%"
+        }
+    ],
+    "PERFORMANCE": [
+        {
+            "type": "header",
+            "label": "GRAPHICS"
+        },
+        {
+            "type": "select",
+            "id": "opt-res-scale",
+            "label": "Resolution Scale",
+            "options": [
+                {
+                    "val": "1.0",
+                    "text": "1x (Native)"
+                },
+                {
+                    "val": "0.75",
+                    "text": "0.75x"
+                },
+                {
+                    "val": "0.5",
+                    "text": "0.5x (Fastest)"
+                }
+            ],
+            "default": "1.0"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-antialiasing",
+            "label": "Antialiasing",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-low-quality",
+            "label": "Low Quality Mode",
+            "default": false
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "SYSTEM"
+        },
+        {
+            "type": "number",
+            "id": "opt-fps-cap",
+            "label": "FPS Cap",
+            "min": 30,
+            "default": 60,
+            "placeholder": "FPS"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-gpu-caching",
+            "label": "GPU Caching",
+            "default": true
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "PARTICLES & FX"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-splashes",
+            "label": "Note Splashes",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-reduce-motion",
+            "label": "Reduce Motion",
+            "default": true
+        }
+    ],
+    "ADVANCED": [
+        {
+            "type": "header",
+            "label": "DEVELOPER TOOLS"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-dev-mode",
+            "label": "Developer Mode",
+            "default": false
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-show-console",
+            "label": "Show Console",
+            "default": false
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-auto-reload",
+            "label": "Auto-Reload Assets",
+            "default": true
+        },
+        {
+            "type": "action",
+            "id": "btn-clear-cache",
+            "label": "Clear Asset Cache",
+            "btnText": "CLEAR"
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "NETWORK"
+        },
+        {
+            "type": "select",
+            "id": "opt-jitter",
+            "label": "Net Jitter Buffer",
+            "options": [
+                {
+                    "val": "low",
+                    "text": "LOW"
+                },
+                {
+                    "val": "medium",
+                    "text": "MEDIUM"
+                },
+                {
+                    "val": "high",
+                    "text": "HIGH"
+                }
+            ],
+            "default": "medium"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-show-ping",
+            "label": "Show Ping",
+            "default": true
+        }
+    ],
+    "ACCESSIBILITY": [
+        {
+            "type": "header",
+            "label": "VISUAL SENSITIVITIES"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-flashing",
+            "label": "Flashing Lights",
+            "default": true
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-screen-shake",
+            "label": "Screen Shake",
+            "default": true
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "VISION HELPERS"
+        },
+        {
+            "type": "select",
+            "id": "opt-colorblind",
+            "label": "Colorblind Filter",
+            "options": [
+                {
+                    "val": "none",
+                    "text": "NONE"
+                },
+                {
+                    "val": "protanopia",
+                    "text": "PROTANOPIA"
+                },
+                {
+                    "val": "deuteranopia",
+                    "text": "DEUTERANOPIA"
+                },
+                {
+                    "val": "tritanopia",
+                    "text": "TRITANOPIA"
+                }
+            ],
+            "default": "none"
+        }
+    ],
+    "DATA": [
+        {
+            "type": "header",
+            "label": "STORAGE & CACHE"
+        },
+        {
+            "type": "action",
+            "id": "btn-clear-cache-data",
+            "label": "Clear Image Cache",
+            "btnText": "CLEAR"
+        },
+        {
+            "type": "action",
+            "id": "btn-reset-save",
+            "label": "Reset Save Data",
+            "btnText": "RESET",
+            "style": "danger"
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "header",
+            "label": "MULTIPLAYER"
+        },
+        {
+            "type": "checkbox",
+            "id": "opt-replays",
+            "label": "Auto-Save Replays",
+            "default": true
+        }
+    ]
+}

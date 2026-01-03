@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="bf.png">
+	<!-- Created with Adobe Animate version 20.5.1.31044 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="bf ate0000" x="198" y="247" width="157" height="115" frameX="-8" frameY="0" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="bf ate0001" x="198" y="247" width="157" height="115" frameX="-8" frameY="0" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="bf ate0002" x="357" y="248" width="156" height="113" frameX="-6" frameY="-4" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="bf ate0003" x="357" y="248" width="156" height="113" frameX="-6" frameY="-4" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="bf ate0004" x="0" y="292" width="162" height="92" frameX="0" frameY="-22" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="bf ate0005" x="0" y="292" width="162" height="92" frameX="0" frameY="-22" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="bf ate0006" x="515" y="248" width="158" height="104" frameX="-1" frameY="-12" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="bf ate0007" x="515" y="248" width="158" height="104" frameX="-1" frameY="-12" frameWidth="165" frameHeight="117" rotated="false"/>
+	<SubTexture name="load complete0000" x="632" y="0" width="194" height="117" frameX="-25" frameY="-22" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0001" x="632" y="0" width="194" height="117" frameX="-25" frameY="-22" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0002" x="632" y="0" width="194" height="117" frameX="-25" frameY="-22" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0003" x="428" y="133" width="188" height="113" frameX="-27" frameY="-32" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0004" x="428" y="133" width="188" height="113" frameX="-27" frameY="-32" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0005" x="428" y="133" width="188" height="113" frameX="-27" frameY="-32" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0006" x="675" y="242" width="156" height="104" frameX="-59" frameY="-42" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0007" x="675" y="242" width="156" height="104" frameX="-59" frameY="-42" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0008" x="0" y="142" width="196" height="148" frameX="-23" frameY="0" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0009" x="0" y="142" width="196" height="148" frameX="-23" frameY="0" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0010" x="0" y="142" width="196" height="148" frameX="-23" frameY="0" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0011" x="0" y="0" width="224" height="140" frameX="0" frameY="-5" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0012" x="0" y="0" width="224" height="140" frameX="0" frameY="-5" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0013" x="0" y="0" width="224" height="140" frameX="0" frameY="-5" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0014" x="226" y="0" width="200" height="134" frameX="-17" frameY="-7" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0015" x="226" y="0" width="200" height="134" frameX="-17" frameY="-7" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0016" x="226" y="0" width="200" height="134" frameX="-17" frameY="-7" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0017" x="226" y="136" width="200" height="109" frameX="-19" frameY="-37" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0018" x="226" y="136" width="200" height="109" frameX="-19" frameY="-37" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0019" x="632" y="119" width="186" height="121" frameX="-32" frameY="-22" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0020" x="632" y="119" width="186" height="121" frameX="-32" frameY="-22" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0021" x="632" y="119" width="186" height="121" frameX="-32" frameY="-22" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0022" x="428" y="0" width="202" height="131" frameX="-32" frameY="-17" frameWidth="234" frameHeight="148" rotated="false"/>
+	<SubTexture name="load complete0023" x="428" y="0" width="202" height="131" frameX="-32" frameY="-17" frameWidth="234" frameHeight="148" rotated="false"/>
+</TextureAtlas>

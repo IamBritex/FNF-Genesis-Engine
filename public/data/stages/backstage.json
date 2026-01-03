@@ -1,0 +1,167 @@
+{
+    "stage": [
+        {
+            "enemy": {
+                "type": "character",
+                "layer": 8,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    315,
+                    850
+                ],
+                "camera_Offset": [
+                    300,
+                    300
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "player": {
+                "type": "character",
+                "layer": 7,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    1045,
+                    776
+                ],
+                "camera_Offset": [
+                    69,
+                    113
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "playergf": {
+                "type": "character",
+                "layer": 6,
+                "scale": 1,
+                "visible": true,
+                "opacity": 1,
+                "position": [
+                    710,
+                    691
+                ],
+                "camera_Offset": [
+                    300,
+                    300
+                ],
+                "flip_x": false,
+                "flip_y": false,
+                "scrollFactor": 1
+            }
+        },
+        {
+            "type": "image",
+            "layer": 5,
+            "scale": 1,
+            "namePath": "lights",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                366,
+                -264
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1.1
+        },
+        {
+            "type": "image",
+            "layer": 4,
+            "scale": 1,
+            "namePath": "server",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                -351,
+                423
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scroll_x": 1.1,
+            "scroll_y": 1
+        },
+        {
+            "type": "image",
+            "layer": 3,
+            "scale": 1,
+            "namePath": "brightLightSmall",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                1090,
+                -60
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "image",
+            "layer": 2,
+            "scale": 1,
+            "namePath": "bg",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                252,
+                302
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "scrollFactor": 1
+        },
+        {
+            "type": "spritesheet",
+            "layer": 1,
+            "scale": 1,
+            "namePath": "crowd",
+            "visible": true,
+            "opacity": 1,
+            "position": [
+                1063,
+                568
+            ],
+            "origin": [
+                0,
+                0
+            ],
+            "flip_x": false,
+            "flip_y": false,
+            "animation": {
+                "play_list": {
+                    "idle00": {
+                        "prefix": "idle00",
+                        "indices": [
+                            "00",
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "07"
+                        ]
+                    }
+                },
+                "play_mode": "Loop",
+                "frameRate": 24,
+                "offsets": {},
+                "beat": [
+                    1
+                ]
+            },
+            "scrollFactor": 1.1
+        }
+    ]
+}
