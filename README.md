@@ -1,103 +1,72 @@
-# Friday Night Funkin': Genesis Engine
+# FNF genesis engine - Overview
 
-[![Made with Phaser](https://img.shields.io/badge/Made%20With-Phaser-red.svg?style=for-the-badge&logo=phaser)](https://phaser.io)
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=JavaScript&logoColor=black)](https://developer.mozilla.org/es/docs/Web/JavaScript)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/IamBritex/FNF-Genesis-Engine)
+Este engine esta creado especificamente para personas que quieren jugar y moddear fnf en dispositivos que son una absoluta y total mierda. Aqui lo hago accesible de verdad, sin excusas y sin requisitos ridiculos.
 
-> Adios a la compilacion (lime test {windows, linux, html} ; )
+Este proyecto no es ningun puto fork de psych ni del juego base, es un fnf creado totalmente desde cero utilizando JavaScript puro. Usamos CDNs estrategicos para optimizar el tamaño final del build y no devorarte la RAM como un animal, manteniendo el performance al maximo nivel posible.
 
-## ¿Que es Genesis Engine?
+Estoy hasta los huevos de utilizar "lime test windows" y que la mierda de Haxe tarde años en compilar solo para ver un cambio estupido en el codigo. Esa es la puta inspiracion para mandar a la mierda el flujo de trabajo tradicional y crear este proyecto: velocidad real de desarrollo y menos frustraciones tecnicas.
 
-Genesis Engine es un motor revolucionario de Friday Night Funkin'  que funciona **100% con el navegador**. Olvidate de descargar mierda y media de dependencias, configuracion de Haxe, o esperar horas de compilación.
+<img src="https://i.pinimg.com/originals/ec/ec/33/ecec330a1bb6b15b03ebd93c63f29d6c.gif" width="300">
 
-<img src="https://i.pinimg.com/originals/be/3c/cf/be3ccf09b438e59daba7795673839ac6.gif" width="250" alt="huh?">
+## Como se instala?
 
-## Ventajas Clave
+No tiene ninguna puta ciencia. Puedes presionar el boton de "Code" en github y enseguida presionar el boton de "Download ZIP". Facil, verdad? Hasta un niño podria hacerlo sin ayuda.
 
-| Caracteristica         | Genesis Engine  | Engines tradicionales                        |
-| ---------------------- | --------------- | -------------------------------------------- |
-| **Compilación**        | No la necesitas | Requrida (Haxe)                              |
-| **Tiempo de setup**    | 2 minutos       | horas (dependiendo de tu dispositivo y wifi) |
-| **Tamaño de descarga** | +200mb          | +10 GB                                       |
-| **Plataforma**         | Navegador       | Ejecutable nativo                            |
+Recomiendo utilizar VSCode para este proyecto ya que necesitas abrir un servidor local para que las politicas de CORS no te jodan la existencia. Para facilitar esto puedes utilizar python con el comando:
 
-## Características Principales
+python -m http.server
 
-- **Sin compilación**: Ejecuta directamente en tu navegador
-- **Motor modular**: Personaliza y extiende facilmente tus scripts
-- **Multiplataforma**: Funciona en cualquier dispositivo que soporte un navegaddor moderno
+O tambien puedes instalar la extension de **Live Server** el cual te permitira ver los cambios en tiempo real de lo que hagas sin tener que reiniciar todo como un idiota. Estas son las instrucciones especificas para poder ejecutar live server:
 
-## Stack Tecnológico
+1. Abre el proyecto en VSCode.
+2. Presiona el boton "Go Live" en la barra inferior (esquina derecha).
+3. Se abrira tu navegador automaticamente con el proyecto funcionando y listo para testear.
 
-- **Phaser.js**: Motor de juego 2D potente y optimizado.
-- **JavaScript**: Lenguaje Principal, fácil de aprender.
-- **Node.js**: Para dedsarrollo y herramientas.
+<img src="https://i.pinimg.com/originals/50/55/45/505545dd2f219e82931d92a77c7ba303.gif" width="300">
 
-## Instalacion Ultra-Rápida
+## Compilacion Nativa y Genesis Installer
 
-<img src="https://i.pinimg.com/originals/65/39/5e/65395e7d4d8ea15941c538b54e293f60.gif" width="250" alt="huuuhahuhauhau">
+Pero si lo tuyo es la potencia real y quieres compilar para tener el control total del sistema, tienes que instalarte este repositorio creado especificamente para funciones nativas en web: [GenesisInstaller](https://github.com/IamBritex/GenesisI-nstaller). Sigue sus instrucciones paso a paso. Te adelantare lo que necesitas para no perder el tiempo:
 
-### Prerrequisitos
+- **Sistema Operativo:** Windows 10 o 11 exclusivamente.
+- **Compilador:** Microsoft Visual C++ (cl.exe). Necesitas Visual Studio 2022 o los Build Tools 2022 instalados correctamente.
 
-- Node.js v14+
-- Navegador moderno
+Esto te permitira compilar con el comando:
 
-### 3 comandos y listo
-```bash
-git clone https://github.com/IamBritex/FNF-Genesis-Engine
-cd FNF-Genesis-Engine-Main
-```
-y si quieres hacer que tu Motor/mod sea un ejecutable solo ejecuta:
-```bash
-npm install nodejs
-npm install -y
-node start
-```
-¡Y en menos de 5 minutos tendrás FNF corriendo!
+genesis compile
 
-## Modding Súper Fácil
+Al usar este metodo, el proyecto **no utiliza Electron**, lo cual es una ventaja enorme porque no se ve limitado por las restricciones de privacidad de Rust y hace el proyecto infinitamente mas ligero. Es mas modificable, evitas ataques XXL y facilitas la interaccion directa con la ventana nativa desde JS utilizando comandos potentes como:
 
-Crear mods nunca fue tan fácil.
+/\*\*
 
-1. Descomprimir layout para tu mod.
-2. Agrega tus assets.
-3. Registra en modList.txt.
-4. Ya esta en el juego.
+- @param {number} width
+- @param {number} height
+  \*/
+  genesis.window.resize(1280, 720);
 
-## Estructura de Mod
-```bash
-public/mods/mi-mod/  
-├── characters/    # Personajes custom  
-├── songs/         # Música y charts  
-├── sprites/       # Gráficos  
-└── scripts/       # Lógica custom
-```
+Hay un monton de comandos mas esperandote en la documentacion del instalador para que hagas lo que te de la gana con la ventana y el comportamiento nativo.
 
-## Casos de Uso
+<img src="https://i.pinimg.com/originals/4a/4c/8c/4a4c8c0149c8b1b6b8efee5e267ea189.gif" width="300">
 
-- **Desarrolladores**: Prototipado rápido de mods
-- **Modders**: Creación de contenido son barreras tecnicas
-- **Jugadores**: Acceso instantáneo desde cualquier dispositivo
-- **Educadores**: Enseñanza de desarrollo de videojuegos
+## Vision y Ambicion del Proyecto
 
-## Enlaces Útiles
-- [Demo en vivo]()
-- [Documentacion Completa]()
-- [Canal de YouTube del Creador]()
+Con este proyecto queremos alcanzar editores profesionales que sean ridiculamente faciles de utilizar para el modder promedio de Friday Night Funkin'. Si ya tienes experiencia en otros editores, aqui te vas a sentir como un dios gracias a la implementacion de:
 
-## Comunidad
+- **WYSIWYG (What You See Is What You Get):** Edita visualmente y ve el resultado al instante, sin adivinar.
+- **Peote-view:** Renderizado de alto rendimiento para que no sientas ni un milisegundo de lag incluso en hardware de mierda.
+- **UI/UX y QoL:** Una interfaz pensada para trabajar rapido, con flujos de trabajo que no dan asco.
+- **Soft Coding Extremo:** Personaliza absolutamente todo dentro del engine con su propio editor de texto integrado, asemejandose a herramientas profesionales como **Roblox Studio** o **Godot**.
 
-<img src="https://i.pinimg.com/736x/6f/b3/4f/6fb34fdedecabe84396618286e0bb7f2.jpg" width="250" alt="GRRR">
+Ademas, estamos implementando versiones tempranas de multijugador online y local para que la experiencia sea completa. Deja de pelearte con motores obsoletos que tardan siglos en cargar y empieza a usar algo que de verdad respete tu tiempo.
 
-¿Necesitas ayuda? La comunidad esta aquí
-- Discord [Próximamente]
-- Issues: GitHub Issues
-- COntribuciones: !Siempre bienvenidas¡
+## Star History
 
----
+## Star History
 
-Genesis Engine - El futuro es ahora sin el `lime test windows`
-
-Wiki pages you might want to explore:  
-- [FNF Genesis Engine Overview (IamBritex/FNF-Genesis-Engine)](/wiki/IamBritex/FNF-Genesis-Engine#1)
+<a href="https://www.star-history.com/#IamBritex/FNF-Genesis-Engine&type=timeline&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=IamBritex/FNF-Genesis-Engine&type=timeline&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=IamBritex/FNF-Genesis-Engine&type=timeline&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=IamBritex/FNF-Genesis-Engine&type=timeline&legend=bottom-right" />
+ </picture>
+</a>
