@@ -1,5 +1,4 @@
 dist/
 obj/
-packages/
-nuget.exe
-vc140.pdb
+main.obj
+.env

@@ -27,18 +27,18 @@
   ],
   "screenshots": [
     {
-      "src": "screenshots/gameplay-desktop.jpg",
+      "src": "public/images/screenshot/mainMenu.png",
       "sizes": "1280x720",
-      "type": "image/jpeg",
+      "type": "image/png",
       "form_factor": "wide",
-      "label": "Gameplay en modo Fullscreen"
+      "label": "Main menu"
     },
     {
-      "src": "screenshots/menu-mobile.jpg",
-      "sizes": "720x1280",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Menú de opciones"
+      "src": "public/images/screenshot/optionsMenu.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Options menu"
     }
   ]
 }

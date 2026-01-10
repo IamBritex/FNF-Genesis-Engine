@@ -1,9 +1,12 @@
+/**
+ * funkin/play/characters/Characters.js
+ */
 import { CharactersData } from "./charactersData.js"
 import { CharacterElements } from "./characterElements.js"
 import { CharacterAnimations } from "./charactersAnimations.js"
 import { CharacterBooper } from "./charactersBooper.js"
 import { NoteDirection } from "../notes/NoteDirection.js"
-import ModHandler from "../../../core/ModHandler.js" // Importante
+import ModHandler from "../../../core/ModHandler.js"
 
 export class Characters {
   constructor(scene, chartData, cameraManager, stageHandler, conductor, sessionId) {
@@ -30,29 +33,25 @@ export class Characters {
     this.gf = null
   }
 
-  /**
-   * Carga los JSONs de configuración de cada personaje.
-   * Usa ModHandler para decidir si carga del Mod o del juego base.
-   */
-  loadCharacterJSONs() {
+  async loadCharacterJSONs() {
     if (!this.chartCharacterNames) return
     const names = this.chartCharacterNames
 
-    const loadChar = (key, charName) => {
+    const loadChar = async (key, charName) => {
       if (charName) {
         const charKey = `char_${charName}`
         if (!this.scene.cache.json.exists(charKey)) {
-          // [MODIFICADO] Solicitamos la ruta segura al ModHandler
-          const path = ModHandler.getPath('data', `characters/${charName}.json`);
+          const path = await ModHandler.getPath('data', `characters/${charName}.json`);
 
           this.scene.load.json(charKey, path)
           console.log(`Characters.js: Registrando carga de JSON: ${path}`)
         }
       }
     }
-    loadChar("player", names.player)
-    loadChar("enemy", names.enemy)
-    loadChar("gf", names.gfVersion)
+
+    await loadChar("player", names.player)
+    await loadChar("enemy", names.enemy)
+    await loadChar("gf", names.gfVersion)
   }
 
   processAndLoadImages() {
@@ -80,8 +79,6 @@ export class Characters {
     if (dadJSON) loadedJSONs[this.chartCharacterNames.enemy] = dadJSON
     if (gfJSON) loadedJSONs[this.chartCharacterNames.gfVersion] = gfJSON
 
-    // NOTA: Para que las imágenes (PNGs) también sean moddeables, 
-    // CharacterElements.js debe implementar ModHandler en su método 'preloadAtlases'.
     this.characterElements.preloadAtlases(this.chartCharacterNames, this.loadedCharacterJSONs)
   }
 
@@ -100,6 +97,18 @@ export class Characters {
 
   startBeatSystem() {
     if (this.booper) this.booper.startBeatSystem()
+  }
+
+  dance() {
+    const chars = [this.bf, this.dad, this.gf]
+    chars.forEach((char) => {
+      if (!char || !char.active || !char.anims) return
+      if (char.anims.exists('idle')) {
+        this.booper.playAnimation(char, 'idle', true)
+      } else if (char.anims.exists('danceRight')) {
+        this.booper.playAnimation(char, 'danceRight', true)
+      }
+    })
   }
 
   playSingAnimation(isPlayer, direction) {

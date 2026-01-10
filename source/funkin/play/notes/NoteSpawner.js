@@ -18,7 +18,7 @@ export class NoteSpawner {
 
         const targetStrumContainer = strumlineContainers[noteData.noteDirection];
         const targetX = targetStrumContainer.x + noteOffsetX; 
-        const initialY = -100; 
+        const initialY = -200; 
 
         // Leer offsets de nota del JSON
         const offsets = skinData.notes?.offsets || { x: 0, y: 0 };

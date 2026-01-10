@@ -1,3 +1,5 @@
+import SaveUserPreferences from "../SaveUserPreferences.js";
+
 export default class DataSection {
     constructor(scene, domElement) {
         this.scene = scene;
@@ -10,6 +12,8 @@ export default class DataSection {
         if (btnClear) {
             btnClear.addEventListener('click', () => {
                 console.log("[Data] Clearing GPU Texture Cache...");
+                // Aquí iría tu lógica real de limpieza: this.scene.renderer.textureManager.clear()...
+
                 const originalText = btnClear.innerText;
                 btnClear.innerText = "CLEARED!";
                 btnClear.style.backgroundColor = "#81c784";
@@ -37,9 +41,15 @@ export default class DataSection {
                     }, 3000);
                 } else {
                     console.warn("[Data] DELETING ALL SAVE DATA...");
+                    localStorage.clear(); // Ojo: esto borra TODO, incluyendo preferencias.
+                    // Si solo quieres borrar progreso: SaveUserPreferences.resetProgress() (si lo implementas)
+
                     btnReset.innerText = "DELETED";
                     btnReset.disabled = true;
                     btnReset.style.opacity = "0.5";
+
+                    // Recargar página para evitar conflictos
+                    setTimeout(() => window.location.reload(), 1000);
                 }
             });
         }
@@ -49,6 +59,7 @@ export default class DataSection {
         if (replayCheck) {
             replayCheck.addEventListener('change', (e) => {
                 console.log(`[Data] Auto-Save Replays: ${e.target.checked}`);
+                SaveUserPreferences.set('opt-replays', e.target.checked);
             });
         }
     }

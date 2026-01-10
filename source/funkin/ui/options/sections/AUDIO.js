@@ -1,3 +1,5 @@
+import SaveUserPreferences from "../SaveUserPreferences.js";
+
 export default class AudioSection {
     constructor(scene, domElement) {
         this.scene = scene;
@@ -19,16 +21,14 @@ export default class AudioSection {
             updateSliderGradient(slider);
             slider.addEventListener('input', (e) => {
                 const val = e.target.value;
-                const displayId = e.target.id.replace('opt-vol-', 'disp-');
+                const displayId = `disp-${e.target.id}`;
                 const display = this.domElement.node.querySelector(`#${displayId}`);
-                if (display) display.innerText = `${val}%`;
+                if (display) {
+                    const suffix = e.target.getAttribute('data-suffix') || '';
+                    display.innerText = `${val}${suffix}`;
+                }
                 updateSliderGradient(e.target);
-            });
-            slider.addEventListener('change', (e) => {
-                const soundType = e.target.getAttribute('data-sound');
-                if (soundType === 'miss') console.log("🔊 Play Miss Sound");
-                else if (soundType === 'hit') console.log("🔊 Play Hit Sound");
-                else console.log("🔊 Play Beep");
+                SaveUserPreferences.set(e.target.id, parseFloat(val));
             });
         });
 

@@ -203,6 +203,16 @@
                 "BACKSPACE",
                 "ESC"
             ]
+        },
+        {
+            "type": "spacer"
+        },
+        {
+            "type": "action",
+            "id": "btn-reset-controls",
+            "label": "Reset Controls",
+            "btnText": "RESET",
+            "style": "danger"
         }
     ],
     "AUDIO": [

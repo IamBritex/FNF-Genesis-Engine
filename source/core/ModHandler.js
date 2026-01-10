@@ -1,112 +1,130 @@
 /**
- * ModHandler.js
- * Sistema de Mods: VFS (Virtual File System) con Escaneo Recursivo.
+ * @fileoverview ModHandler.js - Sistema de Mods adaptado para PWA
  */
 export default class ModHandler {
     static MODS_ROOT = "https://mods.genesis/";
     static BASE_ROOT = "/public/";
 
-    // Registro: 'songs/stick/charts/stick.json' -> 'NombreMod'
     static fileRegistry = new Map();
     static activeMods = [];
-    static modMetadata = new Map();
 
+    /**
+     * @returns {Promise<void>}
+     */
     static async init() {
-        if (!window.Genesis) return;
-
-        const modFolders = await window.Genesis.file.list('mods');
-        if (!modFolders || modFolders.length === 0) return;
-
-        console.log(`[ModHandler] Mods detectados: ${modFolders.join(", ")}`);
-
-        for (const modName of modFolders) {
-            await ModHandler.loadModMetadata(modName);
-            // Iniciamos el escaneo recursivo
-            await ModHandler.scanModFolder(modName);
-            ModHandler.activeMods.push(modName);
-        }
-
-        console.log(`[ModHandler] Sistema listo. ${ModHandler.fileRegistry.size} archivos indexados.`);
+        console.log("[ModHandler] Sistema listo. Esperando montaje de carpeta (mountMods).");
     }
 
-    static async loadModMetadata(modName) {
-        const url = `${ModHandler.MODS_ROOT}${modName}/mod.json`;
+    /**
+     * @returns {Promise<void>}
+     */
+    static async mountMods() {
+        if (!window.Genesis || !window.Genesis.fs) {
+            console.warn("[ModHandler] Genesis FS no está disponible.");
+            return;
+        }
+
         try {
-            const response = await fetch(url);
-            if (response.ok) ModHandler.modMetadata.set(modName, await response.json());
-        } catch (e) { }
-    }
+            const dirHandle = await window.Genesis.fs.openFolder();
+            if (!dirHandle) return;
 
-    /**
-     * Inicia el escaneo de las categorías principales.
-     */
-    static async scanModFolder(modName) {
-        const categories = ['images', 'data', 'songs', 'music', 'sounds', 'videos'];
+            console.log(`[ModHandler] Escaneando directorio: ${dirHandle.name}`);
 
-        for (const cat of categories) {
-            // Llamamos a la función recursiva para cada categoría
-            await ModHandler.scanRecursive(modName, cat);
+            ModHandler.fileRegistry.clear();
+            ModHandler.activeMods = [];
+
+            await ModHandler.scanRecursive(dirHandle, "");
+
+            console.log(`[ModHandler] Indexación completa. ${ModHandler.fileRegistry.size} archivos encontrados.`);
+        } catch (e) {
+            console.error("[ModHandler] Error montando mods:", e);
         }
     }
 
     /**
-     * [NUEVO] Escanea carpetas infinitamente hasta encontrar archivos.
-     * @param {string} modName - Nombre del mod.
-     * @param {string} currentPath - Ruta relativa actual (ej: 'songs/stick/charts').
+     * @param {FileSystemDirectoryHandle} dirHandle 
+     * @param {string} currentPath 
      */
-    static async scanRecursive(modName, currentPath) {
-        // Pide la lista de archivos en la ruta actual
-        // Ruta física real: mods/MiMod/songs/stick/charts
-        const fullPathForList = `mods/${modName}/${currentPath}`;
-        const items = await window.Genesis.file.list(fullPathForList);
+    static async scanRecursive(dirHandle, currentPath) {
+        for await (const [name, handle] of dirHandle.entries()) {
+            const virtualPath = currentPath ? `${currentPath}/${name}` : name;
 
-        if (!items || items.length === 0) return;
+            if (handle.kind === 'file') {
+                ModHandler.fileRegistry.set(virtualPath, handle);
 
-        for (const item of items) {
-            // HEURÍSTICA: Si tiene punto (.), es archivo. Si no, es carpeta.
-            if (item.includes('.')) {
-                // Es un archivo! Lo registramos.
-                // Clave: songs/stick/charts/stick.json
-                const virtualPath = `${currentPath}/${item}`;
-                ModHandler.fileRegistry.set(virtualPath, modName);
-            } else {
-                // Es carpeta! Profundizamos más.
-                // Nueva ruta: songs/stick/charts
-                await ModHandler.scanRecursive(modName, `${currentPath}/${item}`);
+                if (!currentPath.includes('/')) {
+                    if (!ModHandler.activeMods.includes(name)) {
+                        ModHandler.activeMods.push(name);
+                    }
+                }
+            } else if (handle.kind === 'directory') {
+                await ModHandler.scanRecursive(handle, virtualPath);
             }
         }
     }
 
-    static getPath(category, path) {
-        // La clave ahora se construye limpiamente
-        const key = `${category}/${path}`;
+    /**
+     * @param {string} path
+     * @returns {Promise<File|null>}
+     */
+    static async getModFile(path) {
+        if (ModHandler.fileRegistry.has(path)) {
+            const handle = ModHandler.fileRegistry.get(path);
+            return await handle.getFile();
+        }
+        return null;
+    }
 
-        if (ModHandler.fileRegistry.has(key)) {
-            const modName = ModHandler.fileRegistry.get(key);
-            // console.log(`[ModHandler] Override encontrado: ${key} -> ${modName}`);
-            return `${ModHandler.MODS_ROOT}${modName}/${category}/${path}`;
+    /**
+     * @param {string} category 
+     * @param {string} path 
+     * @returns {Promise<string>}
+     */
+    static async getPathURL(category, path) {
+        const possibleModKey = `${category}/${path}`;
+
+        for (const [key, handle] of ModHandler.fileRegistry) {
+            if (key.endsWith(possibleModKey)) {
+                const file = await handle.getFile();
+                return URL.createObjectURL(file);
+            }
         }
 
         return `${ModHandler.BASE_ROOT}${category}/${path}`;
     }
 
-    static async getCombinedWeekList(sceneCache) {
-        let allWeeks = [];
-        if (sceneCache && sceneCache.text.exists('weekList')) {
-            const baseText = sceneCache.text.get('weekList');
-            allWeeks.push(...baseText.trim().split('\n').map(w => w.trim()).filter(w => w.length > 0));
+    /**
+     * @param {string} category 
+     * @param {string} path 
+     * @returns {Promise<string>}
+     */
+    static async getPath(category, path) {
+        return await ModHandler.getPathURL(category, path);
+    }
+
+    /**
+     * @param {Phaser.Cache.CacheManager} cache
+     * @returns {Promise<string[]>}
+     */
+    static async getCombinedWeekList(cache) {
+        let list = [];
+
+        if (cache.text.exists('weekList')) {
+            const content = cache.text.get('weekList');
+            list = content.split('\n').map(s => s.trim()).filter(s => s.length > 0);
         }
 
-        for (const modName of ModHandler.activeMods) {
-            const modWeekUrl = `${ModHandler.MODS_ROOT}${modName}/data/ui/weeks.txt`;
-            try {
-                const response = await fetch(modWeekUrl);
-                if (response.ok) {
-                    const text = await response.text();
-                    allWeeks.push(...text.trim().split('\n').map(w => w.trim()).filter(w => w.length > 0));
+        for (const [path] of ModHandler.fileRegistry) {
+            if (path.includes('data/weeks/') && path.endsWith('.json')) {
+                const parts = path.split('/');
+                const fileName = parts[parts.length - 1].replace('.json', '');
+
+                if (!list.includes(fileName)) {
+                    list.push(fileName);
                 }
-            } catch (e) { }
+            }
         }
-        return [...new Set(allWeeks)];
+
+        return list;
     }
 }

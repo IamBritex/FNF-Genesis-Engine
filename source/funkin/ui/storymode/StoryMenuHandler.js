@@ -1,10 +1,6 @@
-// ====== ARCHIVO: StoryMenuHandler.js ======
 import { Character } from './StoryCharacters.js';
 import { NumberAnimation } from './NumberAnimation.js';
 
-/**
- * Maneja toda la lógica de estado e interacción para la StoryModeState.
- */
 export class StoryMenuHandler {
     constructor(scene) {
         /** @type {StoryModeState} */
@@ -65,16 +61,10 @@ export class StoryMenuHandler {
             }
 
             try {
-                // 1. Obtener datos del JSON
                 const characterData = this.scene.cache.json.get(characterDataKey);
-                
-                // 2. (ARREGLO) Asignar la clave de textura al objeto de datos
-                //    Esto es lo que el constructor de Character (V4) espera.
                 characterData.image = characterTextureKey;
 
-                // 3. (ARREGLO) Llamar al constructor con 4 argumentos
                 const character = new Character(this.scene, positions[index].x, positions[index].y, characterData);
-                
                 this.scene.characters.push(character);
             } catch (error) {
                 console.error(`Error creating character instance ${characterName}:`, error);
@@ -83,111 +73,127 @@ export class StoryMenuHandler {
     }
 
     async changeWeek(direction) {
-        this.scene.weekTitlesContainer.list[this.scene.selectedWeekIndex]?.setAlpha(0.6); // Added safe navigation
+        this.scene.weekTitlesContainer.list[this.scene.selectedWeekIndex]?.setAlpha(0.6);
 
         this.scene.selectedWeekIndex = (this.scene.selectedWeekIndex + direction + this.weekKeys.length) % this.weekKeys.length;
         let currentWeekKey = this.weekKeys[this.scene.selectedWeekIndex];
         let currentWeek = this.weeks[currentWeekKey];
 
-        // Cargar assets de personajes (si no están ya cargados)
         await this.scene._loadCharactersForWeek(this.scene.selectedWeekIndex);
 
-        // Actualizar el fondo (con la nueva lógica de fade)
         this.updateBackground(); 
 
-        // Actualizar UI
         this.scene.levelTitleText.setText(currentWeek.weekName.toUpperCase());
         this.updateTracks();
-        this.loadCharacters(); // Crea las instancias de los personajes
+        this.loadCharacters();
         this.repositionTitles();
 
-        this.scene.weekTitlesContainer.list[this.scene.selectedWeekIndex]?.setAlpha(1); // Added safe navigation
+        this.scene.weekTitlesContainer.list[this.scene.selectedWeekIndex]?.setAlpha(1);
     }
 
-    /**
-     * --- FUNCIÓN MODIFICADA ---
-     * Actualiza el color de fondo.
-     * Si la semana tiene un color hex válido, hace un fade a ese color.
-     * Si no, usa el color amarillo por defecto.
-     */
     updateBackground() {
-        const DEFAULT_COLOR = 0xF9CF51; // Color amarillo por defecto
+        const DEFAULT_COLOR = 0xF9CF51; // Amarillo
         const { width } = this.scene.scale;
-
-        // 1. Asegurarse de que el rectángulo de fondo exista
-        if (!this.scene.weekBackground || this.scene.weekBackground.type !== 'Rectangle') {
-            if (this.scene.weekBackground) this.scene.weekBackground.destroy();
-            
-            // Crear con el color por defecto
-            this.scene.weekBackground = this.scene.add.rectangle(width / 2, 56 + 200, width, 400, DEFAULT_COLOR)
-                .setOrigin(0.5, 0.5)
-                .setDepth(100);
-        }
-
-        // 2. Obtener el color de la semana actual
         const currentWeekKey = this.weekKeys[this.scene.selectedWeekIndex];
         const currentWeek = this.weeks[currentWeekKey];
         const bgData = currentWeek?.bg;
 
-        let targetColorNumber;
-
-        // 3. Validar y parsear el color
-        if (typeof bgData === 'string' && (bgData.startsWith('#') || bgData.startsWith('0x'))) {
-            try {
-                // parseInt puede manejar "0xFFFFFF" y (con replace) "#FFFFFF"
-                targetColorNumber = parseInt(bgData.replace('#', '0x'));
-                if (isNaN(targetColorNumber)) {
-                    targetColorNumber = DEFAULT_COLOR; // El parseo falló (ej. "0xGG")
-                }
-            } catch (e) {
-                targetColorNumber = DEFAULT_COLOR; // Error de parseo
-            }
-        } else {
-            // No es un string de color (es "stage", undefined, null, etc.)
-            targetColorNumber = DEFAULT_COLOR;
+        // 1. Intentar parsear como color (Hex o RGB)
+        const parsedColor = this.parseColor(bgData);
+        const isColor = parsedColor !== null;
+        
+        // 2. Si no es color, ver si es una imagen cargada
+        let isImage = false;
+        if (!isColor && bgData && this.scene.textures.exists(bgData)) {
+            isImage = true;
         }
 
-        // 4. Obtener el color actual del rectángulo
-        const currentColor = this.scene.weekBackground.fillColor;
+        const currentBg = this.scene.weekBackground;
+        
+        // Detener tweens anteriores para evitar conflictos
+        this.scene.tweens.killTweensOf(currentBg);
 
-        // 5. Si el color ya es el correcto, no hacer nada
-        if (currentColor === targetColorNumber) {
-            return;
-        }
+        // --- CASO A: Es Color (o fallback a color por defecto) ---
+        if (isColor || (!isImage && !isColor)) {
+            const targetColor = isColor ? parsedColor : DEFAULT_COLOR;
+            const isCurrentRect = currentBg && currentBg.type === 'Rectangle';
 
-        // 6. Detener cualquier tween de color anterior
-        this.scene.tweens.killTweensOf(this.scene.weekBackground);
+            if (!currentBg || !isCurrentRect) {
+                // Si no hay fondo o es una imagen, destruir y crear rectángulo
+                if (currentBg) currentBg.destroy();
+                this.scene.weekBackground = this.scene.add.rectangle(width / 2, 56 + 200, width, 400, targetColor)
+                    .setOrigin(0.5, 0.5).setDepth(100);
+            } else {
+                // Si ya es rectángulo, hacemos tween de color
+                // FIX: Usar ValueToColor para evitar el bug del color ROJO
+                const startColor = Phaser.Display.Color.ValueToColor(currentBg.fillColor);
+                const endColor = Phaser.Display.Color.ValueToColor(targetColor);
 
-        // 7. Crear objetos de color para la interpolación
-        const startColor = new Phaser.Display.Color(currentColor);
-        const endColor = new Phaser.Display.Color(targetColorNumber);
-
-        // 8. Animar (fade) de un color a otro
-        this.scene.tweens.add({
-            targets: { t: 0 }, // Objeto dummy para animar
-            t: 1,
-            duration: 400, // Duración del fade (en ms)
-            ease: 'Linear',
-            onUpdate: (tween) => {
-                // Interpolar entre el color inicial y final
-                const interpolatedColor = Phaser.Display.Color.Interpolate.ColorWithColor(
-                    startColor,
-                    endColor,
-                    100, // Rango (0-100)
-                    tween.progress * 100 // Progreso (0-100)
-                );
-                
-                // Obtener el valor numérico (integer) del color interpolado
-                const colorInt = Phaser.Display.Color.GetColor(interpolatedColor.r, interpolatedColor.g, interpolatedColor.b);
-                
-                // Aplicar el nuevo color al rectángulo en cada frame
-                if (this.scene.weekBackground) { // Comprobación de seguridad
-                    this.scene.weekBackground.setFillStyle(colorInt);
-                }
+                this.scene.tweens.add({
+                    targets: { t: 0 },
+                    t: 1,
+                    duration: 400,
+                    ease: 'Linear',
+                    onUpdate: (tween) => {
+                        const interpolated = Phaser.Display.Color.Interpolate.ColorWithColor(
+                            startColor, endColor, 100, tween.progress * 100
+                        );
+                        // Convertir el objeto {r,g,b} de vuelta a integer para setFillStyle
+                        const colorInt = Phaser.Display.Color.GetColor(interpolated.r, interpolated.g, interpolated.b);
+                        
+                        if (this.scene.weekBackground && this.scene.weekBackground.active) {
+                            this.scene.weekBackground.setFillStyle(colorInt);
+                        }
+                    }
+                });
             }
-        });
+        } 
+        // --- CASO B: Es Imagen ---
+        else if (isImage) {
+            // Si el actual es rectángulo o es una imagen distinta, cambiar
+            if (!currentBg || currentBg.type !== 'Image' || currentBg.texture.key !== bgData) {
+                if (currentBg) currentBg.destroy();
+                this.scene.weekBackground = this.scene.add.image(width / 2, 56 + 200, bgData)
+                    .setOrigin(0.5, 0.5).setDepth(100);
+                
+                // Opcional: Escalar imagen si es muy pequeña/grande
+                // this.scene.weekBackground.setDisplaySize(width, 400);
+            }
+        }
     }
 
+    /**
+     * Parsea un string a número de color. Soporta Hex (#, 0x) y RGB (rgb(r,g,b)).
+     * @param {string} input 
+     * @returns {number|null}
+     */
+    parseColor(input) {
+        if (typeof input !== 'string') return null;
+
+        // Limpiar espacios
+        input = input.trim();
+
+        // Hexadecimal
+        if (input.startsWith('#')) {
+            return parseInt(input.replace('#', '0x'), 16);
+        }
+        if (input.startsWith('0x')) {
+            return parseInt(input, 16);
+        }
+        
+        // RGB: rgb(255, 0, 0)
+        const rgbRegex = /^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i;
+        const match = input.match(rgbRegex);
+        if (match) {
+            return Phaser.Display.Color.GetColor(
+                parseInt(match[1]), 
+                parseInt(match[2]), 
+                parseInt(match[3])
+            );
+        }
+
+        return null;
+    }
 
     repositionTitles() {
         const spacing = 120;
@@ -223,14 +229,6 @@ export class StoryMenuHandler {
         this.scene.trackLabel.setPosition(tracklistX, 56 + 400 + 100);
         let tracksContainer = this.scene.add.container(tracklistX, this.scene.trackLabel.y + 80);
         
-        // Esta parte para calcular maxWidth no parece usarse, pero se mantiene la lógica
-        let maxWidth = 0;
-        songs.forEach(track => {
-            let tempText = this.scene.add.text(0, 0, track, { fontFamily: 'VCR', fontSize: '32px' }).setVisible(false);
-            maxWidth = Math.max(maxWidth, tempText.width);
-            tempText.destroy();
-        });
-        
         songs.forEach((track, i) => {
             let text = this.scene.add.text(0, i * 40, track, { fontFamily: 'VCR', fontSize: '32px', color: '#E55777' }).setOrigin(0.5, 0.5);
             this.scene.trackTexts.push(text);
@@ -263,9 +261,7 @@ export class StoryMenuHandler {
         }
     }
 
-    // --- [FUNCIÓN MODIFICADA] ---
     selectWeek() {
-        // --- 1. Get Data ---
         const selectedWeekKey = this.weekKeys[this.scene.selectedWeekIndex];
         const selectedWeekData = this.weeks[selectedWeekKey];
 
@@ -278,7 +274,6 @@ export class StoryMenuHandler {
         const playlistSongIds = selectedWeekData.tracks.flat();
         const currentDifficulty = this.difficulties[this.scene.selectedDifficulty];
 
-        // --- 2. Prepare Data Object ---
         const storyData = {
             isStoryMode: true,
             playlistSongIds: playlistSongIds || [],
@@ -290,30 +285,22 @@ export class StoryMenuHandler {
             currentSongIndex: 0
         };
 
-        // --- 3. Log, Store in Registry, and Disable Input ---
-        console.log("Preparing to start PlayScene with:", storyData);
-        // La línea del registry puede ser usada por tu TransitionScene,
-        // pero la llamada a scene.start NECESITA los datos.
         this.scene.registry.set('PlaySceneData', storyData);
-        this.scene.canPressEnter = false; // Disable input
+        this.scene.canPressEnter = false;
 
-        // --- 4. Fade Out and Transition ---
-        const fadeDuration = 500; // ms
+        const fadeDuration = 500;
         this.scene.cameras.main.fadeOut(fadeDuration, 0, 0, 0, (_camera, progress) => {
             if (progress === 1) {
                 const transitionScene = this.scene.scene.get("TransitionScene");
 
                 if (transitionScene?.startTransition) {
-                     // [CORREGIDO] Pasa los datos de la canción a la escena de transición
                      transitionScene.startTransition("PlayScene", storyData);
                 } else {
-                     // [CORREGIDO] Pasa los datos de la canción directamente a PlayScene
                      this.scene.scene.start("PlayScene", storyData);
                 }
             }
         });
     }
-    // --- [FIN DE LA MODIFICACIÓN] ---
 
     handleConfirm() {
         if (!this.scene.canPressEnter || this.keyState['ENTER']) return;

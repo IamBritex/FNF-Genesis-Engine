@@ -1,6 +1,6 @@
 import { StoryMenuHandler } from './StoryMenuHandler.js';
 import { PlayScene } from '../../play/PlayScene.js';
-import ModHandler from '../../../core/ModHandler.js'; // [IMPORTANTE]
+import ModHandler from '../../../core/ModHandler.js';
 
 class StoryModeScene extends Phaser.Scene {
     constructor() {
@@ -20,7 +20,6 @@ class StoryModeScene extends Phaser.Scene {
     preload() {
         console.log("StoryModeState preload started");
 
-        // Carga assets base de UI
         this.load.text('weekList', 'public/data/ui/weeks.txt');
         this.load.image('tracksLabel', 'public/images/menu/storymode/Menu_Tracks.png');
         this.load.audio('scrollSound', 'public/assets/audio/sounds/scrollMenu.ogg');
@@ -45,19 +44,14 @@ class StoryModeScene extends Phaser.Scene {
         });
     }
 
-    /**
-     * [MODIFICADO] Carga semanas base + semanas de mods
-     */
     async loadWeekData() {
         const weekList = [];
         const loadPromises = [];
 
-        // 1. Usar ModHandler para obtener la lista combinada (Base + Mods)
         const combinedWeeks = await ModHandler.getCombinedWeekList(this.cache);
 
         console.log("Lista maestra de semanas:", combinedWeeks);
 
-        // 2. Iniciar carga de JSON para cada semana encontrada
         combinedWeeks.forEach(weekName => loadPromises.push(this._loadSingleWeek(weekName)));
 
         try {
@@ -76,15 +70,12 @@ class StoryModeScene extends Phaser.Scene {
 
     async _loadSingleWeek(weekName) {
         try {
-            // [MODIFICADO] Usar ModHandler.getPath para encontrar el JSON
-            // Buscará en el mod si es una semana nueva, o en public/ si es base.
-            const weekPath = ModHandler.getPath('data', `weeks/${weekName}.json`);
+            const weekPath = await ModHandler.getPath('data', `weeks/${weekName}.json`);
 
             const response = await fetch(weekPath);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const week = await response.json();
 
-            // Guardar en caché con la clave 'weekName'
             this.cache.json.add(weekName, week);
             return weekName;
         } catch (error) {
@@ -123,7 +114,6 @@ class StoryModeScene extends Phaser.Scene {
         this.selectedWeekIndex = 0;
         this.weeks = {};
 
-        // Filtrar semanas visibles
         const visibleWeeks = weekList.filter(week => {
             const weekData = this.cache.json.get(week);
             return weekData && (weekData.StoryVisible !== false);
@@ -164,18 +154,16 @@ class StoryModeScene extends Phaser.Scene {
         const assetsToLoad = new Map();
         const loadPromises = [];
 
-        // Cargar imágenes de títulos para TODAS las semanas (Mod support)
-        this.weekKeys.forEach(weekKey => {
+        for (const weekKey of this.weekKeys) {
             const weekData = this.cache.json.get(weekKey);
             if (weekData && weekData.weekName) {
                 const titleKey = `${weekData.weekName}Title`;
                 if (!this.textures.exists(titleKey)) {
-                    // Usar ModHandler para la imagen del título
-                    const path = ModHandler.getPath('images', `menu/storymode/titles/${weekData.weekName}.png`);
+                    const path = await ModHandler.getPath('images', `menu/storymode/titles/${weekData.weekName}.png`);
                     assetsToLoad.set(`title_${titleKey}`, { key: titleKey, path: path });
                 }
             }
-        });
+        }
 
         if (assetsToLoad.size > 0) {
             assetsToLoad.forEach(asset => {
@@ -206,10 +194,9 @@ class StoryModeScene extends Phaser.Scene {
             if (needsAtlas || needsJson) {
                 charactersToLoad.push(characterName);
 
-                // Usar ModHandler para assets de personajes del menú
-                const pngPath = ModHandler.getPath('images', `menu/storymode/menucharacters/Menu_${characterName}.png`);
-                const xmlPath = ModHandler.getPath('images', `menu/storymode/menucharacters/Menu_${characterName}.xml`);
-                const jsonPath = ModHandler.getPath('images', `menu/storymode/menucharacters/${characterName}.json`);
+                const pngPath = await ModHandler.getPath('images', `menu/storymode/menucharacters/Menu_${characterName}.png`);
+                const xmlPath = await ModHandler.getPath('images', `menu/storymode/menucharacters/Menu_${characterName}.xml`);
+                const jsonPath = await ModHandler.getPath('images', `menu/storymode/menucharacters/${characterName}.json`);
 
                 if (needsAtlas) {
                     this.load.atlasXML(characterName, pngPath, xmlPath);

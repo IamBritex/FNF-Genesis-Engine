@@ -1,26 +1,16 @@
 import ModHandler from "../../../core/ModHandler.js";
 
-/**
- * NoteSkin.js
- * Maneja la lógica de configuración y offsets de las notas.
- * Soporta Modding para skins personalizados.
- */
 export class NoteSkin {
 
     constructor(scene, chartData) {
         this.scene = scene;
-        // Obtener el nombre del skin del chart, o usar "Funkin" por defecto
         this.skinName = (chartData && chartData.noteSkin) ? chartData.noteSkin : "Funkin";
         this.config = null;
         this.jsonKey = `skinCfg_${this.skinName}`;
     }
 
-    /**
-     * Paso 1: Cargar el JSON de configuración del NoteSkin.
-     */
-    preloadJSON() {
-        // [MODIFICADO] Verificar si existe en Mod primero
-        const path = ModHandler.getPath('data', `noteSkins/${this.skinName}.json`);
+    async preloadJSON() {
+        const path = await ModHandler.getPath('data', `noteSkins/${this.skinName}.json`);
 
         if (!this.scene.cache.json.exists(this.jsonKey)) {
             this.scene.load.json(this.jsonKey, path);
@@ -28,10 +18,7 @@ export class NoteSkin {
         }
     }
 
-    /**
-     * Paso 2: Leer el JSON y cargar las imágenes/XML (Assets).
-     */
-    loadAssets() {
+    async loadAssets() {
         if (this.scene.cache.json.exists(this.jsonKey)) {
             this.config = this.scene.cache.json.get(this.jsonKey);
         } else {
@@ -46,21 +33,19 @@ export class NoteSkin {
 
         const assetFolder = this.config.asset || "Funkin";
 
-        // [MODIFICADO] Helper para cargar atlas usando rutas dinámicas
-        const loadAtlas = (defName, fileName) => {
-            const key = `${defName}_${this.skinName}`; // ej: noteStrumline_Funkin
+        const loadAtlas = async (defName, fileName) => {
+            const key = `${defName}_${this.skinName}`;
             if (!this.scene.textures.exists(key)) {
-                // ModHandler se encarga de ver si el archivo existe en el mod
-                const imgPath = ModHandler.getPath('images', `noteSkins/${assetFolder}/${fileName}.png`);
-                const xmlPath = ModHandler.getPath('images', `noteSkins/${assetFolder}/${fileName}.xml`);
+                const imgPath = await ModHandler.getPath('images', `noteSkins/${assetFolder}/${fileName}.png`);
+                const xmlPath = await ModHandler.getPath('images', `noteSkins/${assetFolder}/${fileName}.xml`);
 
                 this.scene.load.atlasXML(key, imgPath, xmlPath);
             }
         };
 
-        if (this.config.strumline) loadAtlas("noteStrumline", this.config.strumline.image);
-        if (this.config.notes) loadAtlas("notes", this.config.notes.image);
-        if (this.config.sustain) loadAtlas("NOTE_hold_assets", this.config.sustain.image);
+        if (this.config.strumline) await loadAtlas("noteStrumline", this.config.strumline.image);
+        if (this.config.notes) await loadAtlas("notes", this.config.notes.image);
+        if (this.config.sustain) await loadAtlas("NOTE_hold_assets", this.config.sustain.image);
     }
 
     getSkinData() {

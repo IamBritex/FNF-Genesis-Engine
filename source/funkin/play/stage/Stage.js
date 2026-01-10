@@ -1,6 +1,9 @@
+/**
+ * funkin/play/stage/Stage.js
+ */
 import { StageData } from "./StageData.js"
 import { StageElements } from "./StageElements.js"
-import ModHandler from "../../../core/ModHandler.js" // Importante
+import ModHandler from "../../../core/ModHandler.js"
 
 export class Stage {
   constructor(scene, chartData, cameraManager, conductor) {
@@ -14,25 +17,23 @@ export class Stage {
     this.stageElements = new StageElements(this.scene, this.stageDataKey, this.cameraManager, this.conductor)
   }
 
-  loadStageJSON() {
+  async loadStageJSON() {
     if (!this.stageDataKey) return
     this.stageKey = `StageJSON_${this.stageDataKey}`
 
-    // [MODIFICADO] Ruta dinámica para el JSON del stage (ej: 'stage.json' o 'philly.json')
-    const specificPath = ModHandler.getPath('data', `stages/${this.stageDataKey}.json`);
+    const specificPath = await ModHandler.getPath('data', `stages/${this.stageDataKey}.json`)
 
     if (!this.scene.cache.json.exists(this.stageKey)) {
       this.scene.load.json(this.stageKey, specificPath)
     }
 
-    // [MODIFICADO] Carga segura del stage por defecto
-    const defaultPath = ModHandler.getPath('data', "stages/stage.json");
+    const defaultPath = await ModHandler.getPath('data', "stages/stage.json")
     if (!this.scene.cache.json.exists(this.defaultStageKey)) {
       this.scene.load.json(this.defaultStageKey, defaultPath)
     }
   }
 
-  loadStageImages() {
+  async loadStageImages() {
     if (this.stageContent) return
     if (this.scene.cache.json.exists(this.stageKey)) {
       this.stageContent = this.scene.cache.json.get(this.stageKey)
@@ -43,8 +44,6 @@ export class Stage {
     }
 
     if (this.stageElements) {
-      // OJO: StageElements.js también necesitará usar ModHandler 
-      // si quieres que las imágenes de fondo se modifiquen.
       this.stageElements.preloadImages(this.stageContent)
     }
   }
@@ -53,6 +52,10 @@ export class Stage {
     if (this.stageElements) {
       this.stageElements.createSprites(this.stageContent)
     }
+  }
+
+  dance() {
+    if (this.stageElements) this.stageElements.dance()
   }
 
   shutdown() {
@@ -93,6 +96,5 @@ export class Stage {
     if (this.defaultStageKey && this.scene.cache.json.exists(this.defaultStageKey)) {
       this.scene.cache.json.remove(this.defaultStageKey)
     }
-    console.log("Stage shutdown complete")
   }
 }

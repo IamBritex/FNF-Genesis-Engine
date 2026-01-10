@@ -1,13 +1,17 @@
+import SaveUserPreferences from "../SaveUserPreferences.js";
+
+// Helper simple para formatear teclas al inicio
+function formatKey(code) {
+    if (!code || code === '---') return '---';
+    if (code.startsWith('Key')) return code.replace('Key', '');
+    if (code.startsWith('Digit')) return code.replace('Digit', '');
+    return code.replace('Arrow', '').toUpperCase().substring(0, 6);
+}
+
 export default class OptionHTMLBuilder {
 
-    /**
-     * Recibe el array de datos de una sección (JSON) y devuelve todo el HTML concatenado.
-     * @param {Array} sectionData - Array de objetos del JSON
-     * @returns {string} - HTML completo de la sección
-     */
     static buildSection(sectionData) {
         if (!sectionData || !Array.isArray(sectionData)) return "";
-
         let htmlBuffer = "";
         sectionData.forEach(item => {
             htmlBuffer += this.buildOption(item);
@@ -15,14 +19,10 @@ export default class OptionHTMLBuilder {
         return htmlBuffer;
     }
 
-    /**
-     * Construye el HTML de un solo item basado en su tipo.
-     * @param {Object} item - Objeto individual del JSON
-     * @returns {string} - HTML del item
-     */
     static buildOption(item) {
+        const widthVal = "1000";
         const scaleAttr = "100";
-        const widthVal = "1000"; // Ancho estándar para los canvas
+        const savedValue = SaveUserPreferences.get(item.id, item.default);
 
         switch (item.type) {
             case "header":
@@ -35,22 +35,22 @@ export default class OptionHTMLBuilder {
                 return `<div class="spacer"></div>`;
 
             case "checkbox":
-                const checked = item.default ? "checked" : "";
+                const isChecked = savedValue === true ? "checked" : "";
+                const subDisplay = savedValue === true ? "block" : "none";
                 return `
                     <div class="option-row">
                         <canvas class="opt-label-canvas" data-text="${item.label}" width="${widthVal}" ${scaleAttr}></canvas>
                         <div class="opt-input-container">
                             <div class="checkbox-wrapper">
-                                <input type="checkbox" id="${item.id}" ${checked}>
+                                <input type="checkbox" id="${item.id}" ${isChecked}>
                                 <canvas class="checkbox-canvas" width="200" height="200"></canvas>
                             </div>
                         </div>
                     </div>
-                    ${item.hasSubOptions ? `<div id="${item.id}-subs" style="display: ${item.default ? 'block' : 'none'};">` : ''}
+                    ${item.hasSubOptions ? `<div id="${item.id}-subs" style="display: ${subDisplay};">` : ''}
                 `;
 
             case "sub_group":
-                // Recursividad para items anidados
                 let subHtml = "<div id='judge-sub-options' style='display:none'>";
                 if (item.items) {
                     item.items.forEach(subItem => subHtml += this.buildOption(subItem));
@@ -59,7 +59,7 @@ export default class OptionHTMLBuilder {
 
             case "select":
                 let optionsHtml = item.options.map(opt =>
-                    `<option value="${opt.val}" ${item.default === opt.val ? 'selected' : ''}>${opt.text}</option>`
+                    `<option value="${opt.val}" ${savedValue === opt.val ? 'selected' : ''}>${opt.text}</option>`
                 ).join('');
                 return `
                     <div class="option-row">
@@ -74,9 +74,9 @@ export default class OptionHTMLBuilder {
                     <div class="option-row">
                         <canvas class="opt-label-canvas" data-text="${item.label}" width="${widthVal}" ${scaleAttr}></canvas>
                         <div class="opt-input-container">
-                            <span class="val-display" id="disp-${item.id}">${item.default}${item.suffix || ''}</span>
+                            <span class="val-display" id="disp-${item.id}">${savedValue}${item.suffix || ''}</span>
                             <input type="range" class="genesis-slider" id="${item.id}" 
-                                min="${item.min}" max="${item.max}" step="${item.step}" value="${item.default}" 
+                                min="${item.min}" max="${item.max}" step="${item.step}" value="${savedValue}" 
                                 data-suffix="${item.suffix || ''}" data-sound="${item.sound || ''}">
                         </div>
                     </div>`;
@@ -86,7 +86,7 @@ export default class OptionHTMLBuilder {
                     <div class="option-row">
                         <canvas class="opt-label-canvas" data-text="${item.label}" width="${widthVal}" ${scaleAttr}></canvas>
                         <div class="opt-input-container">
-                            <input type="number" class="unified-style" id="${item.id}" value="${item.default}" min="${item.min}" placeholder="${item.placeholder || ''}">
+                            <input type="number" class="unified-style" id="${item.id}" value="${savedValue}" min="${item.min}" placeholder="${item.placeholder || ''}">
                         </div>
                     </div>`;
 
@@ -101,14 +101,16 @@ export default class OptionHTMLBuilder {
                     </div>`;
 
             case "keybind":
-                const key1 = item.keys[0] || "---";
-                const key2 = item.keys[1] || "---";
+                // Cargar binds reales y formatearlos
+                const rawKey1 = SaveUserPreferences.get(`keybind_${item.id}_0`, item.keys[0] || "---");
+                const rawKey2 = SaveUserPreferences.get(`keybind_${item.id}_1`, item.keys[1] || "---");
+
                 return `
                     <div class="option-row">
                         <canvas class="opt-label-canvas" data-text="${item.label}" width="${widthVal}" ${scaleAttr}></canvas>
-                        <div class="opt-input-container">
-                            <div class="key-cap" id="bind-${item.id}-0" data-bind-action="${item.id}" data-bind-idx="0">${key1}</div>
-                            <div class="key-cap" id="bind-${item.id}-1" data-bind-action="${item.id}" data-bind-idx="1">${key2}</div>
+                        <div class="opt-input-container key-bind-container">
+                            <div class="key-cap" id="bind-${item.id}-0" data-bind-action="${item.id}" data-bind-idx="0">${formatKey(rawKey1)}</div>
+                            <div class="key-cap" id="bind-${item.id}-1" data-bind-action="${item.id}" data-bind-idx="1">${formatKey(rawKey2)}</div>
                         </div>
                     </div>`;
 

@@ -1,3 +1,6 @@
+/**
+ * funkin/play/PlayScene.js
+ */
 import { PlaySceneData } from "./data/PlaySceneData.js"
 import { SongPlayer } from "./song/SongPlayer.js"
 import { ChartDataHandler } from "./data/chartData.js"
@@ -16,8 +19,6 @@ import { FunWaiting } from "./components/FunWaiting.js"
 import { NoteSkin } from "./notes/NoteSkin.js"
 import { ScriptHandler } from "./scripting/ScriptHandler.js"
 import ModHandler from "../../core/ModHandler.js"
-
-// [NUEVO] Importar el módulo de limpieza
 import { PlaySceneCleanup } from "./components/PlaySceneCleanup.js"
 
 export class PlayScene extends Phaser.Scene {
@@ -47,27 +48,26 @@ export class PlayScene extends Phaser.Scene {
     this.countdownStartTime = 0
     this.songStartTime = 0
 
-    this.playSessionId = null;
-    this.deathCounter = 0;
-    this.onWindowBlur = null;
-    this.tempNoteSkin = null;
+    this.playSessionId = null
+    this.deathCounter = 0
+    this.onWindowBlur = null
+    this.tempNoteSkin = null
 
-    this.pauseKeys = null;
-
-    // UI de Pausa (Ahora manejada por PauseScene, pero guardamos teclas aquí)
+    this.pauseKeys = null
+    this.resetKey = null
   }
 
   init(data) {
     this.sound.stopAll()
-    this.playSessionId = Date.now().toString() + Math.floor(Math.random() * 1000);
-    console.log(`PlayScene initialized with Session ID: ${this.playSessionId}`);
+    this.playSessionId = Date.now().toString() + Math.floor(Math.random() * 1000)
+    console.log(`PlayScene initialized with Session ID: ${this.playSessionId}`)
 
     const registryData = this.registry.get("PlaySceneData")
     const finalData = registryData || data
     this.registry.set("PlaySceneData", undefined)
 
     this.initData = PlaySceneData.init(this, finalData)
-    this.deathCounter = data.deathCounter || 0;
+    this.deathCounter = data.deathCounter || 0
   }
 
   preload() {
@@ -82,7 +82,6 @@ export class PlayScene extends Phaser.Scene {
     document.head.appendChild(style)
 
     NotesHandler.preload(this, this.playSessionId)
-    ChartDataHandler.preloadChart(this, this.initData.targetSongId, this.initData.DifficultyID || "normal")
 
     if (!this.cache.audio.has("menuMusic")) {
       this.load.audio("menuMusic", "public/music/FreakyMenu.mp3")
@@ -92,22 +91,22 @@ export class PlayScene extends Phaser.Scene {
     Countdown.preload(this)
     TimeBar.preload(this)
     HealthBar.preload(this, this.playSessionId)
-
-    // PauseScene es global o se añade dinámicamente, no necesitamos preload específico aquí si ya está en game.js
   }
 
-  create() {
+  async create() {
     if (window.Genesis && window.Genesis.discord) {
       Genesis.discord.setActivity({
         details: `Playing ${this.initData.targetSongId}`,
         state: "Play State"
-      });
+      })
     }
 
     this.pauseKeys = this.input.keyboard.addKeys({
       enter: Phaser.Input.Keyboard.KeyCodes.ENTER,
       esc: Phaser.Input.Keyboard.KeyCodes.ESC
-    });
+    })
+
+    this.setupResetControl()
 
     this.assetsLoaded = false
     this.isWaitingOnLoad = true
@@ -128,6 +127,69 @@ export class PlayScene extends Phaser.Scene {
     this.keyJ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J)
     this.keyL = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L)
 
+    await this.startChartLoading()
+  }
+
+  setupResetControl() {
+    let canReset = true
+    let resetBind = "R"
+
+    try {
+      const stored = localStorage.getItem('genesis_preferences')
+      if (stored) {
+        const prefs = JSON.parse(stored)
+
+        if (prefs && typeof prefs['opt-reset'] !== 'undefined') {
+          canReset = prefs['opt-reset']
+        }
+
+        if (prefs && prefs['keybind_reset_0']) {
+          resetBind = prefs['keybind_reset_0']
+        }
+      }
+    } catch (e) {
+      console.warn("PlayScene: Error leyendo preferencias para Reset:", e)
+    }
+
+    if (canReset) {
+      let finalKey = resetBind
+      if (finalKey.startsWith("Key")) finalKey = finalKey.replace("Key", "")
+
+      try {
+        this.resetKey = this.input.keyboard.addKey(finalKey.toUpperCase())
+        console.log(`[PlayScene] Reset activado con tecla: ${finalKey.toUpperCase()}`)
+      } catch (err) {
+        console.warn(`[PlayScene] Tecla de reset '${finalKey}' inválida, usando R por defecto.`)
+        this.resetKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R)
+      }
+    } else {
+      console.log("[PlayScene] Reset desactivado por opciones.")
+    }
+  }
+
+  triggerReset() {
+    console.log("Reiniciando escena (Reset manual)...")
+
+    if (this.songAudio) {
+      if (this.songAudio.inst) this.songAudio.inst.stop()
+      if (this.songAudio.voices) {
+        this.songAudio.voices.forEach(v => { if (v) v.stop() })
+      }
+    }
+
+    this.scene.restart(this.initData)
+  }
+
+  async startChartLoading() {
+    await ChartDataHandler.preloadChart(this, this.initData.targetSongId, this.initData.DifficultyID || "normal")
+
+    this.load.once('complete', () => {
+      this.processChartAndEvents()
+    })
+    this.load.start()
+  }
+
+  async processChartAndEvents() {
     this.chartData = ChartDataHandler.processChartData(
       this,
       this.initData.targetSongId,
@@ -139,74 +201,101 @@ export class PlayScene extends Phaser.Scene {
     }
 
     if (this.chartData.events === true) {
-      console.log("[PlayScene] Events: true detectado. Buscando Events.json...");
+      console.log("[PlayScene] Events: true detectado. Buscando Events.json...")
 
-      const songId = this.initData.targetSongId;
-      const eventsKey = `Events_${songId}`;
-      const eventsPath = ModHandler.getPath('songs', `${songId}/charts/Events.json`);
+      const songId = this.initData.targetSongId
+      const eventsKey = `Events_${songId}`
+      let eventsPath = await ModHandler.getPath('songs', `${songId}/charts/Events.json`)
 
-      this.load.json(eventsKey, eventsPath);
-
-      this.load.once('complete', () => {
-        const eventsJson = this.cache.json.get(eventsKey);
-        if (eventsJson && Array.isArray(eventsJson.events)) {
-          this.chartData.events = eventsJson.events;
-        } else {
-          this.chartData.events = [];
+      if (eventsPath && typeof eventsPath !== 'string') {
+        if (eventsPath instanceof Blob || eventsPath instanceof File) {
+          eventsPath = URL.createObjectURL(eventsPath)
         }
-        this.continueCreate();
-      });
+      }
 
-      this.load.start();
-      return;
+      if (typeof eventsPath === 'string') {
+        this.load.json(eventsKey, eventsPath)
+
+        this.load.once('complete', () => {
+          const eventsJson = this.cache.json.get(eventsKey)
+          if (eventsJson && Array.isArray(eventsJson.events)) {
+            this.chartData.events = eventsJson.events
+          } else {
+            this.chartData.events = []
+          }
+          this.continueCreate()
+        })
+
+        this.load.start()
+        return
+      } else {
+        console.warn("[PlayScene] No se pudo resolver la ruta de Events.json o es inválida.")
+        this.chartData.events = []
+        this.continueCreate()
+        return
+      }
     }
 
-    this.continueCreate();
+    this.continueCreate()
   }
 
   async continueCreate() {
     this.conductor = new Conductor(this.chartData.bpm)
 
-    this.scriptHandler = new ScriptHandler(this);
+    this.scriptHandler = new ScriptHandler(this)
     if (this.chartData.events && Array.isArray(this.chartData.events)) {
-      await this.scriptHandler.loadEventScripts(this.chartData.events);
+      await this.scriptHandler.loadEventScripts(this.chartData.events)
     }
 
-    this.conductor.on('beat', (beat) => this.scriptHandler.call('onBeatHit', beat));
-    this.conductor.on('step', (step) => this.scriptHandler.call('onStepHit', step));
+    this.conductor.on('beat', (beat) => this.scriptHandler.call('onBeatHit', beat))
+    this.conductor.on('step', (step) => this.scriptHandler.call('onStepHit', step))
 
-    this.tempNoteSkin = new NoteSkin(this, this.chartData);
-    this.tempNoteSkin.preloadJSON();
+    this.tempNoteSkin = new NoteSkin(this, this.chartData)
+    await this.tempNoteSkin.preloadJSON()
 
     this.healthBar = new HealthBar(this, this.chartData, this.conductor, this.playSessionId)
     this.stageHandler = new Stage(this, this.chartData, this.cameraManager, this.conductor)
     this.charactersHandler = new Characters(this, this.chartData, this.cameraManager, this.stageHandler, this.conductor, this.playSessionId)
 
-    this.stageHandler.loadStageJSON()
-    this.charactersHandler.loadCharacterJSONs()
+    await this.stageHandler.loadStageJSON()
+    await this.charactersHandler.loadCharacterJSONs()
     this.healthBar.loadCharacterData()
 
-    SongPlayer.loadSongAudio(this, this.initData.targetSongId, this.chartData)
+    await SongPlayer.loadSongAudio(this, this.initData.targetSongId, this.chartData)
 
     this.load.once("complete", this.onAllDataLoaded, this)
     this.load.start()
 
     this.onWindowBlur = () => {
-      if (!this.scene || !this.sys || !this.sys.isActive()) return;
-      if (!this.isWaitingOnLoad && this.sys.settings.active) {
-        console.log("Ventana perdió foco: Auto-pausando juego.");
-        this.triggerPause();
+      if (!this.scene || !this.sys || !this.sys.isActive()) return
+
+      let shouldAutoPause = true
+      try {
+        const stored = localStorage.getItem('genesis_preferences')
+        if (stored) {
+          const prefs = JSON.parse(stored)
+          if (prefs && typeof prefs['opt-autopause'] !== 'undefined') {
+            shouldAutoPause = prefs['opt-autopause']
+          }
+        }
+      } catch (e) {
+        console.warn("PlayScene: Error leyendo preferencia opt-autopause:", e)
       }
-    };
-    this.game.events.on('blur', this.onWindowBlur);
+
+      if (shouldAutoPause && !this.isWaitingOnLoad && this.sys.settings.active) {
+        console.log("Ventana perdió foco: Auto-pausando juego.")
+        this.triggerPause()
+      }
+    }
+    this.game.events.on('blur', this.onWindowBlur)
   }
 
   async onAllDataLoaded() {
     if (this.assetsLoaded) return
 
-    if (this.tempNoteSkin) this.tempNoteSkin.loadAssets();
-    if (this.stageHandler) this.stageHandler.loadStageImages()
-    if (this.charactersHandler) this.charactersHandler.processAndLoadImages()
+    if (this.tempNoteSkin) await this.tempNoteSkin.loadAssets()
+    if (this.stageHandler) await this.stageHandler.loadStageImages()
+    if (this.charactersHandler) await this.charactersHandler.processAndLoadImages()
     if (this.healthBar) this.healthBar.preloadIcons()
 
     this.load.once("complete", this.onAllAssetsLoaded, this)
@@ -245,9 +334,16 @@ export class PlayScene extends Phaser.Scene {
       this.notesHandler.setCharactersHandler(this.charactersHandler)
     }
 
-    if (this.charactersHandler) this.charactersHandler.startBeatSystem()
+    if (this.charactersHandler) {
+      this.charactersHandler.startBeatSystem()
+      this.charactersHandler.dance()
+    }
 
-    if (this.scriptHandler) this.scriptHandler.call('onCreatePost');
+    if (this.stageHandler) {
+      this.stageHandler.dance()
+    }
+
+    if (this.scriptHandler) this.scriptHandler.call('onCreatePost')
 
     if (this.funWaiting) {
       this.funWaiting.startFadeOut(() => {
@@ -268,13 +364,13 @@ export class PlayScene extends Phaser.Scene {
     this.countdownStartTime = this.time.now
     this.songStartTime = this.countdownStartTime + beatLengthMs * 5
 
-    if (this.scriptHandler) this.scriptHandler.call('onStartCountdown');
+    if (this.scriptHandler) this.scriptHandler.call('onStartCountdown')
 
     this.countdown.performCountdown(beatLengthMs, () => {
       if (!this.scene) return
       this.isInCountdown = false
 
-      if (this.scriptHandler) this.scriptHandler.call('onSongStart');
+      if (this.scriptHandler) this.scriptHandler.call('onSongStart')
 
       this.songAudio = SongPlayer.playSong(this, this.chartData)
 
@@ -298,53 +394,58 @@ export class PlayScene extends Phaser.Scene {
 
   triggerPause() {
     if (this.songAudio) {
-      if (this.songAudio.inst && this.songAudio.inst.isPlaying) this.songAudio.inst.pause();
+      if (this.songAudio.inst && this.songAudio.inst.isPlaying) this.songAudio.inst.pause()
       if (this.songAudio.voices) {
-        this.songAudio.voices.forEach(v => { if (v.isPlaying) v.pause(); });
+        this.songAudio.voices.forEach(v => { if (v.isPlaying) v.pause() })
       }
     }
 
-    const diff = this.initData.DifficultyID ? this.initData.DifficultyID.toUpperCase() : "NORMAL";
+    const diff = this.initData.DifficultyID ? this.initData.DifficultyID.toUpperCase() : "NORMAL"
     this.scene.launch('PauseScene', {
       parent: this,
       songName: this.initData.targetSongId,
       difficulty: diff,
       deaths: this.deathCounter
-    });
+    })
 
-    this.scene.pause();
+    this.scene.pause()
   }
 
   resumeFromPause() {
     if (this.songAudio) {
-      if (this.songAudio.inst && this.songAudio.inst.isPaused) this.songAudio.inst.resume();
+      if (this.songAudio.inst && this.songAudio.inst.isPaused) this.songAudio.inst.resume()
       if (this.songAudio.voices) {
-        this.songAudio.voices.forEach(v => { if (v.isPaused) v.resume(); });
+        this.songAudio.voices.forEach(v => { if (v.isPaused) v.resume() })
       }
     }
-    this.scene.resume();
+    this.scene.resume()
   }
 
   update(time, delta) {
     if (!this.isWaitingOnLoad) {
       if (Phaser.Input.Keyboard.JustDown(this.pauseKeys.enter) || Phaser.Input.Keyboard.JustDown(this.pauseKeys.esc)) {
-        this.triggerPause();
-        return;
+        this.triggerPause()
+        return
+      }
+
+      if (this.resetKey && Phaser.Input.Keyboard.JustDown(this.resetKey)) {
+        this.triggerReset()
+        return
       }
     }
 
     if (this.isWaitingOnLoad) return
 
     if (this.scriptHandler && this.assetsLoaded) {
-      this.scriptHandler.call('onUpdate', delta, time);
+      this.scriptHandler.call('onUpdate', delta, time)
 
-      let currentPos = 0;
+      let currentPos = 0
       if (this.isInCountdown) {
-        currentPos = time - this.songStartTime;
+        currentPos = time - this.songStartTime
       } else if (this.songAudio?.inst?.isPlaying) {
-        currentPos = this.songAudio.inst.seek * 1000;
+        currentPos = this.songAudio.inst.seek * 1000
       }
-      this.scriptHandler.processEvents(currentPos);
+      this.scriptHandler.processEvents(currentPos)
     }
 
     this.debugCameraControls(delta)
@@ -386,7 +487,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   onSongComplete() {
-    if (this.scriptHandler) this.scriptHandler.call('onSongEnd');
+    if (this.scriptHandler) this.scriptHandler.call('onSongEnd')
     if (!this.initData.isStoryMode) {
       this.exitToMenu()
       return
@@ -400,20 +501,19 @@ export class PlayScene extends Phaser.Scene {
     const nextSongId = this.initData.playlistSongIds[nextIndex]
     this.initData.currentSongIndex = nextIndex
     this.initData.targetSongId = nextSongId
-    this.initData.deathCounter = this.deathCounter;
+    this.initData.deathCounter = this.deathCounter
     this.scene.restart(this.initData)
   }
 
   exitToMenu() {
     const nextSceneKey = this.initData?.isStoryMode ? "StoryModeScene" : "FreeplayScene"
-    this.scene.stop('PauseScene');
+    this.scene.stop('PauseScene')
     this.scene.start(nextSceneKey)
   }
 
-  // [MODIFICADO] Método shutdown refactorizado
   shutdown() {
-    PlaySceneCleanup.shutdown(this);
+    PlaySceneCleanup.shutdown(this)
   }
 }
 
-game.scene.add("PlayScene", PlayScene);
+game.scene.add("PlayScene", PlayScene)

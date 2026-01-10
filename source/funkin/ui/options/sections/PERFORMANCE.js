@@ -1,3 +1,5 @@
+import SaveUserPreferences from "../SaveUserPreferences.js";
+
 export default class PerformanceSection {
     constructor(scene, domElement) {
         this.scene = scene;
@@ -10,6 +12,7 @@ export default class PerformanceSection {
         if (resSelect) {
             resSelect.addEventListener('change', (e) => {
                 console.log(`[Performance] Resolution Scale set to: ${e.target.value}x`);
+                SaveUserPreferences.set(e.target.id, e.target.value);
             });
         }
 
@@ -25,6 +28,8 @@ export default class PerformanceSection {
                 if (isNaN(val) || val < 30) val = 60;
                 e.target.value = val;
                 console.log(`[Performance] FPS Cap set to: ${val}`);
+
+                SaveUserPreferences.set(e.target.id, val);
             });
         }
 
@@ -33,6 +38,7 @@ export default class PerformanceSection {
         checkboxes.forEach(chk => {
             chk.addEventListener('change', (e) => {
                 console.log(`[Performance] ${e.target.id} changed to: ${e.target.checked}`);
+                SaveUserPreferences.set(e.target.id, e.target.checked);
             });
         });
     }

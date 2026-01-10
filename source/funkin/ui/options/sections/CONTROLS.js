@@ -1,3 +1,5 @@
+import SaveUserPreferences from "../SaveUserPreferences.js";
+
 export default class ControlsSection {
     constructor(scene, domElement) {
         this.scene = scene;
@@ -18,15 +20,50 @@ export default class ControlsSection {
             mobileElements.forEach(el => el.style.setProperty('display', 'none', 'important'));
         }
 
-        // Listeners de Teclas
+        // Listeners de Teclas y CARGA DE DATOS GUARDADOS
         const keys = this.domElement.node.querySelectorAll('.key-cap');
         keys.forEach(key => {
             if (key.classList.contains('key-disabled') || !key.dataset.bindAction) return;
+
+            const saveKey = `keybind_${key.dataset.bindAction}_${key.dataset.bindIdx}`;
+            const savedBind = SaveUserPreferences.get(saveKey);
+
+            if (savedBind) {
+                key.dataset.rawCode = savedBind;
+                key.innerText = this.formatKeyName(savedBind);
+            }
+
             key.addEventListener('click', (e) => {
                 e.preventDefault(); e.stopPropagation();
                 this.startBinding(key);
             });
         });
+
+        // BOTÓN RESET CONTROLS
+        const btnReset = this.domElement.node.querySelector('#btn-reset-controls');
+        if (btnReset) {
+            btnReset.addEventListener('click', () => {
+                const confirmText = "SURE?";
+                if (btnReset.innerText !== confirmText) {
+                    btnReset.innerText = confirmText;
+                    setTimeout(() => btnReset.innerText = "RESET", 3000);
+                } else {
+                    // Borrar todas las preferencias de teclas detectadas en el DOM
+                    const allKeys = this.domElement.node.querySelectorAll('.key-cap');
+                    allKeys.forEach(k => {
+                        const action = k.dataset.bindAction;
+                        const idx = k.dataset.bindIdx;
+                        if (action) {
+                            const key = `keybind_${action}_${idx}`;
+                            delete SaveUserPreferences.preferences[key];
+                        }
+                    });
+
+                    SaveUserPreferences.saveToStorage();
+                    window.location.reload(); // Recargar para aplicar defaults limpios
+                }
+            });
+        }
 
         // Chequeo inicial
         this.checkForConflicts();
@@ -65,10 +102,9 @@ export default class ControlsSection {
         btn.dataset.rawCode = rawCode;
         btn.classList.remove('binding');
 
-        if (window.Genesis) {
-            const saveKey = `keybind_${btn.dataset.bindAction}_${btn.dataset.bindIdx}`;
-            window.Genesis.storage.save(saveKey, rawCode);
-        }
+        // GUARDAR PREFERENCIA
+        const saveKey = `keybind_${btn.dataset.bindAction}_${btn.dataset.bindIdx}`;
+        SaveUserPreferences.set(saveKey, rawCode);
 
         this.cleanupBinding();
         this.checkForConflicts();
@@ -106,6 +142,14 @@ export default class ControlsSection {
             usageMap[code].push({ el: key, cat: category });
         });
 
+        // Reset estilos
+        allKeys.forEach(k => {
+            k.style.backgroundColor = '';
+            k.style.color = '';
+            k.style.borderColor = '';
+        });
+
+        // Marcar conflictos
         Object.keys(usageMap).forEach(code => {
             const entries = usageMap[code];
             if (entries.length > 1) {
@@ -118,11 +162,7 @@ export default class ControlsSection {
                             item.el.style.borderColor = '#d50000';
                         }
                     });
-                } else {
-                    entries.forEach(item => { item.el.style.backgroundColor = ''; item.el.style.color = ''; item.el.style.borderColor = ''; });
                 }
-            } else {
-                entries.forEach(item => { item.el.style.backgroundColor = ''; item.el.style.color = ''; item.el.style.borderColor = ''; });
             }
         });
     }
@@ -140,7 +180,6 @@ export default class ControlsSection {
         return code.toUpperCase().substring(0, 6);
     }
 
-    // Método para limpiar eventos si sales de la sección (opcional pero recomendado)
     destroy() {
         this.cleanupBinding();
     }

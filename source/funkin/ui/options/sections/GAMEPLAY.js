@@ -1,3 +1,5 @@
+import SaveUserPreferences from "../SaveUserPreferences.js";
+
 export default class GameplaySection {
     constructor(scene, domElement) {
         this.scene = scene;
@@ -10,7 +12,9 @@ export default class GameplaySection {
             input.addEventListener('change', (e) => {
                 const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
                 console.log(`[Gameplay] ${e.target.id}: ${val}`);
-                // Ejemplo: if (e.target.id === 'opt-middlescroll') ClientPrefs.middleScroll = val;
+
+                // Guardar preferencia
+                SaveUserPreferences.set(e.target.id, val);
             });
         });
     }

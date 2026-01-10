@@ -1,3 +1,5 @@
+import SaveUserPreferences from "../SaveUserPreferences.js";
+
 export default class AdvancedSection {
     constructor(scene, domElement) {
         this.scene = scene;
@@ -10,6 +12,7 @@ export default class AdvancedSection {
         checkboxes.forEach(chk => {
             chk.addEventListener('change', (e) => {
                 console.log(`[Advanced] ${e.target.id}: ${e.target.checked}`);
+                SaveUserPreferences.set(e.target.id, e.target.checked);
             });
         });
 
@@ -18,17 +21,19 @@ export default class AdvancedSection {
         if (btnClear) {
             btnClear.addEventListener('click', () => {
                 console.log("[Advanced] Clearing Asset Cache...");
+                // Lógica de limpieza aquí...
                 const originalText = btnClear.innerText;
                 btnClear.innerText = "DONE!";
                 setTimeout(() => { btnClear.innerText = originalText; }, 1000);
             });
         }
 
-        // 3. DROPDOWNS
+        // 3. DROPDOWNS (SELECT)
         const selects = this.domElement.node.querySelectorAll('select');
         selects.forEach(sel => {
             sel.addEventListener('change', (e) => {
                 console.log(`[Advanced] ${e.target.id}: ${e.target.value}`);
+                SaveUserPreferences.set(e.target.id, e.target.value);
             });
         });
     }

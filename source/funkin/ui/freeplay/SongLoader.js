@@ -13,25 +13,25 @@ export async function loadSongsFromWeeklist(cache) {
 
   // 2. Cargar JSONs
   for (const weekName of weekNames) {
-    // Usar ModHandler.getPath para encontrar el JSON donde sea que esté
-    const weekPath = ModHandler.getPath('data', `weeks/${weekName}.json`);
+    // FIX: ModHandler.getPath devuelve una promesa. Debemos resolverla antes de hacer fetch.
+    // Creamos una cadena de promesas: Obtener Ruta -> Fetch -> Parsear JSON
+    const promise = ModHandler.getPath('data', `weeks/${weekName}.json`)
+      .then(weekPath => fetch(weekPath))
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json().then(jsonData => ({ jsonData, weekName }));
+      })
+      .catch(err => {
+        console.warn(`Error loading week ${weekName}:`, err);
+        return null;
+      });
 
-    loadPromises.push(
-      fetch(weekPath)
-        .then(response => {
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return response.json().then(jsonData => ({ jsonData, weekName }));
-        })
-        .catch(err => {
-          // console.warn(...) 
-          return null;
-        })
-    );
+    loadPromises.push(promise);
   }
 
   const results = await Promise.allSettled(loadPromises);
 
-  // 3. Procesar resultados (Igual que antes)
+  // 3. Procesar resultados
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value) {
       const { jsonData: weekData, weekName } = result.value;
@@ -48,7 +48,6 @@ export async function loadSongsFromWeeklist(cache) {
                 icon: weekData.weekCharacters ? weekData.weekCharacters[0] : 'face',
                 difficulties: ["easy", "normal", "hard"],
                 weekName: weekData.weekName || weekName,
-                // Color opcional si quieres agregarlo al freeplay
                 color: weekData.weekBackground || '#FFFFFF'
               });
             }

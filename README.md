@@ -26,25 +26,7 @@ O tambien puedes instalar la extension de **Live Server** el cual te permitira v
 
 ## Compilacion Nativa y Genesis Installer
 
-Pero si lo tuyo es la potencia real y quieres compilar para tener el control total del sistema, tienes que instalarte este repositorio creado especificamente para funciones nativas en web: [GenesisInstaller](https://github.com/IamBritex/GenesisI-nstaller). Sigue sus instrucciones paso a paso. Te adelantare lo que necesitas para no perder el tiempo:
-
-- **Sistema Operativo:** Windows 10 o 11 exclusivamente.
-- **Compilador:** Microsoft Visual C++ (cl.exe). Necesitas Visual Studio 2022 o los Build Tools 2022 instalados correctamente.
-
-Esto te permitira compilar con el comando:
-
-genesis compile
-
-Al usar este metodo, el proyecto **no utiliza Electron**, lo cual es una ventaja enorme porque no se ve limitado por las restricciones de privacidad de Rust y hace el proyecto infinitamente mas ligero. Es mas modificable, evitas ataques XXL y facilitas la interaccion directa con la ventana nativa desde JS utilizando comandos potentes como:
-
-/\*\*
-
-- @param {number} width
-- @param {number} height
-  \*/
-  genesis.window.resize(1280, 720);
-
-Hay un monton de comandos mas esperandote en la documentacion del instalador para que hagas lo que te de la gana con la ventana y el comportamiento nativo.
+No es necesario, hermano literalmente esta cosa se renderiza en nativo con pwa
 
 <img src="https://i.pinimg.com/originals/4a/4c/8c/4a4c8c0149c8b1b6b8efee5e267ea189.gif" width="300">
 
@@ -58,8 +40,6 @@ Con este proyecto queremos alcanzar editores profesionales que sean ridiculament
 - **Soft Coding Extremo:** Personaliza absolutamente todo dentro del engine con su propio editor de texto integrado, asemejandose a herramientas profesionales como **Roblox Studio** o **Godot**.
 
 Ademas, estamos implementando versiones tempranas de multijugador online y local para que la experiencia sea completa. Deja de pelearte con motores obsoletos que tardan siglos en cargar y empieza a usar algo que de verdad respete tu tiempo.
-
-## Star History
 
 ## Star History
 
