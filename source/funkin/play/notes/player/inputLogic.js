@@ -5,7 +5,7 @@ import { NoteDirection } from "../NoteDirection.js";
 
 /**
  * Lógica de procesamiento de inputs y notas del jugador.
- * @this {import('./PlayerNotesHandler').PlayerNotesHandler}
+ * @this {import('./PlayerNotesHandler.js').PlayerNotesHandler}
  */
 
 export function onStrumPressed(direction) {

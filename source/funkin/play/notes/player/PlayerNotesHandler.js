@@ -1,8 +1,8 @@
 import { BaseNotesHandler } from "../BaseNotesHandler.js";
 import { PlayerJudgement } from "../../judgments/PlayerJudgement.js";
-import { _initInput } from "./_initInput.js";
-import { toggleBotMode, updateBotPlayState, processBotLogic } from "./_botPlay.js";
-import { onStrumPressed, onStrumReleased, hitNote, missNote, releaseHold, onHoldFinished } from "./_inputLogic.js";
+import { _initInput } from "./initInput.js";
+import { toggleBotMode, updateBotPlayState, processBotLogic } from "./botPlay.js";
+import { onStrumPressed, onStrumReleased, hitNote, missNote, releaseHold, onHoldFinished } from "./inputLogic.js";
 
 export class PlayerNotesHandler extends BaseNotesHandler {
     constructor(scene, notesData, strumlines, config, scoreManager) {

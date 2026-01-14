@@ -2,3 +2,4 @@ dist/
 obj/
 main.obj
 .env
+hx/

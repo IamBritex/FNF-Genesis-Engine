@@ -2,7 +2,7 @@ import { NoteDirection } from "../NoteDirection.js";
 
 /**
  * Inicializa los inputs, keybinds y preferencias del jugador.
- * @this {import('./PlayerNotesHandler').PlayerNotesHandler}
+ * @this {import('./PlayerNotesHandler.js').PlayerNotesHandler}
  */
 export function _initInput() {
     // Configuración por defecto (WASD y Flechas)
