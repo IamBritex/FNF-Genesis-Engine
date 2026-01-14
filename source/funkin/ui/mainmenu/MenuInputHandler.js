@@ -1,33 +1,27 @@
-/**
- * Maneja toda la lógica de entrada y navegación para una escena de menú.
- */
+import { MainMenuSelection } from './MainMenuSelection.js';
+
 export class MenuInputHandler {
     /**
-     * @param {Phaser.Scene} scene La escena del menú que este handler controlará.
+     * @param {Phaser.Scene} scene
      */
     constructor(scene) {
         this.scene = scene;
+        this.selectionManager = new MainMenuSelection(scene);
     }
 
-    /**
-     * Vincula los eventos del teclado a las acciones del menú.
-     */
     initControls() {
-        this.onKeyUp = () => this.changeSelection(-1);
-        this.onKeyDown = () => this.changeSelection(1);
-        this.onKeyEnter = () => this.confirmSelection();
+        this.onKeyUp = () => this.selectionManager.changeSelection(-1);
+        this.onKeyDown = () => this.selectionManager.changeSelection(1);
+        this.onKeyEnter = () => this.selectionManager.confirmSelection();
         this.onKeyBackspace = () => this.goBack();
 
         this.onKeySeven = () => {
             if (this.scene.canInteract) {
-                // --- CAMBIO SOLICITADO ---
                 this.scene.canInteract = false;
                 this.scene.sound.play('confirmSound');
 
-                // Transición fade out para entrar al Editor limpiamente
                 this.scene.cameras.main.fadeOut(500, 0, 0, 0);
                 this.scene.cameras.main.once('camerafadeoutcomplete', () => {
-                    // Usamos 'start' para cerrar MainMenu e iniciar Editor completamente
                     this.scene.scene.start('Editor');
                 });
             }
@@ -35,9 +29,9 @@ export class MenuInputHandler {
 
         this.onWheel = (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
             if (deltaY > 0) {
-                this.changeSelection(1);
+                this.selectionManager.changeSelection(1);
             } else if (deltaY < 0) {
-                this.changeSelection(-1);
+                this.selectionManager.changeSelection(-1);
             }
         };
 
@@ -50,84 +44,10 @@ export class MenuInputHandler {
         this.scene.input.on('wheel', this.onWheel);
     }
 
-    /**
-     * Cambia el ítem seleccionado (arriba/abajo).
-     * @param {number} change -1 para arriba, 1 para abajo.
-     */
-    changeSelection(change) {
-        if (!this.scene.canInteract) return;
-
-        this.scene.selectSound.play();
-        this.scene.selectedIndex += change;
-
-        if (this.scene.selectedIndex < 0) {
-            this.scene.selectedIndex = this.scene.menuItems.length - 1;
-        } else if (this.scene.selectedIndex >= this.scene.menuItems.length) {
-            this.scene.selectedIndex = 0;
-        }
-
-        this.updateSelection();
-    }
-
-    /**
-     * Actualiza la animación de los ítems y mueve la cámara.
-     */
     updateSelection() {
-        this.scene.menuItems.forEach((item, index) => {
-            const spriteId = item.texture.key;
-            if (index === this.scene.selectedIndex) {
-                AssetsDriver.playAnimation(spriteId, 'selected', true);
-            } else {
-                AssetsDriver.playAnimation(spriteId, 'idle', true);
-            }
-        });
-
-        const targetY = this.scene.menuItems[this.scene.selectedIndex].y;
-        this.scene.camFollow.setPosition(this.scene.camFollow.x, targetY);
+        this.selectionManager.updateSelection();
     }
 
-    /**
-     * Confirma la selección (ENTER).
-     */
-    confirmSelection() {
-        if (!this.scene.canInteract) return;
-
-        this.scene.canInteract = false;
-        this.scene.confirmSound.play();
-        const selectedItem = this.scene.menuItems[this.scene.selectedIndex];
-
-        const duration = 1100, interval = 90;
-        this.scene.menuFlash.setVisible(true);
-        if (this.scene.flickerTimer) this.scene.flickerTimer.remove();
-
-        const totalFlickers = Math.floor(duration / interval);
-        let flickerCount = 0;
-
-        this.scene.flickerTimer = this.scene.time.addEvent({
-            delay: interval,
-            callback: () => {
-                this.scene.menuFlash.setVisible(!this.scene.menuFlash.visible);
-                selectedItem.setVisible(!selectedItem.visible);
-                flickerCount++;
-                if (flickerCount >= totalFlickers) {
-                    this.scene.menuFlash.setVisible(false);
-                    selectedItem.setVisible(true);
-                    this.scene.flickerTimer.remove();
-                    this.scene.flickerTimer = null;
-                }
-            },
-            loop: true
-        });
-
-        const targetScene = this.scene.menuItems[this.scene.selectedIndex].targetScene;
-        this.scene.time.delayedCall(800, () => {
-            this.scene.startExitState(targetScene);
-        });
-    }
-
-    /**
-     * Regresa a la pantalla de título (ESC).
-     */
     goBack() {
         if (!this.scene.canInteract) return;
 
@@ -136,9 +56,6 @@ export class MenuInputHandler {
         this.scene.startExitState('introDance');
     }
 
-    /**
-     * Limpia todos los listeners del teclado.
-     */
     destroy() {
         this.scene.input.keyboard.off('keydown-UP', this.onKeyUp);
         this.scene.input.keyboard.off('keydown-DOWN', this.onKeyDown);
