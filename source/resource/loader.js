@@ -20,7 +20,6 @@ const modulesToLoad = [
     { name: "Intro Text", path: "../funkin/ui/intro/introText.js" },
     { name: "Intro Dance", path: "../funkin/ui/intro/introDance.js" },
     { name: "Main Menu", path: "../funkin/ui/mainmenu/MainMenuScene.js" },
-    { name: "Editors", path: "../funkin/ui/editors/Editor.js" },
     { name: "Credits", path: "../funkin/ui/credits/CreditsScene.js" },
     { name: "Multiplayer", path: "../funkin/ui/multiplayer/rooms.js" },
     { name: "Options", path: "../funkin/ui/options/OptionsScene.js" }
