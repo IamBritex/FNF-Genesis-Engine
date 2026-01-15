@@ -1,4 +1,4 @@
-import ModHandler from "../../../core/ModHandler.js";
+import ModHandler from "../../../../core/ModHandler.js";
 
 /**
  * Carga canciones combinando weekList base y mods.

@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 3000;
-// La raíz es la carpeta padre de 'source' (donde está el exe y el index.html)
 const ROOT_DIR = path.join(__dirname, '..'); 
 
 const mimeTypes = {
