@@ -2,7 +2,6 @@ import { HealthIcon } from './healthIcon.js';
 
 export class HealthBar {
 
-    // [MODIFICADO] Acepta sessionId
     constructor(scene, chartData, conductor, sessionId) {
         this.scene = scene;
         this.chartData = chartData;
@@ -18,7 +17,6 @@ export class HealthBar {
         this.playerIcon = null;
         this.enemyIcon = null;
 
-        // Variables para Pixel Art
         this.isPixelPlayer = false;
         this.isPixelEnemy = false;
 
@@ -41,12 +39,25 @@ export class HealthBar {
         this._loadOpacityFromStorage();
     }
 
-    // [MODIFICADO] Acepta sessionId
     static preload(scene, sessionId) {
         if (!scene.textures.exists('healthBar')) {
             scene.load.image('healthBar', 'public/images/ui/healthBar.png');
         }
         HealthIcon.preload(scene, 'face', sessionId);
+    }
+
+    static preloadIcons(scene, chartData, sessionId) {
+        const p1Name = chartData?.player || 'bf';
+        const p2Name = chartData?.enemy || 'dad';
+
+        const p1Data = scene.cache.json.get(`char_${p1Name}`);
+        const p2Data = scene.cache.json.get(`char_${p2Name}`);
+
+        const p1Icon = p1Data?.healthicon || 'bf';
+        const p2Icon = p2Data?.healthicon || 'dad';
+
+        HealthIcon.preload(scene, p1Icon, sessionId);
+        HealthIcon.preload(scene, p2Icon, sessionId);
     }
 
     loadCharacterData() {
@@ -61,23 +72,18 @@ export class HealthBar {
         }
     }
 
-    preloadIcons() {
+    _processCharacterData() {
         const p1Data = this.scene.cache.json.get(`char_${this.chartData?.player || 'bf'}`);
         const p2Data = this.scene.cache.json.get(`char_${this.chartData?.enemy || 'dad'}`);
 
         this.playerIconName = p1Data?.healthicon || 'bf';
         this.enemyIconName = p2Data?.healthicon || 'dad';
 
-        // Detectar Pixel Art desde JSON
         this.isPixelPlayer = p1Data?.isPixel === true || p1Data?.no_antialiasing === true || p1Data?.antialiasing === false;
         this.isPixelEnemy = p2Data?.isPixel === true || p2Data?.no_antialiasing === true || p2Data?.antialiasing === false;
 
         this.config.colors.player = p1Data?.healthbar_colors ? Phaser.Display.Color.GetColor(p1Data.healthbar_colors[0], p1Data.healthbar_colors[1], p1Data.healthbar_colors[2]) : 0x00ff00;
         this.config.colors.enemy = p2Data?.healthbar_colors ? Phaser.Display.Color.GetColor(p2Data.healthbar_colors[0], p2Data.healthbar_colors[1], p2Data.healthbar_colors[2]) : 0xff0000;
-
-        // Pasar sessionId
-        HealthIcon.preload(this.scene, this.playerIconName, this.sessionId);
-        HealthIcon.preload(this.scene, this.enemyIconName, this.sessionId);
     }
 
     _loadOpacityFromStorage() {
@@ -98,11 +104,15 @@ export class HealthBar {
     }
 
     async init() {
+        this._processCharacterData();
+
         this.container = this.scene.add.container(this.config.position.x, this.config.position.y);
         this.container.setName("HealthBar_container");
         this.container.y = this.scene.cameras.main.height - 70;
+        
+        // [MODIFICADO] Inicia invisible
+        this.container.alpha = 0;
 
-        // Pasar sessionId
         this.playerIcon = new HealthIcon(this.scene, this.playerIconName, true, this.isPixelPlayer, this.sessionId);
         this.enemyIcon = new HealthIcon(this.scene, this.enemyIconName, false, this.isPixelEnemy, this.sessionId);
 
@@ -113,6 +123,18 @@ export class HealthBar {
 
         this._applyOpacity();
         this.updateBar();
+    }
+
+    // [NUEVO] Método para mostrar la barra suavemente
+    show(duration = 250) {
+        if (this.container && this.container.alpha === 0) {
+            this.scene.tweens.add({
+                targets: this.container,
+                alpha: 1,
+                duration: duration,
+                ease: 'Linear'
+            });
+        }
     }
 
     async _createHealthBar() {

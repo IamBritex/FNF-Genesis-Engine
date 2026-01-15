@@ -1,9 +1,8 @@
-
 export class RatingText {
     constructor(scene, ratingManager) {
         this.scene = scene;
         this.ratingManager = ratingManager;
-        this.isBotPlay = false; // Estado del Botplay
+        this.isBotPlay = false; 
         
         if (!this.ratingManager) {
             console.error('RatingManager no está disponible para RatingText');
@@ -16,7 +15,6 @@ export class RatingText {
                 y: scene.scale.height - 30 
             },
             style: {
-                // --- [MODIFICADO] Usar la fuente cargada en PlayScene ---
                 fontFamily: 'VCR OSD Mono', 
                 fontSize: '20px',
                 color: '#FFFFFF',
@@ -50,15 +48,26 @@ export class RatingText {
         this.container.add(this.mainText);
 
         this.container.setScrollFactor(0);
+        
+        // [MODIFICADO] Inicia invisible
+        this.container.alpha = 0;
         this.container.setVisible(true);
 
         this.updateMainText();
     }
 
-    /**
-     * Actualiza el estado de visualización del Botplay.
-     * @param {boolean} active 
-     */
+    // [NUEVO] Método para aparecer
+    show(duration = 250) {
+        if (this.container && this.container.alpha === 0) {
+            this.scene.tweens.add({
+                targets: this.container,
+                alpha: 1,
+                duration: duration,
+                ease: 'Linear'
+            });
+        }
+    }
+
     setBotPlay(active) {
         this.isBotPlay = active;
         this.updateMainText();
@@ -67,7 +76,6 @@ export class RatingText {
     updateMainText() {
         if (!this.ratingManager || !this.mainText) return;
 
-        // [MODIFICADO] Si está en modo Botplay, mostrar solo el texto y salir
         if (this.isBotPlay) {
             this.mainText.setText("BOTPLAY");
             return;

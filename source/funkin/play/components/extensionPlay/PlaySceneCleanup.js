@@ -3,9 +3,9 @@
  * Módulo encargado de liberar recursos y limpiar la PlayScene al salir.
  */
 
-import { SongPlayer } from "../song/SongPlayer.js";
-import { ChartDataHandler } from "../data/chartData.js";
-import { PlaySceneData } from "../data/PlaySceneData.js";
+import { SongPlayer } from "../../song/SongPlayer.js";
+import { ChartDataHandler } from "../../data/chartData.js";
+import { PlaySceneData } from "../../data/PlaySceneData.js";
 
 export class PlaySceneCleanup {
     /**

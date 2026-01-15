@@ -23,6 +23,9 @@ export class TimeBar {
 
         this.container = this.scene.add.container(0, 0);
         this.container.setDepth(150);
+        
+        // [MODIFICADO] Inicialmente invisible
+        this.container.alpha = 0; 
 
         this._createTimeBarImage();
         this._createBackground();
@@ -85,7 +88,6 @@ export class TimeBar {
             (this.barHeight * this.scaleFactor) / 2,
             '0:00',
             {
-                // --- [MODIFICADO] Usar la fuente cargada en PlayScene ---
                 fontFamily: 'VCR OSD Mono',
                 fontSize: '36px',
                 color: '#FFFFFF',
@@ -110,6 +112,16 @@ export class TimeBar {
 
     setTotalDuration(duration) {
         this.totalSongDuration = duration;
+
+        // [MODIFICADO] Aparecer suavemente cuando se recibe la duración (inicio de canción)
+        if (this.container && this.container.alpha === 0) {
+            this.scene.tweens.add({
+                targets: this.container,
+                alpha: 1,
+                duration: 500, // Medio segundo de fade in
+                ease: 'Linear'
+            });
+        }
     }
 
     update(currentTime) {
