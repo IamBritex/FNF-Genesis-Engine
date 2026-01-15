@@ -20,15 +20,11 @@ class IntroMenu extends Phaser.Scene {
   }
 
   preload() {
-    // --- CARGA DE ASSETS PROPIOS (IntroMenu) ---
-    this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
-    this.load.image("newgrounds", "public/assets/images/states/IntroMenu/newgrounds_logo.png");
+    this.load.audio("freakyMenu", "public/music/FreakyMenu.mp3");
+    this.load.image("newgrounds", "public/images/menu/intro/newgrounds_logo.png");
     this.load.text("introRandomText", "public/data/ui/randomText.txt");
     this.load.json("introData", "public/data/ui/intro.json");
-    this.load.atlas("bold", "public/assets/images/UI/bold.png", "public/assets/images/UI/bold.json");
 
-    // --- FORWARD LOADING: Cargar assets de la SIGUIENTE escena (introDance) ---
-    // Esto asegura que la transición sea instantánea
     this.load.atlasXML("gfDance", "public/images/menu/intro/gfDanceTitle.png", "public/images/menu/intro/gfDanceTitle.xml");
     this.load.atlasXML("logoBumpin", "public/images/menu/intro/logoBumpin.png", "public/images/menu/intro/logoBumpin.xml");
     this.load.atlasXML("titleEnter", "public/images/menu/intro/titleEnter.png", "public/images/menu/intro/titleEnter.xml");
@@ -36,8 +32,10 @@ class IntroMenu extends Phaser.Scene {
     this.load.audio("confirm", "public/sounds/confirmMenu.ogg");
     this.load.audio("girlfriendsRingtone", "public/music/girlfriendsRingtone.ogg");
 
-    // Shader para el Easter Egg
     this.load.text("rainbowShader", "public/shaders/RainbowShader.frag");
+
+    // [MODIFICADO] Carga de la imagen del nuevo Alfabeto
+    Alphabet.load(this);
   }
 
   create() {
@@ -48,6 +46,9 @@ class IntroMenu extends Phaser.Scene {
         state: "Intro"
       });
     }
+
+    // [MODIFICADO] Generación del Atlas JSON para el Alfabeto
+    Alphabet.createAtlas(this);
 
     const introData = this.cache.json.get("introData");
     const sequence = introData.introSequences.find(s => s.id === 'default');
@@ -79,14 +80,12 @@ class IntroMenu extends Phaser.Scene {
     this.sceneEnded = false;
     this.currentRandomPair = null;
 
-    // 4. CONVERTIR PASOS A EVENTOS DE TIEMPO (CONDUCTOR)
-    // En lugar de programarlos, creamos una lista con el tiempo exacto en que deben ocurrir.
+    // 4. CONVERTIR PASOS A EVENTOS DE TIEMPO
     this.introEvents = steps.map(step => ({
       ...step,
-      targetTime: step.beat * beatTime // Tiempo exacto en milisegundos
+      targetTime: step.beat * beatTime
     }));
 
-    // Asegurarnos que estén ordenados cronológicamente
     this.introEvents.sort((a, b) => a.targetTime - b.targetTime);
     this.currentEventIndex = 0;
 
@@ -97,31 +96,18 @@ class IntroMenu extends Phaser.Scene {
     this.input.keyboard.on("keydown-ENTER", this.skipScene, this);
   }
 
-  /**
-   * EL CORAZÓN DE LA SINCRONIZACIÓN:
-   * Se ejecuta en cada frame del juego.
-   */
   update(time, delta) {
-    // Si la escena terminó o la música no suena, no hacemos nada
     if (this.sceneEnded || !this.music || !this.music.isPlaying) return;
 
-    // Obtenemos la posición actual de la canción en milisegundos
-    // this.music.seek devuelve segundos, multiplicamos por 1000.
     const currentSongTime = this.music.seek * 1000;
 
-    // Revisamos si ya alcanzamos el tiempo del siguiente evento
-    // Usamos un while por si el framerate bajó y debemos procesar varios eventos de golpe
     while (this.currentEventIndex < this.introEvents.length) {
       const nextEvent = this.introEvents[this.currentEventIndex];
 
-      // Si el tiempo de la canción es mayor o igual al tiempo objetivo del evento...
       if (currentSongTime >= nextEvent.targetTime) {
-        // ...ejecutamos el evento
         this.processJsonStep(nextEvent);
-        // ...y avanzamos al siguiente índice
         this.currentEventIndex++;
       } else {
-        // Si no hemos llegado al tiempo, salimos del bucle
         break;
       }
     }
@@ -180,9 +166,13 @@ class IntroMenu extends Phaser.Scene {
   displayTextLine(textString) {
     if (!textString) return;
 
+    // Creamos la instancia usando el nuevo sistema de Alphabet
     const text = new Alphabet(this, 0, 0, textString.toUpperCase(), true, 1);
 
-    text.x = (this.game.config.width / 2) - (text.width / 2);
+    // [CORRECCIÓN] Usamos getBounds() para calcular el ancho real del contenedor
+    // ya que Phaser Containers a veces retornan width=0 antes de renderizarse.
+    const bounds = text.getBounds();
+    text.x = (this.game.config.width / 2) - (bounds.width / 2);
     text.y = this.startY + this.currentYOffset;
 
     this.add.existing(text);
@@ -194,21 +184,13 @@ class IntroMenu extends Phaser.Scene {
     if (this.sceneEnded) return;
     this.sceneEnded = true;
 
-    // Verificamos si existe el efecto de flash para usarlo
     if (this.scene.get("FlashEffect")) {
-      // Iniciamos la transición visual (pantalla blanca)
       this.scene.get("FlashEffect").startTransition("introDance");
-
-      // [CORRECCIÓN CRÍTICA]
-      // Forzamos la detención de esta escena (IntroMenu) después de 200ms.
-      // 200ms es lo que tarda FlashEffect en poner la pantalla totalmente blanca (alpha 1).
-      // Al detenerla aquí, garantizamos que los textos desaparezcan y no se superpongan
-      // con la siguiente escena, incluso si FlashEffect falla en detenerla automáticamente.
+      
       this.time.delayedCall(200, () => {
         this.scene.stop("IntroMenu");
       });
     } else {
-      // Fallback: Si no hay efecto flash, cambiamos directamente (esto ya detiene la escena actual)
       this.scene.start("introDance");
     }
   }
@@ -235,7 +217,7 @@ class IntroMenu extends Phaser.Scene {
     }
 
     this.input.keyboard.off("keydown-ENTER", this.skipScene, this);
-    this.introEvents = []; // Limpiar eventos
+    this.introEvents = [];
   }
 }
 

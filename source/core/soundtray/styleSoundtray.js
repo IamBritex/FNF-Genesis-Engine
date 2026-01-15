@@ -103,23 +103,23 @@ export class VolumeUIScene extends Phaser.Scene {
   preload() {
     this.load.image(
       "volumeBox",
-      "public/assets/images/UI/soundtray/volumebox.png"
+      "public/images/ui/soundtray/volumebox.png"
     );
     for (let i = 1; i <= 10; i++) {
       this.load.image(
         `volumeBar${i}`,
-        `public/assets/images/UI/soundtray/bars_${i}.png`
+        `public/images/ui/soundtray/bars_${i}.png`
       );
     }
 
-    this.load.audio("volUp", "public/assets/audio/sounds/soundtray/Volup.ogg");
+    this.load.audio("volUp", "public/sounds/soundtray/Volup.ogg");
     this.load.audio(
       "volDown",
-      "public/assets/audio/sounds/soundtray/Voldown.ogg"
+      "public/sounds/soundtray/Voldown.ogg"
     );
     this.load.audio(
       "volMax",
-      "public/assets/audio/sounds/soundtray/VolMAX.ogg"
+      "public/sounds/soundtray/VolMAX.ogg"
     );
   }
 
