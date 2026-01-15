@@ -1,11 +1,6 @@
-/**
- * funkin/play/characters/Characters.js
- */
 import { CharactersData } from "./charactersData.js"
 import { CharacterElements } from "./characterElements.js"
 import { CharacterAnimations } from "./charactersAnimations.js"
-import { CharacterBooper } from "./charactersBooper.js"
-import { NoteDirection } from "../notes/NoteDirection.js"
 import ModHandler from "../../../core/ModHandler.js"
 
 export class Characters {
@@ -14,16 +9,12 @@ export class Characters {
     this.cameraManager = cameraManager
     this.stageHandler = stageHandler
     this.sessionId = sessionId
+    this.conductor = conductor
 
     this.chartCharacterNames = CharactersData.extractChartData(chartData)
 
-    console.log("--- DATOS DE PERSONAJES (desde chartData) ---")
-    console.log(this.chartCharacterNames)
-
     this.stageCharacterData = null
     this.loadedCharacterJSONs = new Map()
-
-    this.booper = new CharacterBooper(this.scene, conductor?.bpm || 100)
 
     this.characterElements = new CharacterElements(this.scene, this.cameraManager, this.sessionId)
     this.characterAnimations = new CharacterAnimations(this.scene)
@@ -31,6 +22,8 @@ export class Characters {
     this.bf = null
     this.dad = null
     this.gf = null
+    
+    this.beatRegistered = false;
   }
 
   async loadCharacterJSONs() {
@@ -42,9 +35,7 @@ export class Characters {
         const charKey = `char_${charName}`
         if (!this.scene.cache.json.exists(charKey)) {
           const path = await ModHandler.getPath('data', `characters/${charName}.json`);
-
           this.scene.load.json(charKey, path)
-          console.log(`Characters.js: Registrando carga de JSON: ${path}`)
         }
       }
     }
@@ -74,11 +65,6 @@ export class Characters {
     const dadJSON = getJSON(this.chartCharacterNames.enemy)
     const gfJSON = getJSON(this.chartCharacterNames.gfVersion)
 
-    const loadedJSONs = {}
-    if (bfJSON) loadedJSONs[this.chartCharacterNames.player] = bfJSON
-    if (dadJSON) loadedJSONs[this.chartCharacterNames.enemy] = dadJSON
-    if (gfJSON) loadedJSONs[this.chartCharacterNames.gfVersion] = gfJSON
-
     this.characterElements.preloadAtlases(this.chartCharacterNames, this.loadedCharacterJSONs)
   }
 
@@ -92,57 +78,57 @@ export class Characters {
     this.bf = sprites.bf
     this.dad = sprites.dad
     this.gf = sprites.gf
-    this.booper.setCharacterSprites(this.bf, this.dad, this.gf)
   }
 
   startBeatSystem() {
-    if (this.booper) this.booper.startBeatSystem()
+      if (this.conductor && !this.beatRegistered) {
+          this.conductor.on('beat', this.onBeatHit, this);
+          this.beatRegistered = true;
+      }
+  }
+
+  onBeatHit(beat) {
+      if (this.bf) this.bf.onBeat(beat);
+      if (this.dad) this.dad.onBeat(beat);
+      
+      if (this.gf) {
+          const gfBpm = this.gf.charJson?.bpm || this.conductor.bpm;
+          const steps = Math.round(gfBpm / this.conductor.bpm) || 1;
+          
+          if (beat % steps === 0) {
+              this.gf.onBeat(beat);
+          }
+      }
   }
 
   dance() {
-    const chars = [this.bf, this.dad, this.gf]
-    chars.forEach((char) => {
-      if (!char || !char.active || !char.anims) return
-      if (char.anims.exists('idle')) {
-        this.booper.playAnimation(char, 'idle', true)
-      } else if (char.anims.exists('danceRight')) {
-        this.booper.playAnimation(char, 'danceRight', true)
-      }
-    })
+    if (this.bf) this.bf.dance();
+    if (this.dad) this.dad.dance();
+    if (this.gf) this.gf.dance();
   }
 
   playSingAnimation(isPlayer, direction) {
-    const charSprite = isPlayer ? this.bf : this.dad
-    if (!charSprite || !charSprite.active) return
-    const dirName = NoteDirection.getNameUpper(direction)
-    const animName = `sing${dirName}`
-    charSprite.setData("isSinging", true)
-    const singDuration = charSprite.getData("singDuration") || 4
-    charSprite.setData("singBeatCountdown", singDuration)
-    this.booper.playAnimation(charSprite, animName, true)
+    const char = isPlayer ? this.bf : this.dad;
+    if (char) char.sing(direction, false);
   }
 
   playMissAnimation(isPlayer, direction) {
-    const charSprite = isPlayer ? this.bf : this.dad
-    if (!charSprite || !charSprite.active) return
-    const dirName = NoteDirection.getNameUpper(direction)
-    const animName = `sing${dirName}miss`
-    charSprite.setData("isSinging", true)
-    const singDuration = charSprite.getData("singDuration") || 4
-    charSprite.setData("singBeatCountdown", singDuration)
-    this.booper.playAnimation(charSprite, animName, true)
+    const char = isPlayer ? this.bf : this.dad;
+    if (char) char.sing(direction, true);
   }
 
   update(songPosition) {
-    if (this.booper) this.booper.update(songPosition)
+     // Controlado por eventos
   }
 
   shutdown() {
+    if (this.beatRegistered && this.conductor) {
+        this.conductor.off('beat', this.onBeatHit, this);
+        this.beatRegistered = false;
+    }
+
     if (this.characterElements) {
       this.characterElements.destroy()
-    }
-    if (this.booper) {
-      this.booper.stopBeatSystem()
     }
 
     if (this.bf) { this.bf.destroy(); this.bf = null; }
@@ -157,7 +143,7 @@ export class Characters {
       if (this.scene.anims) {
         const anims = this.scene.anims.anims.entries
         const animKeysToDelete = []
-        for (const [animKey, anim] of Object.entries(anims)) {
+        for (const [animKey] of Object.entries(anims)) {
           for (const textureKey of keysToRemove) {
             if (animKey.startsWith(textureKey)) {
               animKeysToDelete.push(animKey)
@@ -170,7 +156,6 @@ export class Characters {
 
       keysToRemove.forEach((key) => {
         if (this.scene.textures.exists(key)) this.scene.textures.remove(key)
-        if (this.scene.cache.xml.exists(key)) this.scene.cache.xml.remove(key)
       })
     }
 
@@ -183,7 +168,5 @@ export class Characters {
       })
       this.loadedCharacterJSONs.clear()
     }
-
-    console.log("Characters shutdown complete")
   }
 }
