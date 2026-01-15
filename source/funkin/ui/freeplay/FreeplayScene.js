@@ -4,6 +4,7 @@ import { FreeplayBackground } from './display/FreeplayBackground.js';
 import { FreeplayList } from './display/FreeplayList.js';
 import { InputHandler } from './InputHandler.js';
 import { HealthIcon } from '../../play/health/healthIcon.js';
+import Alphabet from '../../../utils/Alphabet.js';
 
 class FreeplayScene extends Phaser.Scene {
     constructor() {
@@ -29,11 +30,17 @@ class FreeplayScene extends Phaser.Scene {
         this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
         
         HealthIcon.preload(this, 'face', 'freeplay_session');
+
+        // [NUEVO] Cargar la imagen del Alfabeto de forma modular
+        Alphabet.load(this);
     }
 
     async create() {
         this.setupDiscord();
         
+        // [NUEVO] Generar el Atlas del Alfabeto antes de crear la lista
+        Alphabet.createAtlas(this);
+
         this.checkMenuMusic();
 
         this.bg = new FreeplayBackground(this);
@@ -57,7 +64,7 @@ class FreeplayScene extends Phaser.Scene {
         this.dataManager.setSongs(songs);
 
         this.listRenderer = new FreeplayList(this, songs);
-        this.createUIText(); // Aquí se crean los textos alineados a la derecha
+        this.createUIText();
 
         this.inputHandler = new InputHandler(this);
         
@@ -114,8 +121,6 @@ class FreeplayScene extends Phaser.Scene {
     createUIText() {
         const { width } = this.cameras.main;
         
-        // CORRECCIÓN: Usamos (width - 20) para pegar al borde derecho
-        // setOrigin(1, 0) significa que el punto de anclaje es la esquina superior DERECHA del texto.
         this.scoreText = this.add.text(width - 20, 5, "", { 
             fontFamily: 'vcr', 
             fontSize: "32px", 
