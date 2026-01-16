@@ -112,7 +112,7 @@ class MainMenuScene extends Phaser.Scene {
         this.input.on('pointermove', (pointer) => {
             if (!pointer.isDown || !this.canInteract) return;
 
-            const swipeThreshold = 30; 
+            const swipeThreshold = 70; // Reducido de 30 a 10 para ser más sensible
             const diffY = pointer.y - this.touchStartY;
 
             if (Math.abs(diffY) > swipeThreshold) {
@@ -123,7 +123,7 @@ class MainMenuScene extends Phaser.Scene {
                 } else {
                     this.selectionLogic.changeSelection(-1);
                 }
-                this.touchStartY = pointer.y;
+                this.touchStartY = pointer.y; // Reset para múltiples swipes
             }
         });
 

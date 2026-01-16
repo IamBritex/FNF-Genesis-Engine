@@ -15,6 +15,10 @@ class StoryModeScene extends Phaser.Scene {
         this.canPressEnter = true;
 
         this.handler = null;
+        
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.minSwipeDistance = 30;
     }
 
     preload() {
@@ -26,6 +30,9 @@ class StoryModeScene extends Phaser.Scene {
         this.load.audio('confirmSound', 'public/sounds/confirmMenu.ogg');
         this.load.audio('cancelSound', 'public/sounds/cancelMenu.ogg');
         this.load.audio("freakyMenu", "public/sounds/FreakyMenu.mp3");
+
+        // --- Cargar fuente VCR ---
+        this.load.font('VCR', 'public/fonts/vcr.ttf');
 
         const difficulties = ['easy', 'normal', 'hard'];
         difficulties.forEach(diff => {
@@ -108,9 +115,33 @@ class StoryModeScene extends Phaser.Scene {
             this.keyState = {};
             if (this.handler) { this.handler.setupInputs(); }
         });
+
+        this.input.on('pointerdown', (pointer) => {
+            this.touchStartX = pointer.x;
+            this.touchStartY = pointer.y;
+        });
+
+        this.input.on('pointerup', (pointer) => {
+            if (!this.handler) return;
+
+            const diffX = pointer.x - this.touchStartX;
+            const diffY = pointer.y - this.touchStartY;
+            const absX = Math.abs(diffX);
+            const absY = Math.abs(diffY);
+
+            if (absX > absY && absX > this.minSwipeDistance) {
+                this.selectSound?.play();
+                if (diffX < 0) this.handler.changeDifficulty(1); 
+                else this.handler.changeDifficulty(-1);
+            } 
+            else if (absY > absX && absY > this.minSwipeDistance) {
+                this.selectSound?.play();
+                if (diffY < 0) this.handler.changeWeek(1);
+                else this.handler.changeWeek(-1);
+            }
+        });
     }
     
-    // Método Update para procesar Gamepad cada frame
     update(time, delta) {
         if (this.handler && this.handler.handleGamepadInput && this.canPressEnter) {
             this.handler.handleGamepadInput(time, delta);
@@ -251,14 +282,32 @@ class StoryModeScene extends Phaser.Scene {
         this.weekKeys.forEach((weekKey, index) => {
             const weekData = this.weeks[weekKey];
             const titleKey = `${weekData.weekName}Title`;
+            let item;
+
             if (this.textures.exists(titleKey)) {
-                const title = this.add.image(0, 0, titleKey).setOrigin(0.5, 0.5).setAlpha(0.6);
-                title.setData('isFlashing', false);
-                this.weekTitlesContainer.add(title);
+                item = this.add.image(0, 0, titleKey).setOrigin(0.5, 0.5).setAlpha(0.6);
+                item.setData('isFlashing', false);
             } else {
-                const placeholder = this.add.text(0, 0, weekData.weekName || 'MISSING', { fontSize: '40px', color: '#ff0000' }).setOrigin(0.5, 0.5).setAlpha(0.6);
-                this.weekTitlesContainer.add(placeholder);
+                item = this.add.text(0, 0, weekData.weekName || 'MISSING', { fontSize: '40px', color: '#ff0000' }).setOrigin(0.5, 0.5).setAlpha(0.6);
             }
+            
+            item.setInteractive();
+            item.on('pointerup', () => {
+                if (!this.handler) return;
+                
+                const distance = Phaser.Math.Distance.Between(
+                    this.input.activePointer.downX, this.input.activePointer.downY,
+                    this.input.activePointer.upX, this.input.activePointer.upY
+                );
+
+                if (distance > this.minSwipeDistance) return;
+
+                if (this.selectedWeekIndex === index) {
+                    this.handler.handleConfirm();
+                }
+            });
+
+            this.weekTitlesContainer.add(item);
         });
 
         const diffY = 520;
@@ -308,6 +357,8 @@ class StoryModeScene extends Phaser.Scene {
         if (this.scoreAnimator) { this.scoreAnimator.stop(); this.scoreAnimator = null; }
         this.tweens.killAll();
         this.load.reset();
+        this.input.off('pointerdown');
+        this.input.off('pointerup');
     }
 }
 
