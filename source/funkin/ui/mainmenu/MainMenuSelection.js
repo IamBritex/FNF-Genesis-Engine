@@ -21,6 +21,24 @@ export class MainMenuSelection {
         this.updateSelection();
     }
 
+    /**
+     * Maneja la interacción táctil directa sobre una opción.
+     * @param {number} index - El índice de la opción tocada.
+     */
+    handleTouch(index) {
+        if (!this.scene.canInteract) return;
+
+        if (this.scene.selectedIndex === index) {
+            // Si ya estaba seleccionada, confirmamos (comportamiento de Enter)
+            this.confirmSelection();
+        } else {
+            // Si no estaba seleccionada, la seleccionamos
+            this.scene.selectSound.play();
+            this.scene.selectedIndex = index;
+            this.updateSelection();
+        }
+    }
+
     updateSelection() {
         this.scene.menuItems.forEach((item, index) => {
             const baseKey = item.texture.key; 
@@ -34,8 +52,13 @@ export class MainMenuSelection {
             }
         });
 
-        const targetY = this.scene.menuItems[this.scene.selectedIndex].y;
-        this.scene.camFollow.setPosition(this.scene.camFollow.x, targetY);
+        // Aseguramos que la cámara siga al ítem seleccionado
+        if (this.scene.menuItems[this.scene.selectedIndex]) {
+            const targetY = this.scene.menuItems[this.scene.selectedIndex].y;
+            if (this.scene.camFollow) {
+                this.scene.camFollow.setPosition(this.scene.camFollow.x, targetY);
+            }
+        }
     }
 
     confirmSelection() {

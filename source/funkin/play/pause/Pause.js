@@ -45,6 +45,11 @@ export class PauseScene extends Phaser.Scene {
         // 3. Iniciar Input
         this.inputHandler = new PauseInput(this);
         this.setupEvents();
+        
+        // Bloquear input por 300ms para evitar que Start active Resume inmediatamente
+        if (this.inputHandler.gamepadInput) {
+            this.inputHandler.gamepadInput.setInputLockout(300);
+        }
 
         // Estado visual inicial
         this.ui.update(this.state.currentSelection, 1); // 1 = instantáneo al inicio
@@ -66,6 +71,11 @@ export class PauseScene extends Phaser.Scene {
         this.inputHandler.on('confirm', () => {
             const action = this.state.getCurrentAction();
             PauseOptionsHandler.execute(action, this.parentScene, this);
+        });
+
+        // Agregar listener para el botón "back" (B en gamepad, ESC/BACKSPACE en teclado)
+        this.inputHandler.on('back', () => {
+            this.resumeGame();
         });
     }
 

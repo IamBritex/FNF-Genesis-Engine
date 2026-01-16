@@ -7,6 +7,8 @@ export class touchHere extends Phaser.Scene {
         this.loadingFinished = false;
         this.canPressEnter = false;
         this.enterKey = null;
+        this.mobileText = null;
+        this.lastGamepadState = false;
     }
 
     preload() {
@@ -39,15 +41,38 @@ export class touchHere extends Phaser.Scene {
         const pressStartXOffset = 70;
         const pressStartYOffset = 20;
 
-        this.pressEnterSprite = this.add.sprite(
-            noodleCenterX - pressStartXOffset,
-            noodleCenterY - pressStartYOffset,
-            'pressEnter',
-            'press to start образец 10005'
-        );
-        this.pressEnterSprite.setAlpha(0);
+        const isMobile = !this.sys.game.device.os.desktop;
 
-        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        if (isMobile) {
+            this.mobileText = this.add.text(
+                noodleCenterX - pressStartXOffset,
+                noodleCenterY - pressStartYOffset,
+                "touch here for start",
+                {
+                    fontFamily: "Arial",
+                    fontSize: "32px",
+                    color: "#ffffff",
+                    fontStyle: "bold"
+                }
+            ).setOrigin(0.5);
+            this.mobileText.setAlpha(0);
+
+            this.input.on('pointerdown', () => {
+                if (this.canPressEnter) {
+                    this.startGameTransition();
+                }
+            });
+        } else {
+            this.pressEnterSprite = this.add.sprite(
+                noodleCenterX - pressStartXOffset,
+                noodleCenterY - pressStartYOffset,
+                'pressEnter',
+                'press to start образец 10005'
+            );
+            this.pressEnterSprite.setAlpha(0);
+
+            this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        }
 
         if (!this.anims.exists('bf_ate_anim')) {
             this.anims.create({
@@ -80,7 +105,6 @@ export class touchHere extends Phaser.Scene {
             });
         }
 
-        // --- BF SETUP ---
         this.noodleRightEdge = this.longNoodle.x + (this.longNoodle.displayWidth / 2);
         this.noodleLeftEdge = this.longNoodle.x - (this.longNoodle.displayWidth / 2);
 
@@ -96,7 +120,19 @@ export class touchHere extends Phaser.Scene {
     }
 
     update() {
-        if (this.canPressEnter && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        let gamepadPressed = false;
+        for (const gamepad of gamepads) {
+            if (gamepad && gamepad.buttons[0].pressed) {
+                gamepadPressed = true;
+                break;
+            }
+        }
+
+        const gamepadJustPressed = gamepadPressed && !this.lastGamepadState;
+        this.lastGamepadState = gamepadPressed;
+
+        if (this.canPressEnter && (gamepadJustPressed || (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)))) {
             this.startGameTransition();
         }
 
@@ -136,20 +172,23 @@ export class touchHere extends Phaser.Scene {
 
         this.tweens.add({
             targets: this.bf,
-            x: this.bf.x + 40, // Rebote hacia la derecha
+            x: this.bf.x + 40,
             duration: 800,
             ease: 'Bounce.easeOut'
         });
 
-        this.tweens.add({
-            targets: this.pressEnterSprite,
-            alpha: 1,
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => {
-                this.canPressEnter = true;
-            }
-        });
+        const targetObject = this.mobileText || this.pressEnterSprite;
+        if (targetObject) {
+            this.tweens.add({
+                targets: targetObject,
+                alpha: 1,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.canPressEnter = true;
+                }
+            });
+        }
     }
 
     startGameTransition() {
@@ -157,7 +196,9 @@ export class touchHere extends Phaser.Scene {
 
         this.sound.play('enterSound');
 
-        this.pressEnterSprite.play('press_enter_anim');
+        if (this.pressEnterSprite) {
+            this.pressEnterSprite.play('press_enter_anim');
+        }
 
         this.cameras.main.fadeOut(1000, 0, 0, 0);
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
@@ -166,7 +207,9 @@ export class touchHere extends Phaser.Scene {
     }
 
     shutdown() {
-        this.input.keyboard.removeKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        if (this.enterKey) {
+            this.input.keyboard.removeKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        }
         super.shutdown();
     }
 }

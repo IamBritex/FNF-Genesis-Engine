@@ -15,13 +15,11 @@ class CreditsScene extends Phaser.Scene {
         this.curSelected = 0;
         this.lastSelectedIndex = 0;
         this.tapStartTime = 0;
-        this.maxTapDuration = 200; // Tiempo máximo para considerar un tap (ms)
     }
 
     preload() {
         this.load.image('bg', 'public/images/menu/bg/menuDesat.png');
         this.load.json('credits', 'public/data/ui/Credits.json');
-        this.load.atlas("bold", "public/images/ui/bold.png", "public/images/ui/bold.json");
 
         this.load.on('filecomplete-json-credits', () => {
             const creditsData = this.cache.json.get('credits')?.credits || [];

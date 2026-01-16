@@ -9,6 +9,16 @@ export class StoryMenuHandler {
         this.weekKeys = scene.weekKeys;
         this.difficulties = scene.difficulties;
         this.keyState = {};
+
+        // Estado previo del gamepad para "Just Pressed"
+        this.prevGamepadState = {
+            up: false, down: false, left: false, right: false,
+            l1: false, r1: false, // Gatillos pequeños (Semanas)
+            l2: false, r2: false, // Gatillos grandes (Dificultad)
+            a: false, b: false, x: false, y: false, start: false
+        };
+        
+        this.stickScrollTimer = 0;
     }
 
     setupInputs() {
@@ -39,6 +49,135 @@ export class StoryMenuHandler {
             else if (deltaY < 0) await this.changeWeek(-1);
         };
         this.scene.input.on('wheel', this.onMouseWheel);
+    }
+
+    // Nuevo método para procesar el mando
+    handleGamepadInput(time, delta) {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        
+        for (const gamepad of gamepads) {
+            if (!gamepad) continue;
+
+            /**
+             * Mapeo:
+             * D-Pad: 12(Arr), 13(Abj), 14(Izq), 15(Der)
+             * Joystick: Ejes 0 (Horiz), 1 (Vert)
+             * Gatillos Pequeños: 4(L1), 5(R1) -> Semanas
+             * Gatillos Grandes: 6(L2), 7(R2) -> Dificultad
+             * Botones: 0(A), 1(B), 2(X), 3(Y), 9(Start)
+             */
+
+            const stickUp = gamepad.axes[1] < -0.5;
+            const stickDown = gamepad.axes[1] > 0.5;
+            const stickLeft = gamepad.axes[0] < -0.5;
+            const stickRight = gamepad.axes[0] > 0.5;
+
+            // Manejo de gatillos grandes (pueden ser ejes o botones según el OS/Driver)
+            // Generalmente botones 6 y 7, o valores float en buttons[6].value
+            const l2Pressed = (gamepad.buttons[6]?.value > 0.1) || gamepad.buttons[6]?.pressed;
+            const r2Pressed = (gamepad.buttons[7]?.value > 0.1) || gamepad.buttons[7]?.pressed;
+
+            const currentState = {
+                up: gamepad.buttons[12]?.pressed || stickUp,
+                down: gamepad.buttons[13]?.pressed || stickDown,
+                left: gamepad.buttons[14]?.pressed || stickLeft,
+                right: gamepad.buttons[15]?.pressed || stickRight,
+                l1: gamepad.buttons[4]?.pressed,
+                r1: gamepad.buttons[5]?.pressed,
+                l2: l2Pressed,
+                r2: r2Pressed,
+                a: gamepad.buttons[0]?.pressed,
+                b: gamepad.buttons[1]?.pressed,
+                x: gamepad.buttons[2]?.pressed,
+                y: gamepad.buttons[3]?.pressed,
+                start: gamepad.buttons[9]?.pressed
+            };
+
+            // --- Lógica de Semanas (Arriba/Abajo/L1/R1) ---
+            let movedWeek = false;
+
+            // Arriba (Joystick/D-Pad)
+            if (currentState.up) {
+                if (!this.prevGamepadState.up || (stickUp && time > this.stickScrollTimer)) {
+                    this.onKeyUp();
+                    this.stickScrollTimer = time + 200;
+                    movedWeek = true;
+                }
+            } 
+            // Abajo (Joystick/D-Pad)
+            else if (currentState.down) {
+                if (!this.prevGamepadState.down || (stickDown && time > this.stickScrollTimer)) {
+                    this.onKeyDown();
+                    this.stickScrollTimer = time + 200;
+                    movedWeek = true;
+                }
+            }
+            
+            // L1 (Semana Anterior)
+            if (currentState.l1 && !this.prevGamepadState.l1) {
+                this.onKeyUp();
+                movedWeek = true;
+            }
+            // R1 (Semana Siguiente)
+            if (currentState.r1 && !this.prevGamepadState.r1) {
+                this.onKeyDown();
+                movedWeek = true;
+            }
+
+            // --- Lógica de Dificultad (Izq/Der/L2/R2/X/Y) ---
+            
+            // Izquierda (Joystick/D-Pad)
+            if (currentState.left) {
+                if (!this.prevGamepadState.left || (stickLeft && time > this.stickScrollTimer)) {
+                    this.onKeyLeft();
+                    this.stickScrollTimer = time + 200;
+                }
+            } 
+            // Derecha (Joystick/D-Pad)
+            else if (currentState.right) {
+                if (!this.prevGamepadState.right || (stickRight && time > this.stickScrollTimer)) {
+                    this.onKeyRight();
+                    this.stickScrollTimer = time + 200;
+                }
+            }
+            // Soltar flechas visuales
+            if (!currentState.left && this.prevGamepadState.left) this.onKeyUpUp();
+            if (!currentState.right && this.prevGamepadState.right) this.onKeyRightUp();
+
+            // Gatillos Grandes (L2/R2)
+            if (currentState.l2 && !this.prevGamepadState.l2) {
+                this.onKeyLeft(); // L2 -> Izquierda
+            }
+            if (currentState.r2 && !this.prevGamepadState.r2) {
+                this.onKeyRight(); // R2 -> Derecha
+            }
+
+            // Botones X (Izq) e Y (Der)
+            if (currentState.x && !this.prevGamepadState.x) {
+                this.onKeyLeft(); 
+            }
+            if (currentState.y && !this.prevGamepadState.y) {
+                this.onKeyRight(); 
+            }
+
+            // Reset del timer si soltamos el stick
+            if (!stickUp && !stickDown && !stickLeft && !stickRight) {
+                this.stickScrollTimer = 0;
+            }
+
+            // Confirmar (A / Start)
+            if ((currentState.a && !this.prevGamepadState.a) || (currentState.start && !this.prevGamepadState.start)) {
+                this.handleConfirm();
+            }
+
+            // Volver (B)
+            if (currentState.b && !this.prevGamepadState.b) {
+                this.handleBack();
+            }
+
+            this.prevGamepadState = currentState;
+            break; // Solo primer mando
+        }
     }
 
     loadCharacters() {
@@ -125,7 +264,6 @@ export class StoryMenuHandler {
                     .setOrigin(0.5, 0.5).setDepth(100);
             } else {
                 // Si ya es rectángulo, hacemos tween de color
-                // FIX: Usar ValueToColor para evitar el bug del color ROJO
                 const startColor = Phaser.Display.Color.ValueToColor(currentBg.fillColor);
                 const endColor = Phaser.Display.Color.ValueToColor(targetColor);
 
@@ -155,9 +293,6 @@ export class StoryMenuHandler {
                 if (currentBg) currentBg.destroy();
                 this.scene.weekBackground = this.scene.add.image(width / 2, 56 + 200, bgData)
                     .setOrigin(0.5, 0.5).setDepth(100);
-                
-                // Opcional: Escalar imagen si es muy pequeña/grande
-                // this.scene.weekBackground.setDisplaySize(width, 400);
             }
         }
     }

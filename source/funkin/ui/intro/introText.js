@@ -14,9 +14,11 @@ class IntroMenu extends Phaser.Scene {
     this.startY = 300;
     this.lineSpacing = 55;
 
-    // Variables para la sincronización (Conductor)
     this.introEvents = [];
     this.currentEventIndex = 0;
+    
+    // Estado del gamepad para evitar múltiples pulsaciones
+    this.lastGamepadState = false;
   }
 
   preload() {
@@ -27,14 +29,18 @@ class IntroMenu extends Phaser.Scene {
 
     this.load.atlasXML("gfDance", "public/images/menu/intro/gfDanceTitle.png", "public/images/menu/intro/gfDanceTitle.xml");
     this.load.atlasXML("logoBumpin", "public/images/menu/intro/logoBumpin.png", "public/images/menu/intro/logoBumpin.xml");
-    this.load.atlasXML("titleEnter", "public/images/menu/intro/titleEnter.png", "public/images/menu/intro/titleEnter.xml");
+
+    if (!this.sys.game.device.os.desktop) {
+      this.load.atlasXML("titleEnter", "public/images/menu/intro/titleEnter_mobile.png", "public/images/menu/intro/titleEnter_mobile.xml");
+    } else {
+      this.load.atlasXML("titleEnter", "public/images/menu/intro/titleEnter.png", "public/images/menu/intro/titleEnter.xml");
+    }
 
     this.load.audio("confirm", "public/sounds/confirmMenu.ogg");
     this.load.audio("girlfriendsRingtone", "public/music/girlfriendsRingtone.ogg");
 
     this.load.text("rainbowShader", "public/shaders/RainbowShader.frag");
 
-    // [MODIFICADO] Carga de la imagen del nuevo Alfabeto
     Alphabet.load(this);
   }
 
@@ -47,7 +53,6 @@ class IntroMenu extends Phaser.Scene {
       });
     }
 
-    // [MODIFICADO] Generación del Atlas JSON para el Alfabeto
     Alphabet.createAtlas(this);
 
     const introData = this.cache.json.get("introData");
@@ -58,12 +63,10 @@ class IntroMenu extends Phaser.Scene {
       return;
     }
 
-    // 1. Preparar datos de sincronización
     const bpm = sequence.bpm;
     const steps = sequence.steps;
-    const beatTime = (60 / bpm) * 1000; // Duración de un beat en ms
+    const beatTime = (60 / bpm) * 1000;
 
-    // 2. Preparar textos aleatorios
     const textFile = this.cache.text.get("introRandomText");
     this.randomTextPairs = textFile
       .split("\n")
@@ -73,14 +76,12 @@ class IntroMenu extends Phaser.Scene {
         return parts.length >= 2 ? parts : [parts[0], ""];
       });
 
-    // 3. Inicializar variables de escena
     this.texts = [];
     this.imageObj = null;
     this.currentYOffset = 0;
     this.sceneEnded = false;
     this.currentRandomPair = null;
 
-    // 4. CONVERTIR PASOS A EVENTOS DE TIEMPO
     this.introEvents = steps.map(step => ({
       ...step,
       targetTime: step.beat * beatTime
@@ -89,14 +90,41 @@ class IntroMenu extends Phaser.Scene {
     this.introEvents.sort((a, b) => a.targetTime - b.targetTime);
     this.currentEventIndex = 0;
 
-    // 5. Iniciar música
     this.music = this.sound.add("freakyMenu", { loop: true });
     this.music.play();
 
     this.input.keyboard.on("keydown-ENTER", this.skipScene, this);
+
+    if (!this.sys.game.device.os.desktop) {
+      this.input.on('pointerdown', () => {
+        this.skipScene();
+      });
+    }
   }
 
   update(time, delta) {
+    // --- Lógica Gamepad ---
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gamepadPressed = false;
+    for (const gamepad of gamepads) {
+      if (!gamepad) continue;
+      // Botones: 0(A), 1(B), 2(X), 9(Start)
+      if (gamepad.buttons[0]?.pressed || 
+          gamepad.buttons[1]?.pressed || 
+          gamepad.buttons[2]?.pressed || 
+          gamepad.buttons[9]?.pressed) {
+          gamepadPressed = true;
+          break;
+      }
+    }
+    const gamepadJustPressed = gamepadPressed && !this.lastGamepadState;
+    this.lastGamepadState = gamepadPressed;
+
+    if (gamepadJustPressed) {
+      this.skipScene();
+    }
+    // ----------------------
+
     if (this.sceneEnded || !this.music || !this.music.isPlaying) return;
 
     const currentSongTime = this.music.seek * 1000;
@@ -115,6 +143,7 @@ class IntroMenu extends Phaser.Scene {
 
   processJsonStep(step) {
     if (step.clear) {
+      if (navigator.vibrate) navigator.vibrate(70);
       this.texts.forEach((t) => t.destroy());
       this.texts = [];
       if (this.imageObj) {
@@ -125,6 +154,7 @@ class IntroMenu extends Phaser.Scene {
     }
 
     if (step.text && step.text.length > 0) {
+      if (navigator.vibrate) navigator.vibrate(70);
       step.text.forEach(line => {
         this.displayTextLine(line);
       });
@@ -166,11 +196,8 @@ class IntroMenu extends Phaser.Scene {
   displayTextLine(textString) {
     if (!textString) return;
 
-    // Creamos la instancia usando el nuevo sistema de Alphabet
     const text = new Alphabet(this, 0, 0, textString.toUpperCase(), true, 1);
 
-    // [CORRECCIÓN] Usamos getBounds() para calcular el ancho real del contenedor
-    // ya que Phaser Containers a veces retornan width=0 antes de renderizarse.
     const bounds = text.getBounds();
     text.x = (this.game.config.width / 2) - (bounds.width / 2);
     text.y = this.startY + this.currentYOffset;
@@ -183,6 +210,8 @@ class IntroMenu extends Phaser.Scene {
   skipScene() {
     if (this.sceneEnded) return;
     this.sceneEnded = true;
+
+    if (navigator.vibrate) navigator.vibrate(70);
 
     if (this.scene.get("FlashEffect")) {
       this.scene.get("FlashEffect").startTransition("introDance");
@@ -217,6 +246,7 @@ class IntroMenu extends Phaser.Scene {
     }
 
     this.input.keyboard.off("keydown-ENTER", this.skipScene, this);
+    this.input.off('pointerdown');
     this.introEvents = [];
   }
 }

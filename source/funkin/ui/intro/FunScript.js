@@ -1,29 +1,17 @@
-/**
- * Clase FunScript
- * Maneja el Easter Egg "Konami Code": Inputs, Música Secreta y Shaders.
- * Ruta: source/funkin/ui/intro/FunScript.js
- */
 export default class FunScript {
-    /**
-     * @param {Phaser.Scene} scene - La escena principal.
-     * @param {Object} sprites - Referencia a los sprites { gf, logo }.
-     * @param {Object} boopController - Referencia al controlador de BPM.
-     */
     constructor(scene, sprites, boopController) {
         this.scene = scene;
         this.sprites = sprites;
         this.boopController = boopController;
 
-        // Estado interno
         this.active = false;
         this.secretMusic = null;
         
-        // Buffer de entrada (historial de teclas)
         this.inputBuffer = []; 
         this.beatCounter = 0;
         this.hueOffset = 0;
 
-        // Secuencia: Izq, Der, Izq, Der, Arriba, Abajo, Arriba, Abajo
+        // Nueva Secuencia: Izq, Der, Izq, Der, Arriba, Abajo, Arriba, Abajo
         this.sequence = [
             Phaser.Input.Keyboard.KeyCodes.LEFT,
             Phaser.Input.Keyboard.KeyCodes.RIGHT,
@@ -36,18 +24,103 @@ export default class FunScript {
         ];
 
         this._listener = null;
+
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.minSwipeDistance = 30;
+
+        // Estado previo del gamepad para "JustPressed"
+        this.prevGamepadState = {
+            up: false, down: false, left: false, right: false
+        };
     }
 
-    /** Inicia la escucha de teclas */
     start() {
         if (this._listener) return;
+        
         this._listener = (event) => this.checkInput(event.keyCode);
         this.scene.input.keyboard.on('keydown', this._listener);
+
+        if (!this.scene.sys.game.device.os.desktop) {
+            this.scene.input.on('pointerdown', this.handleTouchStart, this);
+            this.scene.input.on('pointerup', this.handleTouchEnd, this);
+        }
     }
 
-    /** Procesa el input del usuario usando un Buffer deslizante. */
+    // Método llamado desde introDance.js
+    update(time, delta) {
+        if (this.active) return;
+        this.handleGamepadInput();
+    }
+
+    handleGamepadInput() {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        
+        for (const gamepad of gamepads) {
+            if (!gamepad) continue;
+
+            /**
+             * Mapeo de controles:
+             * D-Pad (Flechitas): Botones 12 (Arr), 13 (Abj), 14 (Izq), 15 (Der)
+             * Joystick (Palanca): Axes 0 (Horiz), 1 (Vert)
+             */
+            const currentState = {
+                // Arriba: Flechita Arriba (12) O Palanca hacia arriba (-1 en eje 1)
+                up: gamepad.buttons[12]?.pressed || (gamepad.axes[1] < -0.5),
+                
+                // Abajo: Flechita Abajo (13) O Palanca hacia abajo (+1 en eje 1)
+                down: gamepad.buttons[13]?.pressed || (gamepad.axes[1] > 0.5),
+                
+                // Izquierda: Flechita Izq (14) O Palanca hacia izq (-1 en eje 0)
+                left: gamepad.buttons[14]?.pressed || (gamepad.axes[0] < -0.5),
+                
+                // Derecha: Flechita Der (15) O Palanca hacia der (+1 en eje 0)
+                right: gamepad.buttons[15]?.pressed || (gamepad.axes[0] > 0.5)
+            };
+
+            // Detectar pulsaciones únicas ("Just Pressed")
+            if (currentState.up && !this.prevGamepadState.up) this.checkInput(Phaser.Input.Keyboard.KeyCodes.UP);
+            if (currentState.down && !this.prevGamepadState.down) this.checkInput(Phaser.Input.Keyboard.KeyCodes.DOWN);
+            if (currentState.left && !this.prevGamepadState.left) this.checkInput(Phaser.Input.Keyboard.KeyCodes.LEFT);
+            if (currentState.right && !this.prevGamepadState.right) this.checkInput(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+            
+            this.prevGamepadState = currentState;
+            break; // Solo procesamos el primer mando
+        }
+    }
+
+    handleTouchStart(pointer) {
+        this.touchStartX = pointer.x;
+        this.touchStartY = pointer.y;
+    }
+
+    handleTouchEnd(pointer) {
+        if (this.active) return;
+
+        const dist = Phaser.Math.Distance.Between(this.touchStartX, this.touchStartY, pointer.x, pointer.y);
+        
+        if (dist < this.minSwipeDistance) return;
+
+        const dx = pointer.x - this.touchStartX;
+        const dy = pointer.y - this.touchStartY;
+        
+        let simulatedKey = null;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0) simulatedKey = Phaser.Input.Keyboard.KeyCodes.RIGHT;
+            else simulatedKey = Phaser.Input.Keyboard.KeyCodes.LEFT;
+        } else {
+            if (dy > 0) simulatedKey = Phaser.Input.Keyboard.KeyCodes.DOWN;
+            else simulatedKey = Phaser.Input.Keyboard.KeyCodes.UP;
+        }
+
+        if (simulatedKey) {
+            this.checkInput(simulatedKey);
+        }
+    }
+
     checkInput(keyCode) {
-        if (this.active) return; // Si ya está activo, ignoramos inputs
+        if (this.active) return;
 
         this.inputBuffer.push(keyCode);
 
@@ -61,7 +134,6 @@ export default class FunScript {
         }
     }
 
-    /** Verifica si el contenido del buffer coincide con la secuencia */
     checkBufferMatch() {
         if (this.inputBuffer.length !== this.sequence.length) return false;
         
@@ -73,29 +145,25 @@ export default class FunScript {
         return true;
     }
 
-    /** Activa la lógica secreta */
     activateSecretMode() {
         console.log("[FunScript] ¡Código Secreto Activado!");
         this.active = true;
 
-        // 1. PRIMERO detenemos cualquier música anterior (FreakyMenu, etc.)
+        if (navigator.vibrate) navigator.vibrate(70);
+
         this.scene.sound.stopAll();
 
-        // 2. AHORA reproducimos la confirmación (ya no se cortará)
         this.scene.sound.play("confirm", { volume: 1.0 });
         this.scene.cameras.main.flash(1000, 255, 255, 255);
 
-        // 3. Inicializar Shader INMEDIATAMENTE
         this.hueOffset = 0.125;
         this.scene.registry.set('hueOffset', this.hueOffset);
         this.applyShader();
 
-        // 4. Iniciar Música Secreta (con Fade In)
         this.secretMusic = this.scene.sound.add("girlfriendsRingtone", { loop: true, volume: 0 });
         this.secretMusic.play();
         this.scene.tweens.add({ targets: this.secretMusic, volume: 1.0, duration: 4000 });
 
-        // 5. Acelerar BPM y reiniciar contadores
         if (this.boopController) this.boopController.setBPM(160);
         this.beatCounter = 0;
     }
@@ -133,7 +201,6 @@ export default class FunScript {
         if (this.sprites.logo) this.sprites.logo.setPostPipeline(pipelineName);
     }
 
-    /** Llamado por la escena principal en cada Beat */
     beatHit() {
         if (!this.active) return;
 
@@ -145,42 +212,20 @@ export default class FunScript {
         }
     }
 
-    /** * Limpieza total.
-     * [MODIFICADO] Ahora hace FadeOut si la música está sonando.
-     */
     shutdown() {
-        // Detener escucha de teclado
         if (this._listener) {
             this.scene.input.keyboard.off('keydown', this._listener);
             this._listener = null;
         }
 
-        // Manejo de la música con FadeOut para la transición
+        this.scene.input.off('pointerdown', this.handleTouchStart, this);
+        this.scene.input.off('pointerup', this.handleTouchEnd, this);
+
         if (this.secretMusic) {
-            if (this.secretMusic.isPlaying) {
-                // Si está sonando, hacemos fadeout suave de 700ms
-                this.scene.tweens.add({
-                    targets: this.secretMusic,
-                    volume: 0,
-                    duration: 700,
-                    onComplete: () => {
-                        // Detener solo cuando termine el fade (si el objeto aún existe)
-                        if (this.secretMusic) {
-                            this.secretMusic.stop();
-                            this.secretMusic = null;
-                        }
-                    }
-                });
-            } else {
-                this.secretMusic.stop();
-            }
-            
-            // Desvinculamos la referencia inmediatamente para que futuras llamadas a shutdown
-            // (como la destrucción de la escena) no interfieran con el tween.
-            this.secretMusic = null; 
+            this.secretMusic.stop();
+            this.secretMusic = null;
         }
 
-        // Limpieza de Shaders
         if (this.active && this.scene.renderer.type === Phaser.WEBGL) {
              const pipelineName = 'RainbowShader';
              if (this.sprites.gf) this.sprites.gf.removePostPipeline(pipelineName);

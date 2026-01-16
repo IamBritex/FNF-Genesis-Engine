@@ -1,6 +1,7 @@
 import { MenuInputHandler } from './MenuInputHandler.js';
 import { MenuOptionSprite } from './MenuOptionSprite.js';
 import { MainMenuOptions } from './MainMenuOptions.js';
+import { MainMenuSelection } from './MainMenuSelection.js';
 
 class MainMenuScene extends Phaser.Scene {
     constructor() {
@@ -12,6 +13,11 @@ class MainMenuScene extends Phaser.Scene {
         this.flickerTimer = null;
 
         this.inputHandler = new MenuInputHandler(this);
+        this.selectionLogic = new MainMenuSelection(this);
+        
+        // Variables para control táctil
+        this.touchStartY = 0;
+        this.isSwiping = false;
     }
 
     preload() {
@@ -24,13 +30,10 @@ class MainMenuScene extends Phaser.Scene {
         
         this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
 
-        // Carga modularizada de las opciones
         MainMenuOptions.preload(this);
     }
 
     create() {
-        // [MODIFICADO] Código de Discord eliminado según instrucciones.
-        
         if (!this.sound.get('freakyMenu')) {
             this.sound.add('freakyMenu');
         }
@@ -52,7 +55,6 @@ class MainMenuScene extends Phaser.Scene {
         this.confirmSound = this.sound.add('confirmSound');
         this.cancelSound = this.sound.add('cancelSound');
 
-        // Obtener datos desde MainMenuOptions
         const spriteData = MainMenuOptions.getSpriteData(this.game.config.width, this.game.config.height);
 
         // --- Crear Fondo ---
@@ -66,7 +68,7 @@ class MainMenuScene extends Phaser.Scene {
         this.menuFlash.setScale(flashData.scale).setScrollFactor(flashData.scrollFactor).setDepth(flashData.depth);
         this.menuFlash.setVisible(false).setAlpha(1);
 
-        // --- Crear Botones del Menú usando el átomo MenuOption ---
+        // --- Crear Botones del Menú ---
         this.menuItems = [];
         spriteData.items.forEach((data) => {
             const menuOption = new MenuOptionSprite(this, data);
@@ -81,11 +83,59 @@ class MainMenuScene extends Phaser.Scene {
 
         this.inputHandler.initControls();
         this.inputHandler.updateSelection();
+
+        // --- Lógica para Móviles (Touch & Swipe) ---
+        if (!this.sys.game.device.os.desktop) {
+            this.setupMobileControls();
+        }
         
         this.cameras.main.fadeIn(250, 0, 0, 0, (cam, progress) => {
             if (progress === 1) {
                 this.canInteract = true;
             }
+        });
+    }
+
+    // --- IMPORTANTE: Loop Update para detectar Gamepad ---
+    update(time, delta) {
+        if (this.canInteract && this.inputHandler) {
+            this.inputHandler.handleGamepadInput(time, delta);
+        }
+    }
+
+    setupMobileControls() {
+        this.input.on('pointerdown', (pointer) => {
+            this.touchStartY = pointer.y;
+            this.isSwiping = false;
+        });
+
+        this.input.on('pointermove', (pointer) => {
+            if (!pointer.isDown || !this.canInteract) return;
+
+            const swipeThreshold = 30; 
+            const diffY = pointer.y - this.touchStartY;
+
+            if (Math.abs(diffY) > swipeThreshold) {
+                this.isSwiping = true; 
+
+                if (diffY < 0) {
+                    this.selectionLogic.changeSelection(1);
+                } else {
+                    this.selectionLogic.changeSelection(-1);
+                }
+                this.touchStartY = pointer.y;
+            }
+        });
+
+        this.menuItems.forEach((item, index) => {
+            item.setInteractive(); 
+            
+            item.on('pointerup', () => {
+                if (!this.isSwiping) {
+                    this.selectionLogic.handleTouch(index);
+                }
+                this.isSwiping = false;
+            });
         });
     }
 
@@ -120,9 +170,17 @@ class MainMenuScene extends Phaser.Scene {
             this.flickerTimer = null;
         }
 
+        this.input.off('pointerdown');
+        this.input.off('pointermove');
+        if (this.menuItems) {
+            this.menuItems.forEach(item => item.off('pointerup'));
+        }
+
         this.menuItems = [];
         this.canInteract = false;
         this.camFollow = null;
+        this.selectionLogic = null;
+        
         this.selectSound?.stop();
         this.confirmSound?.stop();
         this.cancelSound?.stop();

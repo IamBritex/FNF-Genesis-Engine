@@ -1,8 +1,8 @@
 import { initVolumeControl, VolumeUIScene } from "../soundtray/styleSoundtray.js";
 import { touchHere } from "../touchHere.js";
 import { CrashHandler } from "../CrashHandler.js";
+import { initMobileOrientation } from "../../utils/MobileOrientation.js";
 
-// Main game configuration
 const gameConfig = {
   type: Phaser.AUTO,
   width: 1280,
@@ -25,7 +25,6 @@ const gameConfig = {
   disableContextMenu: true,
 };
 
-// Initialize the game
 window.game = new Phaser.Game(gameConfig);
 
 game.events.on("ready", () => {
@@ -36,3 +35,4 @@ game.events.on("ready", () => {
 });
 
 initVolumeControl();
+initMobileOrientation();

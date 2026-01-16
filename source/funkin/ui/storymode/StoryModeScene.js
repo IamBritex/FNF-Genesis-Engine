@@ -22,10 +22,10 @@ class StoryModeScene extends Phaser.Scene {
 
         this.load.text('weekList', 'public/data/ui/weeks.txt');
         this.load.image('tracksLabel', 'public/images/menu/storymode/Menu_Tracks.png');
-        this.load.audio('scrollSound', 'public/assets/audio/sounds/scrollMenu.ogg');
-        this.load.audio('confirmSound', 'public/assets/audio/sounds/confirmMenu.ogg');
-        this.load.audio('cancelSound', 'public/assets/audio/sounds/cancelMenu.ogg');
-        this.load.audio("freakyMenu", "public/assets/audio/sounds/FreakyMenu.mp3");
+        this.load.audio('scrollSound', 'public/sounds/scrollMenu.ogg');
+        this.load.audio('confirmSound', 'public/sounds/confirmMenu.ogg');
+        this.load.audio('cancelSound', 'public/sounds/cancelMenu.ogg');
+        this.load.audio("freakyMenu", "public/sounds/FreakyMenu.mp3");
 
         const difficulties = ['easy', 'normal', 'hard'];
         difficulties.forEach(diff => {
@@ -108,6 +108,13 @@ class StoryModeScene extends Phaser.Scene {
             this.keyState = {};
             if (this.handler) { this.handler.setupInputs(); }
         });
+    }
+    
+    // Método Update para procesar Gamepad cada frame
+    update(time, delta) {
+        if (this.handler && this.handler.handleGamepadInput && this.canPressEnter) {
+            this.handler.handleGamepadInput(time, delta);
+        }
     }
 
     async processWeeks(weekList) {

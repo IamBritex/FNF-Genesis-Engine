@@ -76,7 +76,7 @@ export function _initInput() {
         });
     });
 
-    // Registrar listeners en Phaser
+    // Registrar listeners en Phaser (TECLADO)
     Object.keys(keyMap).forEach((keyName) => {
         const direction = keyMap[keyName];
         let keyObj;
@@ -120,4 +120,43 @@ export function _initInput() {
     };
     bKey.on("down", onBotKey);
     this.gameplayInputListeners.push({ keyObj: bKey, downHandler: onBotKey, upHandler: () => { } });
+
+    // [NUEVO] Conexión con el Gamepad via PlayInputHandler
+    if (this.scene.inputHandler) {
+        // Función auxiliar para Gamepad Down
+        const onGamepadDown = (direction) => {
+            if (this.scene.pauseHandler?.isPaused) return;
+            if (this.isBotPlay) return;
+
+            if (!this.activeInput[direction]) {
+                this.activeInput[direction] = true;
+                this.onStrumPressed(direction);
+            }
+        };
+
+        // Función auxiliar para Gamepad Up
+        const onGamepadUp = (direction) => {
+            if (this.scene.pauseHandler?.isPaused) return;
+            if (this.isBotPlay) return;
+
+            if (this.activeInput[direction]) {
+                this.activeInput[direction] = false;
+                this.onStrumReleased(direction);
+            }
+        };
+
+        // Suscribirse a los eventos
+        this.scene.inputHandler.on('noteDown', onGamepadDown);
+        this.scene.inputHandler.on('noteUp', onGamepadUp);
+
+        // Guardar referencia para limpiar listeners al destruir
+        this.gameplayInputListeners.push({
+            destroy: () => {
+                if (this.scene && this.scene.inputHandler) {
+                    this.scene.inputHandler.off('noteDown', onGamepadDown);
+                    this.scene.inputHandler.off('noteUp', onGamepadUp);
+                }
+            }
+        });
+    }
 }

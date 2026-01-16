@@ -56,3 +56,26 @@ export class PauseOptionsHandler {
         }
     }
 }
+
+export function getPauseOptions(playScene) {
+    // Opciones base
+    const options = [
+        { name: "Resume" },
+        { name: "Restart Song" },
+        // Puedes agregar más opciones aquí, como "Change Difficulty" o "Options"
+        { name: "Exit to Menu" }
+    ];
+
+    // Ejemplo: Agregar Toggle Botplay si no es Modo Historia
+    if (playScene && playScene.initData && !playScene.initData.isStoryMode) {
+        // Verificamos si existe la propiedad isBotPlay en la escena
+        const isBot = playScene.isBotPlay ? "ON" : "OFF";
+        // Insertamos antes de "Exit to Menu"
+        options.splice(options.length - 1, 0, { 
+            name: "Toggle Botplay", 
+            text: `Botplay: ${isBot}` // Texto opcional para mostrar estado
+        });
+    }
+
+    return options;
+}

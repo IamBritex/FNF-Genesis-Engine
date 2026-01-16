@@ -1,6 +1,8 @@
+import { PlayGamepadInput } from "./PlayGamepadInput.js";
+
 /**
  * source/funkin/play/components/extensionPlay/PlayInputHandler.js
- * Maneja todas las entradas de teclado: Pausa, Reset, Debug de Cámara.
+ * Maneja todas las entradas: Teclado y ahora Gamepad.
  */
 export class PlayInputHandler extends Phaser.Events.EventEmitter {
     constructor(scene) {
@@ -11,6 +13,8 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
         this.pauseKeys = null;
         this.resetKey = null;
         this.debugKeys = null;
+        
+        this.gamepadInput = null; // Instancia del gamepad
     }
 
     create() {
@@ -30,6 +34,32 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
 
         // 3. Configurar Reset
         this.setupResetControl();
+
+        // 4. [NUEVO] Inicializar Gamepad
+        this.gamepadInput = new PlayGamepadInput();
+        this.setupGamepadEvents();
+    }
+
+    setupGamepadEvents() {
+        if (!this.gamepadInput) return;
+
+        // Conectar eventos del gamepad a los eventos de este Handler
+        this.gamepadInput.on('pause', () => {
+            if (!this.blocked) this.emit('pause');
+        });
+
+        this.gamepadInput.on('reset', () => {
+            if (!this.blocked) this.emit('reset');
+        });
+
+        // Reenviar eventos de notas al PlayerNotesHandler
+        this.gamepadInput.on('noteDown', (direction) => {
+            if (!this.blocked) this.emit('noteDown', direction);
+        });
+
+        this.gamepadInput.on('noteUp', (direction) => {
+            if (!this.blocked) this.emit('noteUp', direction);
+        });
     }
 
     setupResetControl() {
@@ -65,13 +95,18 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
     update(delta) {
         if (this.blocked) return;
 
-        // Detectar Pausa
+        // Actualizar lógica del Gamepad
+        if (this.gamepadInput) {
+            this.gamepadInput.update();
+        }
+
+        // Detectar Pausa (Teclado)
         if (Phaser.Input.Keyboard.JustDown(this.pauseKeys.enter) || Phaser.Input.Keyboard.JustDown(this.pauseKeys.esc)) {
             this.emit('pause');
             return;
         }
 
-        // Detectar Reset
+        // Detectar Reset (Teclado)
         if (this.resetKey && Phaser.Input.Keyboard.JustDown(this.resetKey)) {
             this.emit('reset');
             return;
@@ -106,5 +141,9 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
         this.pauseKeys = null;
         this.resetKey = null;
         this.debugKeys = null;
+        if (this.gamepadInput) {
+            this.gamepadInput.destroy();
+            this.gamepadInput = null;
+        }
     }
 }
