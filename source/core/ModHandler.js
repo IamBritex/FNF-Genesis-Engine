@@ -3,7 +3,7 @@
  */
 export default class ModHandler {
     static MODS_ROOT = "https://mods.genesis/";
-    static BASE_ROOT = "/public/";
+    static BASE_ROOT = "./public/";
 
     static fileRegistry = new Map();
     static activeMods = [];
