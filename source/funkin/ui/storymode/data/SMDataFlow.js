@@ -35,23 +35,33 @@ export class SMDataFlow {
     }
 
     async _loadSingleWeek(weekName) {
+        const pathsToTry = [];
+
         try {
-            const weekPath = await ModHandler.getPath('data', `weeks/${weekName}.json`);
-            let response = await fetch(weekPath);
-
-            if (!response.ok) {
-                const fallbackPath = `public/data/weeks/${weekName}.json`;
-                response = await fetch(fallbackPath);
-            }
-
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const week = await response.json();
-            this.scene.cache.json.add(weekName, week);
-            return weekName;
-        } catch (error) {
-            console.warn(`Error cargando semana ${weekName}:`, error);
-            return null;
+            const modPath = await ModHandler.getPath('data', `weeks/${weekName}.json`);
+            pathsToTry.push(modPath);
+        } catch (e) {
+            console.warn(`ModHandler path failed for ${weekName}`);
         }
+
+        pathsToTry.push(`./public/data/weeks/${weekName}.json`);
+        pathsToTry.push(`data/weeks/${weekName}.json`);
+
+        for (const path of pathsToTry) {
+            try {
+                const response = await fetch(path);
+                if (response.ok) {
+                    const week = await response.json();
+                    this.scene.cache.json.add(weekName, week);
+                    return weekName; 
+                }
+            } catch (error) {
+                continue; 
+            }
+        }
+
+        console.warn(`No se pudo cargar la semana ${weekName} tras intentar múltiples rutas.`);
+        return null;
     }
 
     async processWeeks(weekList) {
