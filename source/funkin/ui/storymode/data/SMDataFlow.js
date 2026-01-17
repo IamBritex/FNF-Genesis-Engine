@@ -10,8 +10,6 @@ export class SMDataFlow {
         this.data = dataModel;
     }
 
-    // (La función preload se ha movido a SMPreload.js)
-
     async loadWeeks() {
         const weekList = [];
         const loadPromises = [];
@@ -39,7 +37,13 @@ export class SMDataFlow {
     async _loadSingleWeek(weekName) {
         try {
             const weekPath = await ModHandler.getPath('data', `weeks/${weekName}.json`);
-            const response = await fetch(weekPath);
+            let response = await fetch(weekPath);
+
+            if (!response.ok) {
+                const fallbackPath = `public/data/weeks/${weekName}.json`;
+                response = await fetch(fallbackPath);
+            }
+
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const week = await response.json();
             this.scene.cache.json.add(weekName, week);
