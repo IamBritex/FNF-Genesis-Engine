@@ -3,3 +3,6 @@ obj/
 main.obj
 .env
 hx/
+bin/
+node_modules/
+neutralinojs.log

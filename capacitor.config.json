@@ -1,0 +1,12 @@
+{
+  "appId": "com.genesis.app",
+  "appName": "Genesis",
+  "webDir": "resources",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "StatusBar": {
+      "visible": false,
+      "overlaysWebView": true
+    }
+  }
+}

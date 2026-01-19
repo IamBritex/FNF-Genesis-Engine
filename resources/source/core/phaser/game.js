@@ -2,6 +2,7 @@ import { initVolumeControl, VolumeUIScene } from "../soundtray/styleSoundtray.js
 import { touchHere } from "../touchHere.js";
 import { CrashHandler } from "../CrashHandler.js";
 import { initMobileOrientation } from "../../utils/MobileOrientation.js";
+import { initNativeEngine } from "../devices.js"; 
 
 const gameConfig = {
   type: Phaser.AUTO,
@@ -34,5 +35,7 @@ game.events.on("ready", () => {
   }
 });
 
+// Inicialización de sistemas
 initVolumeControl();
 initMobileOrientation();
+initNativeEngine();

@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/cli": "^8.0.1",
+    "@capacitor/core": "^8.0.1",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0"
+  }
+}

@@ -13,7 +13,7 @@ export default class MusicBeatScene extends Phaser.Scene {
     }
 
     update(time, delta) {
-        // Aquí iría la lógica del Conductor de música si la tuvieras
+        // Aquí iría la lógica del Conductor de música
         // Conductor.update(time, delta);
     }
 
