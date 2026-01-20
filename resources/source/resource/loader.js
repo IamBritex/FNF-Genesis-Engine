@@ -10,6 +10,7 @@ window.loadProgress = 0; // Va de 0.0 a 1.0
 
 const modulesToLoad = [
     { name: "Phaser Core", path: "../core/phaser/game.js" },
+    { name: "Intro Text", path: "../funkin/ui/intro/introText.js" },
     { name: "Screen Shoot", path: "../core/scrinshot.js" },
     { name: "Transitions", path: "../funkin/effects/TransitionScene.js" },
     { name: "Play Scene", path: "../funkin/play/PlayScene.js" },
@@ -17,7 +18,6 @@ const modulesToLoad = [
     { name: "Story Mode", path: "../funkin/ui/storymode/StoryModeScene.js" },
     { name: "Freeplay", path: "../funkin/ui/freeplay/FreeplayScene.js" },
     { name: "Effects", path: "../funkin/effects/flash.js" },
-    { name: "Intro Text", path: "../funkin/ui/intro/introText.js" },
     { name: "Intro Dance", path: "../funkin/ui/intro/introDance.js" },
     { name: "Main Menu", path: "../funkin/ui/mainmenu/MainMenuScene.js" },
     { name: "Credits", path: "../funkin/ui/credits/CreditsScene.js" },

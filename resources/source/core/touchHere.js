@@ -21,6 +21,7 @@ export class touchHere extends Phaser.Scene {
     }
 
     create() {
+
         const { width, height } = this.scale;
         const margin = 25;
         const noodleYOffset = 60;

@@ -5,8 +5,12 @@
   "bundledWebRuntime": false,
   "plugins": {
     "StatusBar": {
-      "visible": false,
-      "overlaysWebView": true
+      "style": "DARK",
+      "overlaysWebView": true,
+      "visible": false
+    },
+    "SplashScreen": {
+      "launchShowDuration": 0
     }
   }
 }

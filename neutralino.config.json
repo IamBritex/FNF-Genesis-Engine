@@ -37,7 +37,8 @@
       "maximize": false,
       "hidden": false,
       "resizable": true,
-      "exitProcessOnClose": true
+      "exitProcessOnClose": true,
+      "args": "--autoplay-policy=no-user-gesture-required --disable-features=AudioServiceOutOfProcess"
     },
     "browser": {
       "globalVariables": {},

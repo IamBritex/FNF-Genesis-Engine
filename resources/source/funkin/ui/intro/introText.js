@@ -1,6 +1,6 @@
 import Alphabet from "../../../utils/Alphabet.js";
 
-class IntroMenu extends Phaser.Scene {
+export class IntroMenu extends Phaser.Scene {
   constructor() {
     super({ key: "IntroMenu" });
     this.music = null;
