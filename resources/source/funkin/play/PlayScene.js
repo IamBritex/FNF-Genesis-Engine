@@ -15,7 +15,7 @@ export class PlayScene extends Phaser.Scene {
   constructor() {
     super({ key: "PlayScene" });
     this.loader = null;
-    this.preloader = null; // [NUEVO]
+    this.preloader = null;
     this.inputHandler = null;
     this.hud = null;
     this.referee = null;
