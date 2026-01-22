@@ -21,7 +21,8 @@ export default class OptionsCentral {
         scene.load.html('genericSection', 'public/ui/menu/options/generic_section.html');
         scene.load.html('profileSection', 'public/ui/menu/options/sections/PROFILE.html');
         scene.load.json('optionsData', 'public/data/ui/options.json');
-        scene.load.atlasXML('checkboxAnim', 'public/assets/images/states/OptionsState/checkboxThingie.png', 'public/assets/images/states/OptionsState/checkboxThingie.xml');
+        
+        scene.load.atlasXML('checkboxAnim', 'public/images/menu/options/checkboxThingie.png', 'public/images/menu/options/checkboxThingie.xml');
     }
 
     create(x, y) {
@@ -36,6 +37,9 @@ export default class OptionsCentral {
         this.selectableItems = [];
         this.currentIndex = 0;
 
+        // Aseguramos mayúsculas también en el título (opcional, pero consistente)
+        const upperText = text.toUpperCase();
+
         this.scene.time.delayedCall(50, () => {
             const canvasEl = this.domElement.node.querySelector('#center-title-canvas');
             if (canvasEl) {
@@ -43,7 +47,7 @@ export default class OptionsCentral {
                     this.currentTitleGroup.destroy();
                     this.currentTitleGroup = null;
                 }
-                this.currentTitleGroup = new Alphabet(this.scene, 0, 0, text, true);
+                this.currentTitleGroup = new Alphabet(this.scene, 0, 0, upperText, true);
                 this.currentTitleGroup.setVisible(false);
                 AlphabetCanvasRenderer.render(this.scene, this.currentTitleGroup, canvasEl, 0, 'center', 1.0);
             }
@@ -55,12 +59,20 @@ export default class OptionsCentral {
         const contentContainer = this.domElement.node.querySelector('.config-content');
         if (!contentContainer) return;
 
+        // Limpiar clases de estilo previas
+        contentContainer.classList.remove('force-uppercase');
+        contentContainer.classList.remove('profile-mode');
+
         if (categoryName === "PROFILE") {
+            contentContainer.classList.add('profile-mode'); // Estilo normal para perfil
             contentContainer.innerHTML = this.scene.cache.html.get('profileSection');
             this.currentProfileLogic = new ProfileSection(this.scene, this.domElement);
             this.currentProfileLogic.init();
-            return;
+            return; // IMPORTANTE: Retorna aquí, así que no ejecuta el renderizado forzado de abajo
         }
+
+        // Para el resto: FORZAR MAYÚSCULAS en elementos HTML
+        contentContainer.classList.add('force-uppercase');
 
         if (this.optionsData && this.optionsData[categoryName]) {
             contentContainer.innerHTML = this.scene.cache.html.get('genericSection');
@@ -69,7 +81,9 @@ export default class OptionsCentral {
 
             listContainer.innerHTML = OptionHTMLBuilder.buildSection(sectionData);
 
+            // Renderizar los Alphabets (Aquí se fuerza la mayúscula visual)
             this.renderInternalLabels();
+            
             this.setupCustomCheckboxes();
             this.attachDynamicListeners(sectionData);
             this.buildSelectableList(sectionData);
@@ -157,27 +171,8 @@ export default class OptionsCentral {
         }
     }
 
-    // --- KEYBIND UTILS ---
-    highlightKeybindCap(container, index) {
-        const caps = container.querySelectorAll('.key-cap');
-        caps.forEach(c => c.classList.remove('active-cap'));
-        if (caps[index]) caps[index].classList.add('active-cap');
-    }
-
     formatKeyName(code) {
-        const map = {
-            'ArrowUp': 'UP', 'ArrowDown': 'DOWN', 'ArrowLeft': 'LEFT', 'ArrowRight': 'RIGHT',
-            'Space': 'SPACE', 'Enter': 'ENTER', 'Escape': 'ESC', 'Backspace': 'BACK',
-            'ControlLeft': 'LCTRL', 'ControlRight': 'RCTRL', 'ShiftLeft': 'LSHIFT', 'ShiftRight': 'RSHIFT',
-            'AltLeft': 'ALT', 'AltRight': 'ALTGR', 'Tab': 'TAB', 'CapsLock': 'CAPS',
-            'Period': '.', 'Comma': ',', 'Slash': '/', 'Backslash': '\\', 'Quote': "'", 'Semicolon': ';',
-            'Minus': '-', 'Equal': '=', 'BracketLeft': '[', 'BracketRight': ']'
-        };
-        if (map[code]) return map[code];
-        if (code.startsWith('Key')) return code.replace('Key', '');
-        if (code.startsWith('Digit')) return code.replace('Digit', '');
-        if (code.startsWith('Numpad')) return 'Num' + code.replace('Numpad', '');
-        return code.toUpperCase().substring(0, 6);
+        return code; 
     }
 
     // --- LISTENERS ---
@@ -204,8 +199,26 @@ export default class OptionsCentral {
                     el.addEventListener('change', (e) => {
                         const val = e.target.checked;
                         SaveUserPreferences.set(item.id, val);
-                        if (val) CheckboxRenderer.playAnimation(this.scene, el.nextElementSibling);
-                        else CheckboxRenderer.playReverseAnimation(this.scene, el.nextElementSibling);
+                        
+                        // LÓGICA DE SONIDO Y ANIMACIÓN
+                        if (val) {
+                            // ACTIVADO: Sonido Confirm + Parpadeo Rápido
+                            this.scene.sound.play('confirmSound');
+                            CheckboxRenderer.playAnimation(this.scene, el.nextElementSibling);
+                            
+                            const row = el.closest('.option-row');
+                            if (row) {
+                                row.classList.remove('blink-hard');
+                                void row.offsetWidth; // Reinicia la animación
+                                row.classList.add('blink-hard');
+                                setTimeout(() => row.classList.remove('blink-hard'), 500); 
+                            }
+                        } else {
+                            // DESACTIVADO: Sonido Cancel + Animación reversa
+                            this.scene.sound.play('cancelSound');
+                            CheckboxRenderer.playReverseAnimation(this.scene, el.nextElementSibling);
+                        }
+
                         if (item.hasSubOptions) {
                             const subGroup = this.domElement.node.querySelector(`#${item.id}-subs`);
                             if (subGroup) {
@@ -252,8 +265,12 @@ export default class OptionsCentral {
     renderInternalLabels() {
         const labels = this.domElement.node.querySelectorAll('.opt-label-canvas,.subtitle-canvas');
         labels.forEach(canvas => {
-            const textToRender = canvas.getAttribute('data-text');
+            let textToRender = canvas.getAttribute('data-text');
             if (textToRender) {
+                // FIX CRÍTICO: Convertir a mayúsculas en JS.
+                // El CSS no afecta al renderizado de canvas (Alphabet).
+                textToRender = textToRender.toUpperCase();
+
                 const tempAlphabet = new Alphabet(this.scene, 0, 0, textToRender, true);
                 tempAlphabet.setVisible(false);
                 const customScaleAttr = canvas.getAttribute('data-scale');
@@ -286,10 +303,29 @@ export default class OptionsCentral {
             link.media = 'all';
             head.appendChild(link);
 
-            // ESTILOS OSCUROS Y ELEGANTES (Negro con transparencia)
             const style = document.createElement('style');
             style.innerHTML = `
-                /* SELECCIÓN (Navegación normal) */
+                /* REGLA DE MAYÚSCULAS PARA HTML (Inputs, Textos simples) */
+                .force-uppercase * {
+                    text-transform: uppercase !important;
+                }
+                .profile-mode {
+                    text-transform: none;
+                }
+
+                /* ANIMACIÓN DE PARPADEO FUERTE */
+                @keyframes blink-hard-anim {
+                    0% { opacity: 1; filter: brightness(1); }
+                    25% { opacity: 0.2; filter: brightness(2); }
+                    50% { opacity: 1; filter: brightness(1); }
+                    75% { opacity: 0.2; filter: brightness(2); }
+                    100% { opacity: 1; filter: brightness(1); }
+                }
+                .blink-hard {
+                    animation: blink-hard-anim 0.4s steps(2);
+                }
+
+                /* SELECCIÓN */
                 .selected-row { 
                     background: rgba(0, 0, 0, 0.4); 
                     border-left: 4px solid rgba(255, 255, 255, 0.8); 
@@ -297,33 +333,19 @@ export default class OptionsCentral {
                     transition: all 0.1s ease; 
                 }
                 
-                /* FOCO ACTIVO (Editando) */
+                /* FOCO ACTIVO */
                 .focused-active { 
                     background: rgba(0, 0, 0, 0.7) !important; 
                     border-left: 4px solid #ffffff; 
                     transform: scale(1.01); 
                 }
                 
-                /* TECLA SELECCIONADA (En modo Keybind) */
+                /* TECLA SELECCIONADA */
                 .active-cap { 
                     border: 2px solid rgba(255, 255, 255, 0.8) !important; 
                     color: black !important; 
                     transform: scale(1.1); 
                     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); 
-                }
-                
-                /* ESPERANDO TECLA (Bindeando) */
-                .binding { 
-                    background: #444 !important; 
-                    color: white !important; 
-                    border-color: #888 !important; 
-                    animation: pulse 0.5s infinite; 
-                }
-                
-                @keyframes pulse { 
-                    0% { opacity: 1; } 
-                    50% { opacity: 0.7; } 
-                    100% { opacity: 1; } 
                 }
             `;
             head.appendChild(style);

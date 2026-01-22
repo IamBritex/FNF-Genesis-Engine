@@ -56,16 +56,35 @@ class MainMenuScene extends Phaser.Scene {
         this.cancelSound = this.sound.add('cancelSound');
 
         const spriteData = MainMenuOptions.getSpriteData(this.game.config.width, this.game.config.height);
+        const { width, height } = this.scale;
 
-        // --- Crear Fondo ---
+        // --- Crear Fondo con Zoom Adaptativo (Cover) ---
         const bgData = spriteData.bg;
         const bg = this.add.sprite(bgData.x, bgData.y, 'menuBackground');
-        bg.setScale(bgData.scale).setScrollFactor(bgData.scrollFactor).setDepth(bgData.depth);
+        
+        /**
+         * Lógica de Zoom Adaptativo:
+         * 1. Calcula la escala necesaria para cubrir ancho y alto sin deformar (Cover).
+         * 2. Elige el mayor valor entre la escala "Cover" y la escala original de bgData.
+         * Esto asegura que cubra la pantalla en móviles sin romper la lógica de zoom existente.
+         */
+        const bgScaleX = width / bg.width;
+        const bgScaleY = height / bg.height;
+        const bgCoverScale = Math.max(bgScaleX, bgScaleY);
+        const finalBgScale = Math.max(bgData.scale, bgCoverScale);
 
-        // --- Crear Flash ---
+        bg.setScale(finalBgScale).setScrollFactor(bgData.scrollFactor).setDepth(bgData.depth);
+
+        // --- Crear Flash con Zoom Adaptativo (Cover) ---
         const flashData = spriteData.flash;
         this.menuFlash = this.add.sprite(flashData.x, flashData.y, 'menuFlash');
-        this.menuFlash.setScale(flashData.scale).setScrollFactor(flashData.scrollFactor).setDepth(flashData.depth);
+        
+        const flashScaleX = width / this.menuFlash.width;
+        const flashScaleY = height / this.menuFlash.height;
+        const flashCoverScale = Math.max(flashScaleX, flashScaleY);
+        const finalFlashScale = Math.max(flashData.scale, flashCoverScale);
+
+        this.menuFlash.setScale(finalFlashScale).setScrollFactor(flashData.scrollFactor).setDepth(flashData.depth);
         this.menuFlash.setVisible(false).setAlpha(1);
 
         // --- Crear Botones del Menú ---

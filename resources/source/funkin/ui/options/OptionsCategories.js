@@ -23,8 +23,6 @@ export default class OptionsCategories {
     static preload(scene) {
         // Carga el HTML y los assets necesarios para el renderer
         scene.load.html('optionsCategories', 'public/ui/menu/options/options_categories.html');
-        scene.load.atlas('bold', 'public/assets/images/UI/bold.png', 'public/assets/images/UI/bold.json');
-        scene.load.atlas('alphabet', 'public/assets/images/UI/alphabet.png', 'public/assets/images/UI/alphabet.xml');
         scene.load.atlasXML('optionsTitle', 'public/assets/images/states/MainMenuState/options/menu_options.png', 'public/assets/images/states/MainMenuState/options/menu_options.xml');
     }
 

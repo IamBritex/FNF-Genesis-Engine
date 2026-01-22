@@ -2,40 +2,47 @@ import { initVolumeControl, VolumeUIScene } from "../soundtray/styleSoundtray.js
 import { touchHere } from "../touchHere.js";
 import { CrashHandler } from "../CrashHandler.js";
 import { initMobileOrientation } from "../../utils/MobileOrientation.js";
-import { initNativeEngine } from "../devices.js"; 
+import { initNativeEngine } from "../devices.js";
+
+const isMobile = typeof window.Capacitor !== "undefined" || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+let gameWidth = 1280;
+const gameHeight = 720;
+
+if (isMobile) {
+    const ratio = window.innerWidth / window.innerHeight;
+    gameWidth = Math.ceil(gameHeight * ratio);
+}
 
 const gameConfig = {
-  type: Phaser.AUTO,
-  width: 1280,
-  height: 720,
-  parent: "game-container",
-
-  dom: {
-    createContainer: true
-  },
-
-  scene: [touchHere, VolumeUIScene],
-  backgroundColor: "#000000",
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    expandParent: true,
-    fullscreenTarget: "game-container",
-  },
-  autoFocus: true,
-  disableContextMenu: true,
+    type: Phaser.AUTO,
+    width: gameWidth,
+    height: gameHeight,
+    parent: "game-container",
+    dom: {
+        createContainer: true
+    },
+    scene: [touchHere, VolumeUIScene],
+    backgroundColor: "#000000",
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        expandParent: true,
+        fullscreenTarget: "game-container",
+    },
+    autoFocus: true,
+    disableContextMenu: true,
 };
 
 window.game = new Phaser.Game(gameConfig);
 
 game.events.on("ready", () => {
-  window.crashHandler = new CrashHandler(game.scene.scenes[0]);
-  if (game.sound) {
-    game.sound.pauseOnBlur = false;
-  }
+    window.crashHandler = new CrashHandler(game.scene.scenes[0]);
+    if (game.sound) {
+        game.sound.pauseOnBlur = false;
+    }
 });
 
-// Inicialización de sistemas
 initVolumeControl();
 initMobileOrientation();
 initNativeEngine();
