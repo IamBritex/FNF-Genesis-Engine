@@ -39,22 +39,26 @@ class introDance extends Phaser.Scene {
         if (isDesktop) {
           gf.x = width - gf.width;
         } else {
-          const offset = 40;
+          const offset = 20;
           gf.x = width - gf.width - offset;
         }
     }
 
     // 2. Logo Bumpin: Diferente comportamiento según plataforma
     if (logo) {
+        // Variables para controlar el Offset X y Y
+        const logoOffsetX = -160; 
+        const logoOffsetY = -120;
+
         if (isDesktop) {
-            // EN PC: Origen 0,0 y Posición 0,0
+            // EN PC: Origen 0,0 y Posición Superior Izquierda (0,0) + Offset
             logo.setOrigin(0, 0);
-            logo.setPosition(-150, -130);
+            logo.setPosition(0 + logoOffsetX, 0 + logoOffsetY);
         } else {
-            // EN MÓVIL: A la izquierda de GF (Lógica anterior)
+            // EN MÓVIL: A la izquierda de GF
             if (gf) {
-                const offset = 40;
-                logo.x = gf.x - logo.width - offset;
+                logo.setOrigin(0, 0);
+                logo.setPosition(0 + logoOffsetX, 0 + logoOffsetY);
             }
         }
     }
@@ -113,7 +117,6 @@ class introDance extends Phaser.Scene {
     if (this.funScript && this.funScript.update) {
       this.funScript.update(time, delta);
     }
-    // ----------------------
   }
 
   shutdown() {
