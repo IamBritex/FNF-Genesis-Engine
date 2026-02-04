@@ -10,7 +10,7 @@ export default class bgParallax {
         this.currentMouseX = 0;
         this.currentMouseY = 0;
 
-        this.lerpFactor = 0.05;
+        this.lerpFactor = 0.10;
 
         window.addEventListener('mousemove', (e) => {
             this.targetMouseX = (e.clientX / window.innerWidth) - 0.5;
@@ -23,7 +23,7 @@ export default class bgParallax {
 
         const stagePath = 'public/images/stages/backstage/';
 
-        const images = ['back', 'front', 'lights', 'server', 'bg', 'brightLightSmall', 'orangeLight 1'];
+        const images = ['lights', 'server', 'bg', 'brightLightSmall', 'orangeLight 1'];
         images.forEach(img => {
             const cleanName = img.includes(' ') ? img.split(' ')[0] : img;
             scene.load.image(`stage_backstage_${img}`, `${stagePath}${img}.png`);

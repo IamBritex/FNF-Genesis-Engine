@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options</title>
+
+    <style>
+        /* --- FUENTE VCR (Ruta Corregida) --- */
+        @font-face {
+            font-family: 'vcr';
+            src: url('/resources/public/fonts/vcr.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        .HTML-base {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            height: 100%;
+            width: 100%;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        /* --- NAV SUPERIOR --- */
+        .nav-container {
+            height: 80px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 5px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .nav-scroll-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 20;
+            transition: background 0.2s;
+        }
+        .nav-scroll-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .section-selector {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            overflow-x: auto;
+            overflow-y: visible;
+            white-space: nowrap;
+            scrollbar-width: none;
+            scroll-behavior: smooth;
+            padding-left: 40px;
+            padding-right: 20px;
+        }
+        .section-selector::-webkit-scrollbar { display: none; }
+
+        .section-tab {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            height: 45px;
+            padding: 5px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible !important;
+        }
+        .section-tab:hover { background: rgba(255, 255, 255, 0.15); }
+        .section-tab.active { background: rgba(255, 255, 255, 0.25); border-bottom: 3px solid #00FFFF; }
+        
+        .tab-icon { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+
+        /* --- CUERPO --- */
+        .options-menu {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* --- LISTA DE OPCIONES (CON SCROLLBAR ESTILIZADO) --- */
+        .section-options {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            /* Scroll suave */
+            scroll-behavior: smooth;
+        }
+
+        /* Estilización de Scrollbar (Webkit: Chrome, Safari, Edge) */
+        .section-options::-webkit-scrollbar {
+            width: 8px; /* Ancho delgado */
+        }
+
+        .section-options::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1); /* Fondo del track sutil */
+            border-radius: 4px;
+            margin: 10px 0; /* Margen superior e inferior */
+        }
+
+        .section-options::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2); /* Color de la barra */
+            border-radius: 4px;
+        }
+
+        .section-options::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4); /* Brilla al hacer hover */
+        }
+
+        /* Estilización de Scrollbar (Firefox) */
+        .section-options {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
+        }
+
+        .option-item {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .option-item:hover { background: rgba(255, 255, 255, 0.1); }
+        .option-item.selected {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .option-label { font-weight: bold; font-size: 1.1em; }
+        .option-value { opacity: 0.7; font-size: 0.9em; margin-top: 5px; }
+
+        /* --- SIDEBAR --- */
+        .section-preview-sidebar {
+            width: 35%;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 70%);
+        }
+        .preview-box img, .preview-box video {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            object-fit: contain;
+        }
+
+        /* --- DESCRIPCIÓN (FUENTE VCR) --- */
+        .description-box {
+            min-height: 160px;
+            background: rgba(0, 0, 0, 0.6);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            
+            /* Centrado total */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .desc-title {
+            color: #00FFFF;
+            font-family: 'vcr', monospace;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+        }
+
+        .desc-text {
+            color: #ffffff;
+            font-family: 'vcr', monospace;
+            font-size: 28px;
+            line-height: 1.2;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            max-width: 90%;
+        }
+    </style>
+</head>
+
+<body class="HTML-OPTIONS-BODY">
+    <div class="HTML-base">
+
+        <div class="nav-container">
+            <button class="nav-scroll-btn left" id="btn-scroll-left">◄</button>
+            <div class="section-selector"></div>
+            <button class="nav-scroll-btn right" id="btn-scroll-right">►</button>
+        </div>
+
+        <div class="options-menu">
+            <div class="section-options"></div>
+
+            <div class="section-preview-sidebar">
+                <div class="preview-box"></div>
+                <div class="description-box"></div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

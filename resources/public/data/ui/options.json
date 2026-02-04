@@ -4,6 +4,11 @@
             "type": "select",
             "id": "opt-lang",
             "label": "Language",
+            "dataType": "string",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
             "options": [
                 {
                     "val": "es",
@@ -18,25 +23,94 @@
                     "text": "PORTUGUÊS"
                 }
             ],
-            "default": "en"
+            "default": "en",
+            "meta": {
+                "desc": {
+                    "en": "Changes the game's interface language",
+                    "es": "Cambia el idioma de la interfaz del juego",
+                    "pt": "Altera o idioma da interface do jogo"
+                },
+                "preview": {
+                    "en": {
+                        "type": "image",
+                        "src": "preview/language_en.png"
+                    },
+                    "es": {
+                        "type": "image",
+                        "src": "preview/language_es.png"
+                    },
+                    "pt": {
+                        "type": "image",
+                        "src": "preview/language_pt.png"
+                    }
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-discord",
             "label": "Discord RPC",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Show your game status on Discord",
+                    "es": "Muestra el estado de tu juego en Discord",
+                    "pt": "Mostre o status do seu jogo no Discord"
+                },
+                "preview": {
+                    "false": {
+                        "type": "image",
+                        "src": "preview/discord_off.png"
+                    },
+                    "true": {
+                        "type": "image",
+                        "src": "preview/discord_on.png"
+                    }
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-autopause",
             "label": "Auto Pause",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Automatically pause when window loses focus",
+                    "es": "Pausar automáticamente al perder el foco",
+                    "pt": "Pausa automaticamente ao perder o foco"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-updates",
             "label": "Check Updates",
-            "default": false
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop",
+                "android"
+            ],
+            "default": false,
+            "meta": {
+                "desc": {
+                    "en": "Automatically check for game updates on startup",
+                    "es": "Buscar actualizaciones al iniciar el juego",
+                    "pt": "Verificar atualizações ao iniciar o jogo"
+                }
+            }
         }
     ],
     "GAMEPLAY": [
@@ -44,6 +118,11 @@
             "type": "select",
             "id": "opt-scrolldir",
             "label": "Scroll Direction",
+            "dataType": "string",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
             "options": [
                 {
                     "val": "up",
@@ -54,268 +133,829 @@
                     "text": "DOWNSCROLL"
                 }
             ],
-            "default": "up"
+            "default": "up",
+            "meta": {
+                "desc": {
+                    "en": "Choose how notes scroll during gameplay",
+                    "es": "Elige cómo se desplazan las notas",
+                    "pt": "Escolha como as notas se movem"
+                },
+                "preview": {
+                    "up": {
+                        "type": "video",
+                        "src": "preview/upscroll.mp4",
+                        "loop": true
+                    },
+                    "down": {
+                        "type": "video",
+                        "src": "preview/downscroll.mp4",
+                        "loop": true
+                    }
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-middlescroll",
             "label": "Middle Scroll",
-            "default": false
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": false,
+            "conflicts": [
+                {
+                    "id": "opt-oppnotes",
+                    "val": true,
+                    "reason": "Cannot hide opponent notes when middle scroll is active"
+                }
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Center the player's notes in the middle",
+                    "es": "Centra las notas del jugador en el medio",
+                    "pt": "Centraliza as notas do jogador no meio"
+                },
+                "preview": {
+                    "false": {
+                        "type": "image",
+                        "src": "preview/middlescroll_off.png"
+                    },
+                    "true": {
+                        "type": "image",
+                        "src": "preview/middlescroll_on.png"
+                    }
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-ghosttap",
             "label": "Ghost Tapping",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Press keys without missing when no notes are present",
+                    "es": "Presiona teclas sin fallar cuando no hay notas",
+                    "pt": "Pressione teclas sem errar quando não há notas"
+                },
+                "preview": {
+                    "false": {
+                        "type": "image",
+                        "src": "preview/ghosttap_off.png"
+                    },
+                    "true": {
+                        "type": "image",
+                        "src": "preview/ghosttap_on.png"
+                    }
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-botplay",
             "label": "Showcase Mode",
-            "default": false
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": false,
+            "conflicts": [
+                {
+                    "id": "opt-replays",
+                    "val": true,
+                    "reason": "Cannot save replays in bot mode"
+                }
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Watch the game play itself automatically",
+                    "es": "Observa el juego jugarse automáticamente",
+                    "pt": "Assista o jogo se jogar automaticamente"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-reset",
             "label": "Reset Button",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Show reset button during gameplay",
+                    "es": "Mostrar botón de reinicio durante el juego",
+                    "pt": "Mostrar botão de reset durante o jogo"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-instantrespawn",
             "label": "Instant Respawn",
-            "default": false
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": false,
+            "meta": {
+                "desc": {
+                    "en": "Skip respawn animation after failing",
+                    "es": "Saltar animación de respawn al fallar",
+                    "pt": "Pular animação de respawn ao falhar"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-oppnotes",
             "label": "Opponent Notes",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Show opponent's notes during gameplay",
+                    "es": "Mostrar notas del oponente durante el juego",
+                    "pt": "Mostrar notas do oponente durante o jogo"
+                }
+            }
         }
     ],
     "CONTROLS": [
         {
             "type": "header",
-            "label": "GAMEPLAY"
+            "label": "GAMEPLAY",
+            "platforms": [
+                "desktop",
+                "web"
+            ]
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "note_left",
             "label": "Left Note",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "A",
                 "LEFT"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Key used to hit left notes",
+                    "es": "Tecla usada para notas izquierdas",
+                    "pt": "Tecla usada para notas esquerdas"
+                },
+                "preview": {
+                    "type": "image-keybind",
+                    "imgKeys": [
+                        "LEFT"
+                    ]
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "note_down",
             "label": "Down Note",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "S",
                 "DOWN"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Key used to hit down notes",
+                    "es": "Tecla usada para notas abajo",
+                    "pt": "Tecla usada para notas baixo"
+                },
+                "preview": {
+                    "type": "image-keybind",
+                    "imgKeys": [
+                        "DOWN"
+                    ]
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "note_up",
             "label": "Up Note",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "W",
                 "UP"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Key used to hit up notes",
+                    "es": "Tecla usada para notas arriba",
+                    "pt": "Tecla usada para notas cima"
+                },
+                "preview": {
+                    "type": "image-keybind",
+                    "imgKeys": [
+                        "UP"
+                    ]
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "note_right",
             "label": "Right Note",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "D",
                 "RIGHT"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Key used to hit right notes",
+                    "es": "Tecla usada para notas derechas",
+                    "pt": "Tecla usada para notas direitas"
+                },
+                "preview": {
+                    "type": "image-keybind",
+                    "imgKeys": [
+                        "RIGHT"
+                    ]
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "reset",
             "label": "Reset",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "R",
                 null
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Key used to restart the song",
+                    "es": "Tecla usada para reiniciar la canción",
+                    "pt": "Tecla usada para reiniciar a música"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "desktop",
+                "web"
+            ]
         },
         {
             "type": "header",
-            "label": "UI"
+            "label": "UI NAVIGATION",
+            "platforms": [
+                "desktop",
+                "web"
+            ]
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "ui_left",
             "label": "UI Left",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "A",
                 "LEFT"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Navigate left in menus",
+                    "es": "Navegar a la izquierda en menús",
+                    "pt": "Navegar para esquerda nos menus"
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "ui_down",
             "label": "UI Down",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "S",
                 "DOWN"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Navigate down in menus",
+                    "es": "Navegar abajo en menús",
+                    "pt": "Navegar para baixo nos menus"
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "ui_up",
             "label": "UI Up",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "W",
                 "UP"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Navigate up in menus",
+                    "es": "Navegar arriba en menús",
+                    "pt": "Navegar para cima nos menus"
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "ui_right",
             "label": "UI Right",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "D",
                 "RIGHT"
-            ]
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Navigate right in menus",
+                    "es": "Navegar a la derecha en menús",
+                    "pt": "Navegar para direita nos menus"
+                }
+            }
         },
         {
             "type": "keybind",
+            "controlType": "keyboard",
             "id": "accept",
             "label": "Accept",
-            "keys": [
+            "dataType": "keyarray",
+            "conversion": "toIntArray",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
                 "SPACE",
                 "ENTER"
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Confirm selection in menus",
+                    "es": "Confirmar selección en menús",
+                    "pt": "Confirmar seleção nos menus"
+                }
+            }
+        },
+        {
+            "type": "keybind",
+            "controlType": "keyboard",
+            "id": "back",
+            "label": "Back",
+            "dataType": "keyarray",
+            "conversion": "toInt",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": [
+                "BACKSPACE",
+                "ESC"
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Go back in menus",
+                    "es": "Regresar en menús",
+                    "pt": "Voltar nos menus"
+                }
+            }
+        },
+        {
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
+        },
+        {
+            "type": "header",
+            "label": "TOUCH CONTROLS",
+            "platforms": [
+                "mobile"
+            ]
+        },
+        {
+            "type": "select",
+            "controlType": "touch",
+            "id": "opt-mobile-layout",
+            "label": "Touch Layout",
+            "dataType": "string",
+            "conversion": "none",
+            "platforms": [
+                "mobile"
+            ],
+            "options": [
+                {
+                    "val": "hitbox",
+                    "text": "HITBOX (FULL SCREEN)"
+                },
+                {
+                    "val": "dpad",
+                    "text": "VIRTUAL PAD"
+                },
+                {
+                    "val": "split",
+                    "text": "SPLIT (DUAL)"
+                }
+            ],
+            "default": "hitbox",
+            "meta": {
+                "desc": {
+                    "en": "Input method for mobile devices",
+                    "es": "Método de entrada para móviles",
+                    "pt": "Método de entrada para celular"
+                }
+            }
+        },
+        {
+            "type": "toucharea",
+            "controlType": "touch",
+            "id": "opt-touch-opacity",
+            "label": "Button Opacity",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "mobile"
+            ],
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1,
+            "default": 0.5,
+            "requires": [
+                {
+                    "id": "opt-mobile-layout",
+                    "val": "dpad"
+                }
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Opacity of virtual buttons",
+                    "es": "Opacidad de botones virtuales",
+                    "pt": "Opacidade dos botões virtuais"
+                }
+            }
+        },
+        {
+            "type": "header",
+            "label": "GAMEPAD",
+            "platforms": [
+                "all"
             ]
         },
         {
             "type": "keybind",
-            "id": "back",
-            "label": "Back",
-            "keys": [
-                "BACKSPACE",
-                "ESC"
-            ]
+            "controlType": "gamepad",
+            "id": "gp_note_left",
+            "label": "Gamepad Left",
+            "dataType": "gamepad_button",
+            "conversion": "toInt",
+            "platforms": [
+                "all"
+            ],
+            "default": "DPAD_LEFT",
+            "meta": {
+                "desc": {
+                    "en": "Gamepad button for left",
+                    "es": "Botón del mando izquierda",
+                    "pt": "Botão do controle esquerda"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "keybind",
+            "controlType": "gamepad",
+            "id": "gp_note_right",
+            "label": "Gamepad Right",
+            "dataType": "gamepad_button",
+            "conversion": "toInt",
+            "platforms": [
+                "all"
+            ],
+            "default": "DPAD_RIGHT",
+            "meta": {
+                "desc": {
+                    "en": "Gamepad button for right",
+                    "es": "Botón del mando direita",
+                    "pt": "Botão do controle direita"
+                }
+            }
+        },
+        {
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "action",
             "id": "btn-reset-controls",
             "label": "Reset Controls",
             "btnText": "RESET",
-            "style": "danger"
+            "style": "danger",
+            "dataType": "action",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Reset all controls to default settings",
+                    "es": "Restablecer todos los controles a valores predeterminados",
+                    "pt": "Redefinir todos os controles para padrão"
+                }
+            }
         }
     ],
     "AUDIO": [
         {
             "type": "header",
-            "label": "MIXING"
+            "label": "MIXING",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "slider",
             "id": "opt-vol-master",
             "label": "Master Volume",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "all"
+            ],
             "min": 0,
             "max": 100,
             "step": 5,
             "default": 100,
             "suffix": "%",
-            "sound": "scroll"
+            "sound": "scroll",
+            "meta": {
+                "desc": {
+                    "en": "Controls the overall game volume",
+                    "es": "Controla el volumen general del juego",
+                    "pt": "Controla o volume geral do jogo"
+                },
+                "preview": {
+                    "type": "audio_meter",
+                    "min": 0,
+                    "max": 100
+                }
+            }
         },
         {
             "type": "slider",
             "id": "opt-vol-inst",
             "label": "Inst Volume",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "all"
+            ],
             "min": 0,
             "max": 100,
             "step": 5,
             "default": 100,
             "suffix": "%",
-            "sound": "scroll"
+            "sound": "scroll",
+            "meta": {
+                "desc": {
+                    "en": "Volume for instrumental tracks",
+                    "es": "Volumen para pistas instrumentales",
+                    "pt": "Volume para faixas instrumentais"
+                }
+            }
         },
         {
             "type": "slider",
             "id": "opt-vol-voices",
             "label": "Voices Volume",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "all"
+            ],
             "min": 0,
             "max": 100,
             "step": 5,
             "default": 100,
             "suffix": "%",
-            "sound": "scroll"
+            "sound": "scroll",
+            "meta": {
+                "desc": {
+                    "en": "Volume for vocal tracks",
+                    "es": "Volumen para pistas vocales",
+                    "pt": "Volume para faixas vocais"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "GAMEPLAY AUDIO"
+            "label": "GAMEPLAY AUDIO",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "slider",
             "id": "opt-vol-hitsound",
             "label": "Hit Sound Vol",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "all"
+            ],
             "min": 0,
             "max": 100,
             "step": 5,
             "default": 100,
             "suffix": "%",
-            "sound": "hit"
+            "sound": "hit",
+            "meta": {
+                "desc": {
+                    "en": "Volume for note hit sounds",
+                    "es": "Volumen para sonidos de golpear notas",
+                    "pt": "Volume para sons de acerto de notas"
+                }
+            }
         },
         {
             "type": "slider",
             "id": "opt-vol-miss-player",
             "label": "Player Miss Vol",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "all"
+            ],
             "min": 0,
             "max": 100,
             "step": 5,
             "default": 100,
             "suffix": "%",
-            "sound": "miss"
+            "sound": "miss",
+            "meta": {
+                "desc": {
+                    "en": "Volume for player miss sounds",
+                    "es": "Volumen para sonidos de fallar del jugador",
+                    "pt": "Volume para sons de erro do jogador"
+                }
+            }
         },
         {
             "type": "slider",
             "id": "opt-vol-miss-opp",
             "label": "Opponent Miss Vol",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "all"
+            ],
             "min": 0,
             "max": 100,
             "step": 5,
             "default": 50,
             "suffix": "%",
-            "sound": "miss"
+            "sound": "miss",
+            "meta": {
+                "desc": {
+                    "en": "Volume for opponent miss sounds",
+                    "es": "Volumen para sonidos de fallar del oponente",
+                    "pt": "Volume para sons de erro do oponente"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "SYNCHRONIZATION"
+            "label": "SYNCHRONIZATION",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "action",
             "id": "btn-offset-start",
             "label": "Note Offset",
-            "btnText": "START"
+            "btnText": "START",
+            "dataType": "action",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Calibrate audio-visual synchronization",
+                    "es": "Calibrar sincronización audio-visual",
+                    "pt": "Calibrar sincronização áudio-visual"
+                }
+            }
         }
     ],
     "APPEARANCE": [
         {
             "type": "header",
-            "label": "VISUAL STYLE"
+            "label": "VISUAL STYLE",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "select",
             "id": "opt-vol-style",
             "label": "Volume HUD Style",
+            "dataType": "string",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
             "options": [
                 {
                     "val": "vslice",
@@ -330,12 +970,38 @@
                     "text": "CLASSIC"
                 }
             ],
-            "default": "vslice"
+            "default": "vslice",
+            "meta": {
+                "desc": {
+                    "en": "Choose the visual style for volume indicators",
+                    "es": "Elige el estilo visual para indicadores de volumen",
+                    "pt": "Escolha o estilo visual para indicadores de volume"
+                },
+                "preview": {
+                    "vslice": {
+                        "type": "image",
+                        "src": "preview/volstyle_vslice.png"
+                    },
+                    "codename": {
+                        "type": "image",
+                        "src": "preview/volstyle_codename.png"
+                    },
+                    "classic": {
+                        "type": "image",
+                        "src": "preview/volstyle_classic.png"
+                    }
+                }
+            }
         },
         {
             "type": "select",
             "id": "opt-note-skin",
             "label": "Note Skin",
+            "dataType": "string",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
             "options": [
                 {
                     "val": "default",
@@ -354,70 +1020,209 @@
                     "text": "PIXEL"
                 }
             ],
-            "default": "default"
+            "default": "default",
+            "meta": {
+                "desc": {
+                    "en": "Change the appearance of gameplay notes",
+                    "es": "Cambia la apariencia de las notas",
+                    "pt": "Muda a aparência das notas do jogo"
+                },
+                "preview": {
+                    "default": {
+                        "type": "image",
+                        "src": "preview/noteskin_default.png"
+                    },
+                    "circle": {
+                        "type": "image",
+                        "src": "preview/noteskin_circle.png"
+                    },
+                    "bar": {
+                        "type": "image",
+                        "src": "preview/noteskin_bar.png"
+                    },
+                    "pixel": {
+                        "type": "image",
+                        "src": "preview/noteskin_pixel.png"
+                    }
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-flashing",
             "label": "Flashing Lights",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Enable flashy visual effects",
+                    "es": "Activar efectos visuales brillantes",
+                    "pt": "Ativar efeitos visuais brilhantes"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-cam-zooms",
             "label": "Camera Zooms",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Enable camera zoom effects on beats",
+                    "es": "Activar efectos de zoom de cámara en ritmos",
+                    "pt": "Ativar efeitos de zoom de câmera em batidas"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-health-colors",
             "label": "Health Bar Colors",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Use colored health bars for players",
+                    "es": "Usar barras de salud coloreadas",
+                    "pt": "Usar barras de vida coloridas"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "HUD ELEMENTS"
+            "label": "HUD ELEMENTS",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "checkbox",
             "id": "opt-fps-counter",
             "label": "FPS Counter",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Display frames per second counter",
+                    "es": "Mostrar contador de cuadros por segundo",
+                    "pt": "Mostrar contador de quadros por segundo"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-judge-counter",
             "label": "Judge Counter",
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
             "default": true,
-            "hasSubOptions": true
+            "hasSubOptions": true,
+            "meta": {
+                "desc": {
+                    "en": "Show accuracy judgment counters",
+                    "es": "Mostrar contadores de precisión",
+                    "pt": "Mostrar contadores de precisão"
+                }
+            }
         },
         {
             "type": "sub_group",
             "parentId": "opt-judge-counter",
+            "platforms": [
+                "all"
+            ],
             "items": [
                 {
                     "type": "checkbox",
                     "id": "opt-judge-stack",
                     "label": "Stack Judgment",
+                    "dataType": "boolean",
+                    "conversion": "none",
                     "default": false,
-                    "scale": 0.65
+                    "scale": 0.65,
+                    "requires": [
+                        {
+                            "id": "opt-judge-counter",
+                            "val": true
+                        }
+                    ],
+                    "meta": {
+                        "desc": {
+                            "en": "Stack judgment popups instead of spreading them",
+                            "es": "Apilar popups de juicio en lugar de esparcirlos",
+                            "pt": "Empilhar popups de julgamento em vez de espalhar"
+                        }
+                    }
                 },
                 {
                     "type": "checkbox",
                     "id": "opt-judge-ms",
                     "label": "MS Judgment",
+                    "dataType": "boolean",
+                    "conversion": "none",
                     "default": false,
-                    "scale": 0.65
+                    "scale": 0.65,
+                    "requires": [
+                        {
+                            "id": "opt-judge-counter",
+                            "val": true
+                        }
+                    ],
+                    "meta": {
+                        "desc": {
+                            "en": "Show millisecond timing in judgments",
+                            "es": "Mostrar tiempo en milisegundos en juicios",
+                            "pt": "Mostrar tempo em milissegundos nos julgamentos"
+                        }
+                    }
                 },
                 {
                     "type": "action",
                     "id": "btn-adjust-judge",
                     "label": "Adjust Judge",
                     "btnText": "EDIT POS",
-                    "scale": 0.65
+                    "scale": 0.65,
+                    "dataType": "action",
+                    "conversion": "none",
+                    "requires": [
+                        {
+                            "id": "opt-judge-counter",
+                            "val": true
+                        }
+                    ],
+                    "meta": {
+                        "desc": {
+                            "en": "Adjust judgment counter position",
+                            "es": "Ajustar posición del contador de juicio",
+                            "pt": "Ajustar posição do contador de julgamento"
+                        }
+                    }
                 }
             ]
         },
@@ -425,22 +1230,43 @@
             "type": "slider",
             "id": "opt-lane-alpha",
             "label": "Lane Transparency",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "all"
+            ],
             "min": 0,
             "max": 100,
             "step": 5,
             "default": 0,
-            "suffix": "%"
+            "suffix": "%",
+            "meta": {
+                "desc": {
+                    "en": "Adjust transparency of note lanes",
+                    "es": "Ajustar transparencia de los carriles de notas",
+                    "pt": "Ajustar transparência das pistas de notas"
+                }
+            }
         }
     ],
     "PERFORMANCE": [
         {
             "type": "header",
-            "label": "GRAPHICS"
+            "label": "GRAPHICS",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "select",
             "id": "opt-res-scale",
             "label": "Resolution Scale",
+            "dataType": "float",
+            "conversion": "toFloat",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
             "options": [
                 {
                     "val": "1.0",
@@ -455,101 +1281,294 @@
                     "text": "0.5x (Fastest)"
                 }
             ],
-            "default": "1.0"
+            "default": "1.0",
+            "conflicts": [
+                {
+                    "id": "opt-low-quality",
+                    "val": true,
+                    "reason": "Resolution is locked in Low Quality mode"
+                }
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Adjust rendering resolution for performance",
+                    "es": "Ajustar resolución de renderizado para rendimiento",
+                    "pt": "Ajustar resolução de renderização para desempenho"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-antialiasing",
             "label": "Antialiasing",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop",
+                "console"
+            ],
+            "default": true,
+            "conflicts": [
+                {
+                    "id": "opt-low-quality",
+                    "val": true,
+                    "reason": "Disabled in Low Quality mode"
+                }
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Smooth jagged edges for better visuals",
+                    "es": "Suavizar bordes irregulares para mejor calidad",
+                    "pt": "Suavizar bordas irregulares para melhor qualidade"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-low-quality",
             "label": "Low Quality Mode",
-            "default": false
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": false,
+            "meta": {
+                "desc": {
+                    "en": "Reduce graphics quality for better performance",
+                    "es": "Reducir calidad gráfica para mejor rendimiento",
+                    "pt": "Reduzir qualidade gráfica para melhor desempenho"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "SYSTEM"
+            "label": "SYSTEM",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "number",
             "id": "opt-fps-cap",
             "label": "FPS Cap",
+            "dataType": "integer",
+            "conversion": "toInt",
+            "platforms": [
+                "desktop",
+                "mobile"
+            ],
             "min": 30,
+            "max": 360,
             "default": 60,
-            "placeholder": "FPS"
+            "meta": {
+                "desc": {
+                    "en": "Limits the maximum frame rate",
+                    "es": "Limita la tasa máxima de cuadros",
+                    "pt": "Limita a taxa máxima de quadros"
+                },
+                "preview": {
+                    "type": "numbers",
+                    "metric": "${value} FPS"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-gpu-caching",
             "label": "GPU Caching",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop",
+                "console"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Cache graphics on GPU for faster loading",
+                    "es": "Cachear gráficos en GPU para carga más rápida",
+                    "pt": "Cachear gráficos na GPU para carregamento mais rápido"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "PARTICLES & FX"
+            "label": "PARTICLES & FX",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "checkbox",
             "id": "opt-splashes",
             "label": "Note Splashes",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Show visual effects when hitting notes perfectly",
+                    "es": "Mostrar efectos al golpear notas perfectamente",
+                    "pt": "Mostrar efeitos visuais ao acertar notas perfeitamente"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-reduce-motion",
             "label": "Reduce Motion",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Reduce excessive animations and effects",
+                    "es": "Reducir animaciones e efeitos excesivos",
+                    "pt": "Reduzir animações e efeitos excessivos"
+                }
+            }
         }
     ],
     "ADVANCED": [
         {
             "type": "header",
-            "label": "DEVELOPER TOOLS"
+            "label": "DEVELOPER TOOLS",
+            "platforms": [
+                "desktop",
+                "web"
+            ]
         },
         {
             "type": "checkbox",
             "id": "opt-dev-mode",
             "label": "Developer Mode",
-            "default": false
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": false,
+            "meta": {
+                "desc": {
+                    "en": "Enable developer features and debugging",
+                    "es": "Activar funciones de desarrollador y depuración",
+                    "pt": "Ativar funções de desenvolvedor e depuração"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-show-console",
             "label": "Show Console",
-            "default": false
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop"
+            ],
+            "default": false,
+            "requires": [
+                {
+                    "id": "opt-dev-mode",
+                    "val": true
+                }
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Display debug console output",
+                    "es": "Mostrar salida de consola de depuración",
+                    "pt": "Mostrar saída do console de depuração"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-auto-reload",
             "label": "Auto-Reload Assets",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop"
+            ],
+            "default": true,
+            "requires": [
+                {
+                    "id": "opt-dev-mode",
+                    "val": true
+                }
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Automatically reload modified assets",
+                    "es": "Recargar automáticamente recursos modificados",
+                    "pt": "Recarregar automaticamente recursos modificados"
+                }
+            }
         },
         {
             "type": "action",
             "id": "btn-clear-cache",
             "label": "Clear Asset Cache",
-            "btnText": "CLEAR"
+            "btnText": "CLEAR",
+            "style": "danger",
+            "dataType": "action",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Deletes cached assets and reloads them",
+                    "es": "Elimina los recursos en caché y los recarga",
+                    "pt": "Remove assets em cache e recarrega"
+                },
+                "preview": {
+                    "type": "image",
+                    "src": "preview/clear_cache.png"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "NETWORK"
+            "label": "NETWORK",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "select",
             "id": "opt-jitter",
             "label": "Net Jitter Buffer",
+            "dataType": "string",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
             "options": [
                 {
                     "val": "low",
@@ -564,43 +1583,100 @@
                     "text": "HIGH"
                 }
             ],
-            "default": "medium"
+            "default": "medium",
+            "meta": {
+                "desc": {
+                    "en": "Adjust network stability buffer for multiplayer",
+                    "es": "Ajustar búfer de estabilidad de red para multijugador",
+                    "pt": "Ajustar buffer de estabilidade de rede para multiplayer"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-show-ping",
             "label": "Show Ping",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Display network latency in multiplayer",
+                    "es": "Mostrar latencia de red en multijugador",
+                    "pt": "Mostrar latência de rede no multiplayer"
+                }
+            }
         }
     ],
     "ACCESSIBILITY": [
         {
             "type": "header",
-            "label": "VISUAL SENSITIVITIES"
+            "label": "VISUAL SENSITIVITIES",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "checkbox",
-            "id": "opt-flashing",
+            "id": "opt-flashing-acc",
             "label": "Flashing Lights",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Enable or disable flashing visual effects",
+                    "es": "Activar o desactivar efeitos visuales brillantes",
+                    "pt": "Ativar ou desativar efeitos visuais brilhantes"
+                }
+            }
         },
         {
             "type": "checkbox",
             "id": "opt-screen-shake",
             "label": "Screen Shake",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Enable or disable screen shaking effects",
+                    "es": "Activar o desactivar efeitos de sacudida de pantalla",
+                    "pt": "Ativar ou desativar efeitos de tremor de tela"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "VISION HELPERS"
+            "label": "VISION HELPERS",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "select",
             "id": "opt-colorblind",
             "label": "Colorblind Filter",
+            "dataType": "string",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
             "options": [
                 {
                     "val": "none",
@@ -619,39 +1695,92 @@
                     "text": "TRITANOPIA"
                 }
             ],
-            "default": "none"
+            "default": "none",
+            "meta": {
+                "desc": {
+                    "en": "Apply color correction for color vision deficiencies",
+                    "es": "Aplicar corrección de color para deficiencias de visión",
+                    "pt": "Aplicar correção de cor para deficiências de visão"
+                }
+            }
         }
     ],
     "DATA": [
         {
             "type": "header",
-            "label": "STORAGE & CACHE"
+            "label": "STORAGE & CACHE",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "action",
             "id": "btn-clear-cache-data",
             "label": "Clear Image Cache",
-            "btnText": "CLEAR"
+            "btnText": "CLEAR",
+            "dataType": "action",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Clear cached image files to free up space",
+                    "es": "Limpiar archivos de imagen en caché para liberar espacio",
+                    "pt": "Limpar arquivos de imagem em cache para liberar espaço"
+                }
+            }
         },
         {
             "type": "action",
             "id": "btn-reset-save",
             "label": "Reset Save Data",
             "btnText": "RESET",
-            "style": "danger"
+            "style": "danger",
+            "dataType": "action",
+            "conversion": "none",
+            "platforms": [
+                "all"
+            ],
+            "meta": {
+                "desc": {
+                    "en": "Delete all progress and reset to default",
+                    "es": "Eliminar todo el progreso y restablecer",
+                    "pt": "Excluir todo progresso e redefinir"
+                }
+            }
         },
         {
-            "type": "spacer"
+            "type": "spacer",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "header",
-            "label": "MULTIPLAYER"
+            "label": "MULTIPLAYER",
+            "platforms": [
+                "all"
+            ]
         },
         {
             "type": "checkbox",
             "id": "opt-replays",
             "label": "Auto-Save Replays",
-            "default": true
+            "dataType": "boolean",
+            "conversion": "none",
+            "platforms": [
+                "desktop",
+                "web"
+            ],
+            "default": true,
+            "meta": {
+                "desc": {
+                    "en": "Automatically save gameplay replays",
+                    "es": "Guardar automáticamente repeticiones de juego",
+                    "pt": "Salvar automaticamente replays de gameplay"
+                }
+            }
         }
     ]
 }

@@ -64,6 +64,7 @@ class introDance extends Phaser.Scene {
     }
 
     // 3. Press Enter (Tap): Centrado en pantalla
+    
     if (pressEnter) {
         pressEnter.setOrigin(0, 0);
         const halfWidth = pressEnter.width / 2;
