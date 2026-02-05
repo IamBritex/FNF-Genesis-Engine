@@ -6,9 +6,6 @@ export class OptionsScene extends Phaser.Scene {
     constructor() {
         super({ key: 'OptionsScene' });
         this.categoriesUI = null;
-        this.centralUI = null;
-        this.previewUI = null;
-        this.parallax = null;
         this.inputHandler = null;
     }
 
@@ -23,8 +20,16 @@ export class OptionsScene extends Phaser.Scene {
             'public/images/menu/options/OptionsButtonsIcons.xml'
         );
 
-        // --- NUEVO: Cargar sonido del menú ---
+        this.load.atlasXML(
+            'checkboxAnim',
+            'public/images/menu/options/checkboxThingie.png',
+            'public/images/menu/options/checkboxThingie.xml'
+        );
+
+        // --- SONIDOS DEL MENÚ ---
         this.load.audio('scrollMenu', 'public/sounds/scrollMenu.ogg');
+        this.load.audio('confirmMenu', 'public/sounds/confirmMenu.ogg');
+        this.load.audio('cancelMenu', 'public/sounds/cancelMenu.ogg');
     }
 
     create() {
@@ -44,4 +49,4 @@ export class OptionsScene extends Phaser.Scene {
     }
 }
 
-game.scene.add('OptionsScene', OptionsScene, true);
+game.scene.add('OptionsScene', OptionsScene);
