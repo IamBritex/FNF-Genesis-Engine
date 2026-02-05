@@ -19,14 +19,14 @@ export async function initNativeEngine() {
             Neutralino.init();
             Neutralino.events.on("windowClose", () => Neutralino.app.exit());
             _setupPCWindowEvents();
-            console.log("🖥️ PC Mode (Neutralino) Active");
+            console.log("PC Mode (Neutralino) Active");
         } catch (err) { console.warn(err); }
     } 
     // ==========================================
     //  MODO MÓVIL (Capacitor)
     // ==========================================
     else if (isMobile) {
-        console.log("📱 Mobile Mode (Capacitor) Active");
+        console.log("Mobile Mode (Capacitor) Active");
         const Plugins = window.Capacitor.Plugins;
 
         // Configuración de pantalla y Segundo Plano
@@ -47,7 +47,6 @@ export async function initNativeEngine() {
 }
 
 /**
- * LA MAGIA: Hackeamos navigator.vibrate
  * Ahora tu código antiguo usará esta función automáticamente.
  */
 function _polyfillVibration() {
@@ -63,7 +62,7 @@ function _polyfillVibration() {
 
             if (isNativePC) {
                 // EN PC: Solo logueamos
-                console.log(`📳 [PC Vibrate Hook] ${ms}ms`);
+                console.log(`Vibrate Hook ${ms}ms`);
                 return true;
             } 
             else if (isMobile) {
@@ -88,10 +87,9 @@ function _polyfillVibration() {
         configurable: true
     });
 
-    console.log("🔧 API de Vibración Nativa parcheada con éxito.");
+    console.log("API de Vibración Nativa parcheada con éxito.");
 }
 
-// ... Resto de funciones (readFile, F11) igual que antes ...
 
 export async function readFile(path) {
     if (isNativePC) {

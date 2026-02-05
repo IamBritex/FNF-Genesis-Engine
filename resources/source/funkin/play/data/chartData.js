@@ -1,8 +1,13 @@
 import ModHandler from "../../../core/ModHandler.js";
 
+/**
+ * ChartDataHandler.js
+ * Maneja la carga y procesamiento de los archivos JSON de las canciones (Charts).
+ */
 export class ChartDataHandler {
 
   /**
+   * Precarga el archivo JSON del chart.
    * @param {Phaser.Scene} scene
    * @param {string} targetSongId
    * @param {string} difficultyId
@@ -19,14 +24,17 @@ export class ChartDataHandler {
     const chartKey = `Chart_${targetSongId}_${difficultyId}`;
 
     scene.load.json(chartKey, chartFinalPath);
-    console.log(`[ChartData] Pre-cargando Chart: ${chartFinalPath}`);
   }
 
+  /**
+   * Procesa el JSON cargado y normaliza su estructura.
+   * @returns {object|null} Datos del chart normalizados o null si falla.
+   */
   static processChartData(scene, targetSongId, difficultyId) {
     const chartKey = `Chart_${targetSongId}_${difficultyId}`;
 
     if (!scene.cache.json.exists(chartKey)) {
-      console.error(`Error Crítico: Chart ${chartKey} no encontrado.`);
+      console.error(`[ChartData] Chart ${chartKey} no encontrado.`);
       return null;
     }
 

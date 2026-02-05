@@ -88,7 +88,7 @@ export class TimeBar {
             (this.barHeight * this.scaleFactor) / 2,
             '0:00',
             {
-                fontFamily: 'VCR OSD Mono',
+                fontFamily: 'vcr',
                 fontSize: '36px',
                 color: '#FFFFFF',
                 align: 'center',

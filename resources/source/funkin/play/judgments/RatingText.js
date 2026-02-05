@@ -16,7 +16,7 @@ export class RatingText {
                 y: scene.scale.height - 30
             },
             style: {
-                fontFamily: 'VCR OSD Mono',
+                fontFamily: 'vcr',
                 fontSize: '20px',
                 color: '#FFFFFF',
                 align: 'center',

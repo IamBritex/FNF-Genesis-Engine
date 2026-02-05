@@ -1,16 +1,15 @@
 /**
  * HealthIcon.js
- * Maneja la APARIENCIA de un solo ícono de vida.
- * Carga su propia textura, maneja sus fotogramas y su animación de "bop".
+ * Gestiona un único icono de personaje (visuales, animación de 'bop', estados).
  */
 export class HealthIcon {
 
     /**
-     * @param {Phaser.Scene} scene - La escena de Phaser.
-     * @param {string} iconName - El nombre del ícono (ej. "bf", "dad").
-     * @param {boolean} flipX - Si el sprite debe estar volteado horizontalmente.
-     * @param {boolean} isPixel - Si es un ícono pixel art (forzado).
-     * @param {string} sessionId - ID único de sesión
+     * @param {Phaser.Scene} scene
+     * @param {string} iconName
+     * @param {boolean} flipX
+     * @param {boolean} isPixel
+     * @param {string} sessionId
      */
     constructor(scene, iconName, flipX, isPixel = false, sessionId) {
         this.scene = scene;
@@ -21,173 +20,142 @@ export class HealthIcon {
 
         this.sprite = null;
         this.frameCount = 1;
-        this.isDefault = false;
-
-        // Propiedades para el "Bopping"
+        
+        // Animación de Bop
         this.bpm = 100;
-        this.minIconScale = 1.0; 
-        this.maxIconScale = 1.2; 
-        this.curIconScale = this.minIconScale;
+        this.minScale = 1.0; 
+        this.maxScale = 1.2; 
+        this.currentScale = 1.0;
         this.lastBeatTime = 0;
     }
 
-    /**
-     * Carga de forma estática los íconos necesarios.
-     * [MODIFICADO] Usa sessionId
-     */
     static preload(scene, iconName, sessionId) {
         iconName = iconName || 'face';
-        const iconKey = `icon-${iconName}_${sessionId}`; // Clave única
-        const path = `public/images/characters/icons/${iconName}.png`;
-
-        if (scene.textures.exists(iconKey) || scene.load.isLoading()) {
-            return;
+        const key = `icon-${iconName}_${sessionId}`;
+        
+        if (!scene.textures.exists(key) && !scene.load.isLoading()) {
+            scene.load.image(key, `public/images/characters/icons/${iconName}.png`);
+            
+            // Fallback 404
+            scene.load.once(`loaderror-image-${key}`, () => {
+                const faceKey = `icon-face_${sessionId}`;
+                if (!scene.textures.exists(faceKey)) {
+                    scene.load.image(faceKey, 'public/images/characters/icons/face.png');
+                }
+            });
         }
-
-        scene.load.image(iconKey, path);
-
-        scene.load.once(`loaderror-image-${iconKey}`, () => {
-            // Fallback face
-            const faceKey = `icon-face_${sessionId}`;
-            if (!scene.textures.exists(faceKey)) {
-                scene.load.image(faceKey, 'public/images/characters/icons/face.png');
-            }
-        });
     }
 
-    /**
-     * Crea el sprite en la escena.
-     */
     create(x, y) {
-        let textureKey = `icon-${this.iconName}_${this.sessionId}`;
-
-        if (!this.scene.textures.exists(textureKey)) {
-            textureKey = `icon-face_${this.sessionId}`;
-            this.isDefault = true;
+        let key = `icon-${this.iconName}_${this.sessionId}`;
+        if (!this.scene.textures.exists(key)) {
+            key = `icon-face_${this.sessionId}`;
         }
 
-        const texture = this.scene.textures.get(textureKey);
+        const texture = this.scene.textures.get(key);
         
-        // --- Auto-detectar Pixel Art por tamaño ---
-        if (texture && texture.source && texture.source[0]) {
-            if (texture.source[0].width < 250) {
-                this.isPixel = true;
-            }
+        // Auto-detectar Pixel Art (si es pequeño < 250px de ancho)
+        if (texture?.source?.[0]?.width && texture.source[0].width < 250) {
+            this.isPixel = true;
         }
 
-        if (this.isPixel) {
-            if (texture) {
-                texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
-            }
+        if (this.isPixel && texture) {
+            texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
         }
 
-        this.sprite = this.scene.add.sprite(x, y, textureKey);
+        // Crear Sprite
+        this.sprite = this.scene.add.sprite(x, y, key);
         this.sprite.setOrigin(0.5).setFlipX(this.flipX);
         
-        this._processIconFrames(textureKey);
+        // Configurar frames (Normal / Losing)
+        this._processIconFrames(key);
         
-        // --- Lógica de Auto-Escalado ---
-        const standardFrameWidth = 150;
-        const currentFrameWidth = this.sprite.frame.width;
+        // Auto-Escalado para estandarizar tamaño visual
+        const stdWidth = 150;
+        const frameWidth = this.sprite.frame.width || stdWidth;
+        let baseScale = (frameWidth > 0 && frameWidth < stdWidth) ? (stdWidth / frameWidth) : 1.0;
+
+        if (this.isPixel) baseScale *= 1.2; 
+
+        this.minScale = baseScale;
+        this.maxScale = baseScale * 1.2;
+        this.currentScale = this.minScale;
         
-        // Cálculo base del factor de escala
-        let baseScaleFactor = 1.0;
-
-        if (currentFrameWidth < standardFrameWidth) {
-             baseScaleFactor = standardFrameWidth / currentFrameWidth;
-        }
-
-        // [MODIFICADO] Si es Pixel Art, aplicar un zoom extra como fue solicitado
-        if (this.isPixel) {
-            baseScaleFactor *= 1.2; 
-        }
-
-        this.minIconScale = baseScaleFactor;
-        this.maxIconScale = baseScaleFactor * 1.2;
-
-        this.curIconScale = this.minIconScale;
-        this.sprite.setScale(this.curIconScale);
-        
+        this.sprite.setScale(this.currentScale);
         return this.sprite;
     }
 
-    /**
-     * Revisa la textura y la divide en fotogramas 'normal' y 'losing' si es ancha.
-     */
-    _processIconFrames(iconKey) {
-        const texture = this.scene.textures.get(iconKey);
+    _processIconFrames(key) {
+        const texture = this.scene.textures.get(key);
         if (!texture) return;
         
-        const frame = texture.get(0);
+        // Usar el frame base para calcular dimensiones
+        const baseFrame = texture.get(0) || texture.frames['__BASE'];
+        if (!baseFrame) return;
 
+        // Limpiar frames previos para evitar duplicados en reinicios
         if (texture.has('normal')) texture.remove('normal');
         if (texture.has('losing')) texture.remove('losing');
 
-        if (frame.width > frame.height * 1.5) {
-            const frameWidth = Math.floor(frame.width / 2);
-            texture.add('normal', 0, 0, 0, frameWidth, frame.height);
-            texture.add('losing', 0, frameWidth, 0, frameWidth, frame.height);
+        // Si es ancho (width > height * 1.5), asumir que tiene 2 estados
+        if (baseFrame.width > baseFrame.height * 1.5) {
+            const w = Math.floor(baseFrame.width / 2);
+            texture.add('normal', 0, 0, 0, w, baseFrame.height);
+            texture.add('losing', 0, w, 0, w, baseFrame.height);
             this.frameCount = 2;
         } else {
-            texture.add('normal', 0, 0, 0, frame.width, frame.height);
+            texture.add('normal', 0, 0, 0, baseFrame.width, baseFrame.height);
             this.frameCount = 1;
         }
     }
 
     updateIconState(isLosing) {
-        if (!this.sprite) return;
+        if (!this.sprite || !this.sprite.active) return;
         
-        if (this.frameCount > 1 && isLosing) {
-            this.sprite.setFrame('losing');
-        } else {
-            this.sprite.setFrame('normal');
+        const frameName = (this.frameCount > 1 && isLosing) ? 'losing' : 'normal';
+        if (this.sprite.texture.has(frameName)) {
+            this.sprite.setFrame(frameName);
         }
     }
 
     updateBeatBounce(currentTime, delta) {
-        if (!this.sprite) return;
+        if (!this.sprite || !this.sprite.active) return;
 
-        const beatTime = (60 / this.bpm) * 1000;
-        if (!beatTime) return;
+        const beatMs = (60 / this.bpm) * 1000;
+        if (!beatMs) return;
 
-        const currentBeat = Math.floor(currentTime / beatTime);
-        const lastBeat = Math.floor(this.lastBeatTime / beatTime);
+        const currentBeat = Math.floor(currentTime / beatMs);
+        const lastBeat = Math.floor(this.lastBeatTime / beatMs);
 
+        // Detectar nuevo beat
         if (currentBeat > lastBeat) {
-            this.curIconScale = this.maxIconScale; 
+            this.currentScale = this.maxScale; 
             this.lastBeatTime = currentTime;
         }
 
-        this._updateIconScale(delta / 1000);
-    }
-
-    _updateIconScale(elapsed) {
-        this.curIconScale = Phaser.Math.Linear(
-            this.curIconScale,      
-            this.minIconScale,      
-            1 - Math.exp(-elapsed * 9) 
+        // Interpolación de regreso al tamaño normal (elasticidad)
+        this.currentScale = Phaser.Math.Linear(
+            this.currentScale,
+            this.minScale,
+            1 - Math.exp(-(delta / 1000) * 9)
         );
         
-        this.sprite.setScale(this.curIconScale);
+        this.sprite.setScale(this.currentScale);
     }
+    
+    // Setters/Getters utilitarios
+    set x(val) { if (this.sprite) this.sprite.x = val; }
+    get x() { return this.sprite ? this.sprite.x : 0; }
     
     setAlpha(val) { if (this.sprite) this.sprite.setAlpha(val); }
     setDepth(val) { if (this.sprite) this.sprite.setDepth(val); }
     
-    setScale(val) { 
-        this.minIconScale = val;
-        if (this.sprite && this.curIconScale < val) {
-            this.sprite.setScale(val); 
-        }
-    }
-    
     destroy() { 
         if (this.sprite) {
-            gsap.killTweensOf(this.sprite);
-            this.sprite.destroy(); 
+            if (window.gsap) gsap.killTweensOf(this.sprite);
+            this.sprite.destroy();
+            this.sprite = null;
         }
+        this.scene = null;
     }
-    
-    set x(val) { if (this.sprite) this.sprite.x = val; }
-    get x() { return this.sprite ? this.sprite.x : 0; }
 }

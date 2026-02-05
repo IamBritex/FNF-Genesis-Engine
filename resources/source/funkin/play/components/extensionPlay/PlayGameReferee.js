@@ -2,72 +2,56 @@ import { PlayEvents } from "../../PlayEvents.js";
 
 /**
  * PlayGameReferee.js
- * Árbitro del juego. Decide si ganas o pierdes basándose en eventos.
+ * Árbitro del juego. Monitorea las condiciones de victoria y derrota.
+ * [ACTUALIZADO] Muerte basada estrictamente en eventos de Salud <= 0.
  */
 export class PlayGameReferee {
+
+    /**
+     * @param {Phaser.Scene} scene
+     */
     constructor(scene) {
         this.scene = scene;
         this.isDead = false;
-
-        // Escuchar eventos vitales
-        this.scene.events.on(PlayEvents.HEALTH_CHANGED, this.onHealthChanged, this);
-        this.scene.events.on(PlayEvents.SONG_COMPLETE, this.onSongComplete, this);
-    }
-
-    /**
-     * Reacciona a cambios de salud.
-     * @param {object} data { value, max }
-     */
-    onHealthChanged(data) {
-        if (this.isDead) return;
-
-        // Si la salud llega a 0, emitimos GAME OVER
-        if (data.value <= 0) {
-            this.isDead = true;
-            console.log("[Referee] Health depleted. Game Over.");
-            this.scene.events.emit(PlayEvents.GAME_OVER);
-        }
-    }
-
-    /**
-     * Reacciona cuando termina el audio de la canción.
-     */
-    onSongComplete() {
-        if (this.isDead) return;
-
-        // Lógica de transición (Historia vs Freeplay)
-        // Emitimos la intención de salir o continuar
-        const isStory = this.scene.initData?.isStoryMode;
         
-        if (!isStory) {
-            this.scene.events.emit(PlayEvents.EXIT_TO_MENU);
-            return;
+        // Escuchar cambios de salud directamente desde Score.js
+        this.scene.events.on(PlayEvents.HEALTH_CHANGED, this.checkHealthStatus, this);
+    }
+
+    /**
+     * Evalúa si el jugador ha muerto basado en la salud actual.
+     * @param {object} data - { value, max }
+     */
+    checkHealthStatus(data) {
+        if (this.isDead || !this.scene.sys.isActive()) return;
+
+        // La muerte ocurre SOLO si la salud llega a 0 (o menos)
+        if (data.value <= 0) {
+            this.triggerGameOver();
+        }
+    }
+
+    triggerGameOver() {
+        this.isDead = true;
+        
+        // Detener música y conductores
+        if (this.scene.conductor) this.scene.conductor.stop();
+        if (this.scene.sound) this.scene.sound.stopAll();
+
+        // Pausar personajes si es posible
+        if (this.scene.charactersHandler) {
+            const boyfriend = this.scene.charactersHandler.boyfriend;
+            if (boyfriend && boyfriend.anims) {
+                boyfriend.anims.stop();
+            }
         }
 
-        // Lógica de Modo Historia
-        const currentIndex = this.scene.initData?.currentSongIndex || 0;
-        const nextIndex = currentIndex + 1;
-        const playlist = this.scene.initData?.playlistSongIds || [];
-
-        if (nextIndex >= playlist.length) {
-            // Fin de la semana
-            this.scene.events.emit(PlayEvents.EXIT_TO_MENU);
-        } else {
-            // Siguiente canción (Emitimos reinicio con nuevos datos)
-            // Nota: Aquí PlayScene manejará la lógica de reinicio al escuchar RESTART_SONG
-            // con parámetros modificados, o un evento específico NEXT_SONG.
-            // Por simplicidad en este refactor, manipulamos data y pedimos restart.
-            
-            this.scene.initData.currentSongIndex = nextIndex;
-            this.scene.initData.targetSongId = playlist[nextIndex];
-            
-            this.scene.events.emit(PlayEvents.RESTART_SONG, { newData: this.scene.initData });
-        }
+        console.log("[PlayGameReferee] Salud agotada. Game Over.");
+        this.scene.events.emit(PlayEvents.GAME_OVER);
     }
 
     destroy() {
-        this.scene.events.off(PlayEvents.HEALTH_CHANGED, this.onHealthChanged, this);
-        this.scene.events.off(PlayEvents.SONG_COMPLETE, this.onSongComplete, this);
+        this.scene.events.off(PlayEvents.HEALTH_CHANGED, this.checkHealthStatus, this);
         this.scene = null;
     }
 }

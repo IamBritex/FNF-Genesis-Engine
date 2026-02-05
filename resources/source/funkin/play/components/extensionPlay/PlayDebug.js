@@ -2,18 +2,28 @@ import { PlayEvents } from "../../PlayEvents.js";
 
 /**
  * PlayDebug.js
- * Sistema de depuración en tiempo real.
- * Se activa estableciendo `window.PlayDebug = true` en la consola.
+ * Herramientas de depuración en tiempo real para desarrolladores.
+ * Permite controlar el flujo de la canción, velocidad y visualizar estadísticas.
+ * * Activación: `window.PlayDebug = true` en la consola del navegador.
+ * Controles:
+ * - END: Terminar canción.
+ * - REPAG / AVPAG: Saltar +/- 10 segundos.
+ * - INSERT / SUPR: Aumentar/Disminuir velocidad.
+ * - INICIO: Restaurar velocidad normal.
  */
 export class PlayDebug {
+    
+    /**
+     * @param {Phaser.Scene} scene - La escena de juego.
+     */
     constructor(scene) {
         this.scene = scene;
         this.isActive = false;
         
-        // Estado de velocidad
+        // Estado de velocidad de reproducción
         this.timeScale = 1.0;
 
-        // Teclas
+        // Registrar teclas de depuración
         this.keys = this.scene.input.keyboard.addKeys({
             end: Phaser.Input.Keyboard.KeyCodes.END,
             pageUp: Phaser.Input.Keyboard.KeyCodes.PAGE_UP,
@@ -23,34 +33,37 @@ export class PlayDebug {
             delete: Phaser.Input.Keyboard.KeyCodes.DELETE
         });
 
-        // Definir variable global si no existe
+        // Habilitar flag global si no existe para facilitar acceso
         if (typeof window.PlayDebug === 'undefined') {
-            window.PlayDebug = true;
+            window.PlayDebug = true; 
         }
 
-        console.log("[PlayDebug] Inicializado. Actívalo en consola con 'window.PlayDebug = true'");
+        console.log("[PlayDebug] Sistema de depuración listo.");
     }
 
+    /**
+     * Loop principal de depuración. Verifica inputs y ejecuta acciones.
+     */
     update() {
-        // Chequeo de seguridad: solo ejecutar si la variable global es true
+        // Seguridad: Solo ejecutar si la flag global está activa
         if (!window.PlayDebug) return;
 
-        // 1. Terminar Canción (FIN)
+        // 1. Forzar final de canción (Tecla END)
         if (Phaser.Input.Keyboard.JustDown(this.keys.end)) {
             console.log("[PlayDebug] Forzando final de canción...");
-            this.scene.events.emit(window.PlayEvents.SONG_COMPLETE);
+            this.scene.events.emit(PlayEvents.SONG_COMPLETE);
         }
 
-        // 2. Control de Tiempo (REPAG / AVPAG)
+        // 2. Salto de Tiempo (Teclas PAGE UP / PAGE DOWN)
         if (Phaser.Input.Keyboard.JustDown(this.keys.pageUp)) {
-            this.skipTime(10000); // +10s
+            this.skipTime(10000); // Avanzar 10s
         }
         if (Phaser.Input.Keyboard.JustDown(this.keys.pageDown)) {
-            this.skipTime(-10000); // -10s
+            this.skipTime(-10000); // Retroceder 10s
         }
 
         // 3. Control de Velocidad (INSERT / DELETE / HOME)
-        // [FIX] Verificar que songAudio e inst existan antes de usar setRate
+        // Solo si el audio está cargado y listo
         if (this.scene.songAudio?.inst) {
             if (Phaser.Input.Keyboard.JustDown(this.keys.insert)) {
                 this.setTimeScale(this.timeScale + 0.1);
@@ -64,19 +77,23 @@ export class PlayDebug {
         }
     }
 
+    /**
+     * Salta a una posición específica de la canción.
+     * Sincroniza audio, conductor y notas visuales.
+     * @param {number} amountMs - Cantidad de tiempo a saltar en milisegundos.
+     */
     skipTime(amountMs) {
-        // [FIX] Verificar que songAudio, inst existan y que isPlaying sea true
         if (!this.scene.songAudio?.inst?.isPlaying) return;
 
         let currentSeek = this.scene.songAudio.inst.seek;
         let newSeek = currentSeek + (amountMs / 1000);
         const duration = this.scene.songAudio.inst.duration;
 
-        // Limites
+        // Clampear valores dentro de la duración de la canción
         if (newSeek < 0) newSeek = 0;
-        if (newSeek > duration) newSeek = duration - 1;
+        if (newSeek > duration) newSeek = duration - 0.1;
 
-        // Aplicar salto al audio
+        // 1. Aplicar salto al audio (Inst y Voces)
         this.scene.songAudio.inst.setSeek(newSeek);
         if (this.scene.songAudio.voices) {
             this.scene.songAudio.voices.forEach(v => {
@@ -84,12 +101,12 @@ export class PlayDebug {
             });
         }
 
-        // Sincronizar conductor inmediatamente
+        // 2. Sincronizar Conductor (Lógica de ritmo)
         if (this.scene.conductor) {
             this.scene.conductor.updateFromSong(newSeek * 1000);
         }
 
-        // Sincronizar notas visuales (forzar update inmediato)
+        // 3. Sincronizar Notas Visuales (Forzar actualización inmediata)
         if (this.scene.notesHandler) {
             this.scene.notesHandler.update(newSeek * 1000);
         }
@@ -97,40 +114,44 @@ export class PlayDebug {
         console.log(`[PlayDebug] Salto de tiempo a: ${newSeek.toFixed(2)}s`);
     }
 
+    /**
+     * Ajusta la velocidad global del juego (Time Scale).
+     * Afecta a tweens, física y pitch de audio.
+     * @param {number} scale - Factor de velocidad (ej. 1.0, 0.5, 2.0).
+     */
     setTimeScale(scale) {
-        // Limitar rango seguro
-        if (scale < 0.1) scale = 0.1;
-        if (scale > 5.0) scale = 5.0;
-
+        // Limitar rango seguro (0.1x a 5.0x)
+        scale = Phaser.Math.Clamp(scale, 0.1, 5.0);
         this.timeScale = scale;
 
-        // 1. Cambiar velocidad del motor de física/tweens de Phaser
+        // 1. Cambiar velocidad del motor de tiempo de Phaser (Tweens, Timers)
         if (this.scene.time) {
             this.scene.time.timeScale = this.timeScale;
         }
 
-        // 2. Cambiar velocidad (pitch/rate) del audio
-        // [FIX CRÍTICO] Verificar que inst y voices existan antes de llamar setRate()
+        // 2. Cambiar velocidad de reproducción del audio (Rate)
         if (this.scene.songAudio) {
-            if (this.scene.songAudio.inst && this.scene.songAudio.inst.currentConfig) {
-                this.scene.songAudio.inst.setRate(this.timeScale);
-            }
-            if (this.scene.songAudio.voices && Array.isArray(this.scene.songAudio.voices)) {
-                this.scene.songAudio.voices.forEach(v => {
-                    if (v && v.currentConfig) {
-                        v.setRate(this.timeScale);
-                    }
-                });
+            const setAudioRate = (sound) => {
+                if (sound && sound.currentConfig) sound.setRate(this.timeScale);
+            };
+
+            setAudioRate(this.scene.songAudio.inst);
+            
+            if (Array.isArray(this.scene.songAudio.voices)) {
+                this.scene.songAudio.voices.forEach(setAudioRate);
             }
         }
 
         console.log(`[PlayDebug] Velocidad establecida a: x${this.timeScale.toFixed(1)}`);
     }
 
+    /**
+     * Limpia los listeners de teclado al destruir la escena.
+     */
     destroy() {
-        // Limpiar teclas
-        if (this.keys) {
-            this.keys = null;
-        }
+        // Phaser limpia automáticamente las teclas agregadas con addKeys al destruir la escena,
+        // pero podemos nulificar la referencia por seguridad.
+        this.keys = null;
+        this.scene = null;
     }
 }

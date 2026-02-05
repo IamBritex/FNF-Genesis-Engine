@@ -3,10 +3,16 @@ import { PopUpManager } from "../../judgments/PopUpManager.js";
 import { Countdown } from "../../countDown.js";
 import { TimeBar } from "../timeBar.js";
 import { FunWaiting } from "../FunWaiting.js";
-import { RatingText } from "../../judgments/RatingText.js";
 import { PlayEvents } from "../../PlayEvents.js";
 
+/**
+ * PlayHUDManager.js
+ * Gestiona la capa visual superior (HUD) y coordina la visibilidad de los componentes de UI.
+ */
 export class PlayHUDManager {
+    /**
+     * @param {Phaser.Scene} scene - La instancia de PlayScene.
+     */
     constructor(scene) {
         this.scene = scene;
 
@@ -19,6 +25,10 @@ export class PlayHUDManager {
         this.funWaiting = null;
     }
 
+    /**
+     * Inicializa los componentes de la interfaz.
+     * @param {import('../../camera/Camera.js').CameraManager} cameraManager 
+     */
     create(cameraManager) {
         this.funWaiting = new FunWaiting(this.scene, cameraManager);
         this.funWaiting.createOverlay();
@@ -29,11 +39,17 @@ export class PlayHUDManager {
 
         this.timeBar = new TimeBar(this.scene);
         this.timeBar.create();
-        cameraManager.assignToUI(this.timeBar.container);
+        if (this.timeBar.container) {
+            cameraManager.assignToUI(this.timeBar.container);
+            this.timeBar.container.setAlpha(0); // Asegurar que no parpadee antes de tiempo
+        }
 
         this.setupEventListeners();
     }
 
+    /**
+     * Configura los escuchas de eventos rítmicos y de estado.
+     */
     setupEventListeners() {
         this.scene.events.on(PlayEvents.SONG_LOADING_COMPLETE, this.onLoadingComplete, this);
         this.scene.events.on(PlayEvents.SONG_START, this.onSongStart, this);
@@ -41,46 +57,59 @@ export class PlayHUDManager {
     }
 
     /**
-     * Recibe los componentes generados tardíamente (HealthBar, RatingText)
-     * y oculta la pantalla de carga.
-     * @param {object} data - { healthBar, ratingText }
+     * Activa los componentes cuando el proceso de carga ha finalizado.
+     * @param {object} data - Contiene las referencias a componentes inyectados (healthBar, ratingText).
      */
     onLoadingComplete(data) {
-        // [FIX] Inyección de dependencias por evento
         if (data && data.healthBar) {
             this.healthBar = data.healthBar;
-            // Asegurar profundidad y cámara correcta si no se hizo antes
             if (this.healthBar.container && this.scene.cameraManager) {
-                this.healthBar.container.setDepth(1);
                 this.scene.cameraManager.assignToUI(this.healthBar.container);
+                this.healthBar.container.setDepth(150);
             }
         }
 
+        // Inyectar RatingText generado en PlaySceneLoad
         if (data && data.ratingText) {
             this.ratingText = data.ratingText;
         }
 
-        // Iniciar transición de salida
+        // Finalizar la pantalla de espera
         if (this.funWaiting) {
             this.funWaiting.startFadeOut(null, 500);
         }
     }
 
+    /**
+     * Se ejecuta cuando el audio de la canción comienza.
+     * @param {object} data - Payload con la duración total de la canción.
+     */
     onSongStart(data) {
-        if (this.timeBar) this.timeBar.setTotalDuration(data.duration || 0);
+        if (this.timeBar) {
+            this.timeBar.setTotalDuration(data.duration || 0);
+        }
         
+        // Mostrar elementos de HUD con una transición suave
         if (this.healthBar) this.healthBar.show(250);
         if (this.ratingText) this.ratingText.show(250);
     }
 
+    /**
+     * Actualiza el valor de la salud en la barra.
+     */
     onHealthChange(data) {
         if (this.healthBar) {
             this.healthBar.setHealth(data.value);
         }
     }
 
+    /**
+     * Loop de actualización para elementos visuales animados y barras de progreso.
+     */
     update(songPosition, delta) {
-        if (this.timeBar) this.timeBar.update(songPosition);
+        if (this.timeBar) {
+            this.timeBar.update(songPosition);
+        }
         
         if (this.healthBar) {
             this.healthBar.updateHealth(delta / 1000); 
@@ -88,6 +117,9 @@ export class PlayHUDManager {
         }
     }
 
+    /**
+     * Ejecuta la secuencia de cuenta regresiva previa al inicio.
+     */
     startCountdown(beatLengthMs, callback) {
         if (this.countdown) {
             this.countdown.performCountdown(beatLengthMs, callback);
@@ -96,6 +128,9 @@ export class PlayHUDManager {
         }
     }
 
+    /**
+     * Limpia eventos y destruye instancias para liberar memoria.
+     */
     destroy() {
         this.scene.events.off(PlayEvents.SONG_LOADING_COMPLETE, this.onLoadingComplete, this);
         this.scene.events.off(PlayEvents.SONG_START, this.onSongStart, this);
@@ -108,5 +143,7 @@ export class PlayHUDManager {
         if (this.healthBar) this.healthBar.destroy();
         if (this.ratingText) this.ratingText.destroy();
         if (this.funWaiting) this.funWaiting.destroy();
+
+        this.scene = null;
     }
 }

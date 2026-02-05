@@ -1,98 +1,48 @@
 /**
- * source/funkin/play/Conductor.js
- * Un gestor de ritmo (BPM) para sincronizar eventos.
- *
- * [MODIFICADO] Versión Híbrida:
- * - Modo Activo (para StageEditor): Usa start(), stop() y update(delta).
- * - Modo Pasivo (para PlayScene): Usa updateFromSong(songPosition).
+ * Conductor.js
+ * Gestor de ritmo (BPM) para sincronizar eventos musicales.
  */
 export class Conductor {
 
     /**
-     * @param {number} bpm - Los Beats Por Minuto.
+     * @param {number} bpm - Beats Por Minuto iniciales.
      */
     constructor(bpm) {
-        this.bpm = bpm || 130;
-        
-        /**
-         * Duración de un beat (negra) en milisegundos.
-         * @type {number}
-         */
+        this.bpm = bpm || 100;
         this.crochet = (60 / this.bpm) * 1000;
-        
-        /**
-         * Duración de un step (semicorchea) en milisegundos.
-         * @type {number}
-         */
         this.stepCrochet = this.crochet / 4;
-
-        /**
-         * Posición actual de la "canción" en milisegundos.
-         * (Usado solo por el modo Activo/Editor)
-         * @type {number}
-         */
         this.songPosition = 0;
         
-        /**
-         * Indica si el conductor está activo (solo para modo Editor).
-         * @type {boolean}
-         */
         this.isPlaying = false;
         
-        /** @type {number} */
         this.lastBeat = 0;
-        /** @type {number} */
         this.lastStep = 0;
 
-        /**
-         * Almacén de callbacks para eventos.
-         * @type {Map<string, Array<{fn: Function, ctx: any}>>}
-         */
         this.callbacks = new Map();
         this.callbacks.set('beat', []);
         this.callbacks.set('step', []);
     }
 
     /**
-     * Inicia el conductor (Modo Activo/Editor).
-     * Resetea el tiempo y activa el 'update'.
+     * Inicia el conductor en modo activo.
      */
     start() {
         this.isPlaying = true;
         this.songPosition = 0;
         this.lastBeat = 0;
         this.lastStep = 0;
-        console.log(`[Conductor] Iniciado (Modo Activo) a ${this.bpm} BPM.`);
     }
 
-    /**
-     * [CORREGIDO] Detiene el conductor.
-     * Ahora solo detiene el 'update' (isPlaying = false).
-     * NO limpia los callbacks (los listeners).
-     */
     stop() {
         this.isPlaying = false;
-        console.log(`[Conductor] Detenido.`);
     }
 
-    /**
-     * Registra un callback para un evento ('beat' o 'step').
-     * @param {string} event El nombre del evento ('beat' o 'step').
-     * @param {Function} callback La función a llamar.
-     * @param {any} context El contexto 'this' para la función.
-     */
     on(event, callback, context) {
         if (this.callbacks.has(event)) {
             this.callbacks.get(event).push({ fn: callback, ctx: context || this });
         }
     }
 
-    /**
-     * Elimina un callback registrado.
-     * @param {string} event El nombre del evento.
-     * @param {Function} callback La función a eliminar.
-     * @param {any} context El contexto.
-     */
     off(event, callback, context) {
         if (this.callbacks.has(event)) {
             const list = this.callbacks.get(event);
@@ -104,11 +54,6 @@ export class Conductor {
         }
     }
 
-    /**
-     * Emite un evento, llamando a todos los callbacks registrados.
-     * @param {string} event El nombre del evento.
-     * @param {...any} args Argumentos para pasar al callback.
-     */
     emit(event, ...args) {
         if (this.callbacks.has(event)) {
             [...this.callbacks.get(event)].forEach(cb => {
@@ -117,10 +62,6 @@ export class Conductor {
         }
     }
 
-    /**
-     * Lógica centralizada para emitir beats.
-     * @param {number} position El tiempo actual a comprobar.
-     */
     checkBeats(position) {
         if (position < 0) return;
 
@@ -141,21 +82,12 @@ export class Conductor {
         }
     }
 
-    /**
-     * Actualiza el conductor (Modo Activo/Editor).
-     * @param {number} delta El tiempo en milisegundos desde el último fotograma.
-     */
     update(delta) {
         if (!this.isPlaying) return;
-
         this.songPosition += delta;
         this.checkBeats(this.songPosition);
     }
     
-    /**
-     * Actualiza el conductor (Modo Pasivo/PlayScene).
-     * @param {number} songPosition El tiempo actual de la canción en ms.
-     */
     updateFromSong(songPosition) {
         this.songPosition = songPosition;
         this.checkBeats(this.songPosition);

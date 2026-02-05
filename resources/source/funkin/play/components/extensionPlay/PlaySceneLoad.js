@@ -11,12 +11,15 @@ import { NotesHandler } from '../../notes/NotesHandler.js';
 import { RatingText } from '../../judgments/RatingText.js';
 import { PlayEvents } from '../../PlayEvents.js'; 
 
+/**
+ * PlaySceneLoad.js
+ * Gestiona el proceso de carga asíncrona de assets (Chart, Audio, Imágenes).
+ */
 export class PlaySceneLoad {
     constructor(scene) {
         this.scene = scene;
         this.isAborted = false; 
-        
-        this._onBlurHandler = null; // Guardar referencia para limpiar
+        this._onBlurHandler = null;
 
         this.scene.events.once('shutdown', this.stop, this);
         this.scene.events.once('destroy', this.stop, this);
@@ -24,7 +27,6 @@ export class PlaySceneLoad {
 
     stop() {
         this.isAborted = true;
-        // Limpiar listener global de blur si existe
         if (this._onBlurHandler && this.scene && this.scene.game) {
             this.scene.game.events.off('blur', this._onBlurHandler);
             this._onBlurHandler = null;
@@ -63,20 +65,19 @@ export class PlaySceneLoad {
         if (this._shouldAbort()) return;
 
         if (eventsPath && typeof eventsPath !== 'string') {
-            if (eventsPath instanceof Blob || eventsPath instanceof File) {
-                eventsPath = URL.createObjectURL(eventsPath);
-            }
+             if (eventsPath instanceof Blob || eventsPath instanceof File) {
+                 eventsPath = URL.createObjectURL(eventsPath);
+             }
         }
 
         if (typeof eventsPath === 'string') {
             await new Promise((resolve) => {
                 if (this._shouldAbort()) { resolve(); return; }
-                
                 this.scene.load.json(eventsKey, eventsPath);
                 this.scene.load.once('complete', () => {
                     if (!this._shouldAbort()) {
-                        const eventsJson = this.scene.cache.json.get(eventsKey);
-                        this.scene.chartData.events = (eventsJson && Array.isArray(eventsJson.events)) ? eventsJson.events : [];
+                        const json = this.scene.cache.json.get(eventsKey);
+                        this.scene.chartData.events = (json && Array.isArray(json.events)) ? json.events : [];
                     }
                     resolve();
                 });
@@ -93,6 +94,7 @@ export class PlaySceneLoad {
         await this._yieldToMainThread();
         if (this._shouldAbort()) return;
 
+        // Inicializar lógica base
         this.scene.conductor = new Conductor(this.scene.chartData.bpm);
         this.scene.scriptHandler = new ScriptHandler(this.scene);
         
@@ -102,24 +104,24 @@ export class PlaySceneLoad {
         
         if (this._shouldAbort()) return;
 
+        // Conectar Conductor
         this.scene.conductor.on('beat', (beat) => this.scene.events.emit(window.PlayEvents.BEAT_HIT, beat));
         this.scene.conductor.on('step', (step) => this.scene.events.emit(window.PlayEvents.STEP_HIT, step));
 
+        // NoteSkin Temporal para carga
         this.scene.tempNoteSkin = new NoteSkin(this.scene, this.scene.chartData);
         await this.scene.tempNoteSkin.preloadJSON();
 
         if (this._shouldAbort()) return;
 
+        // Inicializar Handlers
         this.scene.stageHandler = new Stage(this.scene, this.scene.chartData, this.scene.cameraManager);
         this.scene.charactersHandler = new Characters(
-            this.scene, 
-            this.scene.chartData, 
-            this.scene.cameraManager, 
-            this.scene.stageHandler, 
-            this.scene.conductor, 
-            this.scene.playSessionId
+            this.scene, this.scene.chartData, this.scene.cameraManager, 
+            this.scene.stageHandler, this.scene.conductor, this.scene.playSessionId
         );
 
+        // Cargar JSONs de Stage y Personajes
         await this.scene.stageHandler.loadStageJSON();
         await this.scene.charactersHandler.loadCharacterJSONs();
         await SongPlayer.loadSongAudio(this.scene, this.scene.initData.targetSongId, this.scene.chartData);
@@ -133,9 +135,9 @@ export class PlaySceneLoad {
     }
 
     async onAllDataLoaded() {
-        if (this._shouldAbort()) return;
-        if (this.scene.assetsLoaded) return;
+        if (this._shouldAbort() || this.scene.assetsLoaded) return;
 
+        // Cargar imágenes reales
         if (this.scene.tempNoteSkin) await this.scene.tempNoteSkin.loadAssets();
         if (this.scene.stageHandler) await this.scene.stageHandler.loadStageImages();
         if (this.scene.charactersHandler) await this.scene.charactersHandler.processAndLoadImages();
@@ -151,15 +153,14 @@ export class PlaySceneLoad {
     }
 
     async onAllAssetsLoaded() {
-        if (this._shouldAbort()) return;
-        if (this.scene.assetsLoaded) return;
+        if (this._shouldAbort() || this.scene.assetsLoaded) return;
         
         this.scene.assetsLoaded = true;
         await this._yieldToMainThread(); 
-
         if (this._shouldAbort()) return;
 
         try {
+            // Instanciar HealthBar
             if (this.scene.textures.exists('healthBar')) {
                 const healthBar = new HealthBar(this.scene, this.scene.chartData, this.scene.conductor, this.scene.playSessionId);
                 await healthBar.init(); 
@@ -168,29 +169,26 @@ export class PlaySceneLoad {
                     if(healthBar.destroy) healthBar.destroy(); 
                     return; 
                 }
-
-                this.scene.events.emit(window.PlayEvents.SONG_LOADING_COMPLETE, {
-                    healthBar: healthBar,
-                    ratingText: null 
-                });
+                
+                this.scene.events.emit(window.PlayEvents.SONG_LOADING_COMPLETE, { healthBar: healthBar });
             }
 
-            this.scene.ratingText = new RatingText(this.scene, null); 
+            // Instanciar RatingText
+            this.scene.ratingText = new RatingText(this.scene); 
             if (this.scene.ratingText.container && this.scene.cameraManager) {
                 this.scene.cameraManager.assignToUI(this.scene.ratingText.container);
                 this.scene.ratingText.container.setDepth(101);
                 if (this.scene.hud) this.scene.hud.onLoadingComplete({ ratingText: this.scene.ratingText });
             }
 
+            // Crear Elementos Visuales
             if (this.scene.stageHandler) this.scene.stageHandler.createStageElements();
             if (this.scene.charactersHandler) this.scene.charactersHandler.createAnimationsAndSprites();
 
+            // Crear Notas
             try {
                 this.scene.notesHandler = new NotesHandler(
-                    this.scene, 
-                    this.scene.chartData, 
-                    this.scene.conductor, 
-                    this.scene.playSessionId
+                    this.scene, this.scene.chartData, this.scene.conductor, this.scene.playSessionId
                 );
                 
                 if(this.scene.cameraManager && this.scene.notesHandler.mainUICADContainer) {
@@ -205,6 +203,7 @@ export class PlaySceneLoad {
             console.error("[PlaySceneLoad] Error visual:", e);
         }
 
+        // Finalizar
         this.scene.events.emit(window.PlayEvents.BEAT_HIT, 0); 
         if (this.scene.scriptHandler) this.scene.scriptHandler.call('onCreatePost');
 
@@ -214,18 +213,14 @@ export class PlaySceneLoad {
 
     setupAutoPause() {
         this._onBlurHandler = () => {
-            if (this._shouldAbort()) return;
-            // Evitar warning si la escena ya no está activa
-            if (!this.scene.sys || !this.scene.sys.settings.active) return;
+            if (this.isAborted || !this.scene || !this.scene.sys || !this.scene.sys.settings.active) return;
             
             let shouldAutoPause = true;
             try {
                 const stored = localStorage.getItem('genesis_preferences');
                 if (stored) {
                     const prefs = JSON.parse(stored);
-                    if (prefs && typeof prefs['opt-autopause'] !== 'undefined') {
-                        shouldAutoPause = prefs['opt-autopause'];
-                    }
+                    if (prefs?.['opt-autopause'] !== undefined) shouldAutoPause = prefs['opt-autopause'];
                 }
             } catch (e) {}
 
@@ -242,9 +237,6 @@ export class PlaySceneLoad {
     }
 
     _shouldAbort() {
-        if (this.isAborted) return true;
-        if (!this.scene || !this.scene.sys) return true;
-        if (!this.scene.sys.isActive() && !this.scene.sys.isTransitioning()) return true;
-        return false;
+        return this.isAborted || !this.scene || !this.scene.sys || (!this.scene.sys.isActive() && !this.scene.sys.isTransitioning());
     }
 }
