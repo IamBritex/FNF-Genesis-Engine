@@ -14,17 +14,21 @@ export class PlaySceneCleanup {
      */
     static shutdown(scene) {
         // 1. Limpieza de Inputs y Eventos Globales
-        scene.input.keyboard.removeAllKeys();
-        scene.input.removeAllListeners();
-        scene.time.removeAllEvents();
-        scene.tweens.killAll();
+        if (scene.input) {
+            scene.input.keyboard.removeAllKeys();
+            scene.input.removeAllListeners();
+        }
+        if (scene.time) scene.time.removeAllEvents();
+        if (scene.tweens) scene.tweens.killAll();
 
         if (window.gsap) {
             gsap.globalTimeline.clear();
         }
 
         if (scene.onWindowBlur) {
-            scene.game.events.off('blur', scene.onWindowBlur);
+            if (scene.game && scene.game.events) {
+                scene.game.events.off('blur', scene.onWindowBlur);
+            }
             scene.onWindowBlur = null;
         }
 
@@ -33,21 +37,20 @@ export class PlaySceneCleanup {
             scene.game.sound.stopAll();
         }
 
-        // 3. Limpiar Listeners de Carga y Audio de Canción
-        if (scene.songAudio?.inst) {
-            scene.songAudio.inst.off("complete", scene.onSongComplete, scene);
+        // 3. Limpiar Listeners de Carga
+        if (scene.load) {
+            scene.load.removeAllListeners(); 
         }
-        scene.load.off("complete", scene.onAllDataLoaded, scene);
-        scene.load.off("complete", scene.onAllAssetsLoaded, scene);
-
+        
         // 4. Destruir Sub-Sistemas (Handlers)
         if (scene.scriptHandler) {
             scene.scriptHandler.destroy();
             scene.scriptHandler = null;
         }
 
-        // Asegurar que la sub-escena de pausa se cierre
-        scene.scene.stop('PauseScene');
+        if (scene.scene && typeof scene.scene.stop === 'function') {
+            scene.scene.stop('PauseScene');
+        }
 
         if (scene.notesHandler) {
             scene.notesHandler.shutdown();
@@ -63,7 +66,9 @@ export class PlaySceneCleanup {
         }
 
         // 5. Destruir Elementos de UI y Componentes
-        scene.children.removeAll(true);
+        if (scene.children) {
+            scene.children.removeAll(true);
+        }
 
         if (scene.healthBar) { scene.healthBar.destroy(); scene.healthBar = null; }
         if (scene.timeBar) { scene.timeBar.destroy(); scene.timeBar = null; }
@@ -92,7 +97,6 @@ export class PlaySceneCleanup {
         }
 
         // 6. Limpieza de Datos Estáticos
-        // Usamos los imports locales de este archivo
         SongPlayer.shutdown(scene, scene.chartData, scene.songAudio);
         ChartDataHandler.shutdown(scene, scene.initData?.targetSongId, scene.initData?.DifficultyID || "normal");
         PlaySceneData.shutdown(scene);

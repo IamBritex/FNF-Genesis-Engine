@@ -1,62 +1,73 @@
+import { PlayEvents } from "../../PlayEvents.js";
+
 /**
- * source/funkin/play/components/extensionPlay/PlayGameReferee.js
- * Lógica de reglas del juego: Victoria, Derrota, Playlist.
+ * PlayGameReferee.js
+ * Árbitro del juego. Decide si ganas o pierdes basándose en eventos.
  */
 export class PlayGameReferee {
     constructor(scene) {
         this.scene = scene;
+        this.isDead = false;
+
+        // Escuchar eventos vitales
+        this.scene.events.on(PlayEvents.HEALTH_CHANGED, this.onHealthChanged, this);
+        this.scene.events.on(PlayEvents.SONG_COMPLETE, this.onSongComplete, this);
     }
 
     /**
-     * Verifica condiciones de muerte
+     * Reacciona a cambios de salud.
+     * @param {object} data { value, max }
      */
-    checkVitality() {
-        if (!this.scene.hud.healthBar) return;
+    onHealthChanged(data) {
+        if (this.isDead) return;
 
-        if (this.scene.hud.healthBar.value <= 0) {
-            console.log("GAME OVER"); 
+        // Si la salud llega a 0, emitimos GAME OVER
+        if (data.value <= 0) {
+            this.isDead = true;
+            console.log("[Referee] Health depleted. Game Over.");
+            this.scene.events.emit(PlayEvents.GAME_OVER);
         }
     }
 
     /**
-     * Maneja el fin de la canción
+     * Reacciona cuando termina el audio de la canción.
      */
     onSongComplete() {
-        if (this.scene.scriptHandler) {
-            this.scene.scriptHandler.call('onSongEnd');
-        }
+        if (this.isDead) return;
 
-        if (!this.scene.initData.isStoryMode) {
-            this.exitToMenu();
+        // Lógica de transición (Historia vs Freeplay)
+        // Emitimos la intención de salir o continuar
+        const isStory = this.scene.initData?.isStoryMode;
+        
+        if (!isStory) {
+            this.scene.events.emit(PlayEvents.EXIT_TO_MENU);
             return;
         }
 
+        // Lógica de Modo Historia
         const currentIndex = this.scene.initData?.currentSongIndex || 0;
         const nextIndex = currentIndex + 1;
+        const playlist = this.scene.initData?.playlistSongIds || [];
 
-        if (nextIndex >= this.scene.initData.playlistSongIds.length) {
-            this.exitToMenu();
-            return;
+        if (nextIndex >= playlist.length) {
+            // Fin de la semana
+            this.scene.events.emit(PlayEvents.EXIT_TO_MENU);
+        } else {
+            // Siguiente canción (Emitimos reinicio con nuevos datos)
+            // Nota: Aquí PlayScene manejará la lógica de reinicio al escuchar RESTART_SONG
+            // con parámetros modificados, o un evento específico NEXT_SONG.
+            // Por simplicidad en este refactor, manipulamos data y pedimos restart.
+            
+            this.scene.initData.currentSongIndex = nextIndex;
+            this.scene.initData.targetSongId = playlist[nextIndex];
+            
+            this.scene.events.emit(PlayEvents.RESTART_SONG, { newData: this.scene.initData });
         }
-
-        const nextSongId = this.scene.initData.playlistSongIds[nextIndex];
-        this.scene.initData.currentSongIndex = nextIndex;
-        this.scene.initData.targetSongId = nextSongId;
-        this.scene.initData.deathCounter = this.scene.deathCounter;
-        
-        this.scene.scene.restart(this.scene.initData);
     }
 
-    exitToMenu() {
-        if (this.scene.songAudio) {
-            if (this.scene.songAudio.inst) this.scene.songAudio.inst.stop();
-            if (this.scene.songAudio.voices) {
-                this.scene.songAudio.voices.forEach(v => v && v.stop());
-            }
-        }
-
-        const nextSceneKey = this.scene.initData?.isStoryMode ? "StoryModeScene" : "FreeplayScene";
-        this.scene.scene.stop('PauseScene');
-        this.scene.scene.start(nextSceneKey);
+    destroy() {
+        this.scene.events.off(PlayEvents.HEALTH_CHANGED, this.onHealthChanged, this);
+        this.scene.events.off(PlayEvents.SONG_COMPLETE, this.onSongComplete, this);
+        this.scene = null;
     }
 }

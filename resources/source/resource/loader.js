@@ -18,6 +18,7 @@ const modulesToLoad = [
     { name: "Story Mode", path: "../funkin/ui/storymode/StoryModeScene.js" },
     { name: "Freeplay", path: "../funkin/ui/freeplay/FreeplayScene.js" },
     { name: "Effects", path: "../funkin/effects/flash.js" },
+    { name: "Controls", path: "../utils/Controls.js" },
     { name: "Intro Dance", path: "../funkin/ui/intro/introDance.js" },
     { name: "Main Menu", path: "../funkin/ui/mainmenu/MainMenuScene.js" },
     { name: "Credits", path: "../funkin/ui/credits/CreditsScene.js" },

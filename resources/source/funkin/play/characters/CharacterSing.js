@@ -2,12 +2,12 @@ import { NoteDirection } from "../notes/NoteDirection.js";
 
 /**
  * CharacterSing.js
- * Maneja la lógica de canto, tiempos de hold y retorno a idle.
+ * Maneja la lógica de cuánto tiempo mantener una nota cantada.
  */
 export class CharacterSing {
     /**
-     * @param {import('./AnimateAtlasCharacter.js').AnimateAtlasCharacter} character - El personaje que canta.
-     * @param {number} duration - Duración inicial del hold en beats.
+     * @param {import('./AnimateAtlasCharacter.js').AnimateAtlasCharacter} character 
+     * @param {number} duration - Duración en beats.
      */
     constructor(character, duration = 4) {
         this.character = character;
@@ -15,64 +15,49 @@ export class CharacterSing {
         this.holdTimer = 0;
     }
 
-    /**
-     * Actualiza la duración si cambia en el JSON/Config.
-     */
     setDuration(duration) {
         this.singDuration = duration;
     }
 
-    /**
-     * Ejecuta la lógica para cantar una nota.
-     * @param {number} direction - Dirección (0-3).
-     * @param {boolean} miss - Si es una nota fallada.
-     */
     sing(direction, miss = false) {
-        if (!this.character.active) return;
+        if (!this.character || !this.character.active) return;
 
-        // Construir nombre de animación (ej: singLEFT, singUPmiss)
         const dirName = NoteDirection.getNameUpper(direction);
         const suffix = miss ? 'miss' : '';
         const animName = `sing${dirName}${suffix}`;
 
-        // Reiniciar timer
         this.holdTimer = 0;
         
-        // Ordenar al personaje reproducir la animación (force = false para reiniciar si es la misma)
-        this.character.playAnim(animName, false);
-    }
-
-    /**
-     * Se llama en cada beat para procesar el tiempo de hold.
-     */
-    onBeat() {
-        if (!this.character.active) return;
-
-        if (this.isSinging()) {
-            this.holdTimer++;
-
-            // Si se cumplió el tiempo de hold, forzar regreso a Idle
-            if (this.holdTimer >= this.singDuration) {
-                this.character.dance(true); // force = true
-            }
-        } else {
-            // Si no está cantando, resetear y bailar al ritmo normal
-            this.holdTimer = 0;
-            this.character.dance(); 
+        // force = false para que si spamea la misma nota, reinicie la animación
+        if (typeof this.character.playAnim === 'function') {
+            this.character.playAnim(animName, false);
         }
     }
 
-    /**
-     * Verifica si la animación actual del personaje es de canto.
-     */
-    isSinging() {
-        const currentAnim = this.character.anims.currentAnim;
-        return currentAnim && currentAnim.key.includes('sing');
+    onBeat() {
+        if (!this.character || !this.character.active) return;
+
+        if (this.isSinging()) {
+            this.holdTimer++;
+            // Si superamos la duración, forzamos volver a idle
+            if (this.holdTimer >= this.singDuration) {
+                if (typeof this.character.dance === 'function') {
+                    this.character.dance(true); 
+                }
+            }
+        } else {
+            this.holdTimer = 0;
+        }
     }
 
-    /**
-     * Indica si el personaje debe mantener la nota (bloqueando el baile normal).
-     */
+    isSinging() {
+        // [CORRECCIÓN] Validación de seguridad: Verificar que character y anims existan
+        if (!this.character || !this.character.anims) return false;
+
+        const currentAnim = this.character.anims.currentAnim;
+        return currentAnim && currentAnim.key && currentAnim.key.includes('sing');
+    }
+
     shouldHold() {
         return this.isSinging() && this.holdTimer < this.singDuration;
     }

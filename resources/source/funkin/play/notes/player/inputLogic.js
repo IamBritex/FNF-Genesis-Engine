@@ -1,11 +1,11 @@
 import { Strumline } from "../Strumline.js";
 import { PlayerJudgement } from "../../judgments/PlayerJudgement.js";
 import { HitWindow } from "../../judgments/HitWindow.js";
-import { NoteDirection } from "../NoteDirection.js";
+import { PlayEvents } from "../../PlayEvents.js";
 
 /**
- * Lógica de procesamiento de inputs y notas del jugador.
- * @this {import('./PlayerNotesHandler.js').PlayerNotesHandler}
+ * inputLogic.js
+ * Lógica pura de input. Exporta funciones individuales.
  */
 
 export function onStrumPressed(direction) {
@@ -19,9 +19,8 @@ export function onStrumPressed(direction) {
     if (result.note) {
         this.hitNote(result.note, result.rating, result.timeDiff);
     } else {
-        // Lógica de Ghost Tapping
         if (!this.ghostTapEnabled) {
-            this.missNote(null, { noteDirection: direction }, Infinity);
+            this.missNote(null, { noteDirection: direction, isPlayerNote: true }, Infinity);
         }
     }
 }
@@ -33,9 +32,8 @@ export function onStrumReleased(direction) {
         const songPosition = (this.scene.songAudio?.inst?.seek * 1000) ?? 0;
         const noteEndTime = activeHoldData.strumTime + activeHoldData.sustainLength;
 
-        // Si soltó muy temprano, es miss
         if (songPosition < noteEndTime - HitWindow.SHIT_WINDOW_MS && !activeHoldData.holdEndPassed) {
-            this.releaseHold(direction, true); // true = early release
+            this.releaseHold(direction, true); 
         } else {
             this.releaseHold(direction, false);
         }
@@ -52,16 +50,17 @@ export function hitNote(noteSprite, rating, timeDiff) {
 
     noteData.wasHit = true;
 
-    if (this.charactersHandler) {
-        this.charactersHandler.playSingAnimation(true, noteData.noteDirection);
-    }
+    this.scene.events.emit(PlayEvents.NOTE_HIT, {
+        note: noteData,
+        rating: rating,
+        timeDiff: timeDiff,
+        isPlayer: true,
+        direction: noteData.noteDirection
+    });
 
     if (this.scene.chartData.needsVoices && this.scene.songAudio?.voices?.[0]) {
         this.scene.songAudio.voices[0].setVolume(1);
     }
-
-    if (this.scene.popUpManager) this.scene.popUpManager.popUpScore(rating);
-    if (this.scoreManager) this.scoreManager.processHit(rating, timeDiff);
 
     if (noteData.isHoldNote) {
         noteData.isBeingHeld = true;
@@ -87,25 +86,23 @@ export function missNote(noteSprite, noteData = null, timeDiff = null) {
 
     dataToUse.tooLate = true;
 
-    if (this.scoreManager) this.scoreManager.processMiss();
+    this.scene.events.emit(PlayEvents.NOTE_MISS, {
+        note: dataToUse,
+        isPlayer: true,
+        direction: dataToUse.noteDirection
+    });
 
-    if (this.scene.chartData.needsVoices && this.scene.songAudio?.voices?.[0]) {
-        this.scene.songAudio.voices[0].setVolume(0);
+    if (noteSprite && noteSprite.active) {
+        noteSprite.setTint(0x808080).setAlpha(0.6);
     }
-
-    if (this.charactersHandler) {
-        this.charactersHandler.playMissAnimation(true, dataToUse.noteDirection);
-    }
-
-    if (this.scene.popUpManager) this.scene.popUpManager.popUpScore("miss");
 
     const missSoundKey = `missnote${Phaser.Math.Between(1, 3)}`;
     if (this.scene.cache.audio.has(missSoundKey)) {
         this.scene.sound.play(missSoundKey, { volume: 0.6 });
     }
 
-    if (noteSprite && noteSprite.active) {
-        noteSprite.setTint(0x808080).setAlpha(0.6);
+    if (this.scene.chartData.needsVoices && this.scene.songAudio?.voices?.[0]) {
+        this.scene.songAudio.voices[0].setVolume(0);
     }
 
     if (dataToUse.isHoldNote && this.activeHolds[dataToUse.noteDirection]?.noteData === dataToUse) {

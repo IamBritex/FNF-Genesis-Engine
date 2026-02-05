@@ -5,10 +5,9 @@ import { toggleBotMode, updateBotPlayState, processBotLogic } from "./botPlay.js
 import { onStrumPressed, onStrumReleased, hitNote, missNote, releaseHold, onHoldFinished } from "./inputLogic.js";
 
 export class PlayerNotesHandler extends BaseNotesHandler {
-    constructor(scene, notesData, strumlines, config, scoreManager) {
+    constructor(scene, notesData, strumlines, config) {
         super(scene, notesData, strumlines, config);
 
-        this.scoreManager = scoreManager;
         this.activeInput = { 0: false, 1: false, 2: false, 3: false };
         this.gameplayInputListeners = [];
         this.isBotPlay = false;
@@ -35,6 +34,7 @@ export class PlayerNotesHandler extends BaseNotesHandler {
         if (this.isBotPlay) {
             this.processBotLogic(songPosition);
         } else {
+            // Verificar si alguna nota pasó su tiempo de hit y se convirtió en miss
             const missedResults = PlayerJudgement.checkMisses(songPosition, this.notesGroup, this.activeHolds);
             missedResults.forEach((miss) => {
                 this.missNote(miss.noteSprite, miss.noteData, miss.timeDiff);
@@ -71,11 +71,29 @@ export class PlayerNotesHandler extends BaseNotesHandler {
     }
 
     destroy() {
+        // Limpiar listeners de forma segura
+        if (this.keyListeners) {
+            this.keyListeners.forEach((keyObj) => {
+                // [FIX] Verificar que keyObj existe y tiene el método 'off'
+                if (keyObj && typeof keyObj.off === 'function') {
+                    keyObj.off('down', keyObj._downHandler);
+                    keyObj.off('up', keyObj._upHandler);
+                }
+            });
+            this.keyListeners = [];
+        }
+
+        if (this.scene && this.scene.events) {
+            this.scene.events.off('shutdown', this.onSceneShutdown, this);
+        }
+
+        // Destruir grupos de notas
+        if (this.notesGroup) {
+            this.notesGroup.destroy(true);
+            this.notesGroup = null;
+        }
+
+        // Llamar al destroy de la clase base
         super.destroy();
-        this.gameplayInputListeners.forEach(({ keyObj, downHandler, upHandler }) => {
-            keyObj.off("down", downHandler);
-            keyObj.off("up", upHandler);
-        });
-        this.gameplayInputListeners = [];
     }
 }

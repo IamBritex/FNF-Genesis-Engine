@@ -9,13 +9,33 @@ import { Characters } from '../../characters/Characters.js';
 import { SongPlayer } from '../../song/SongPlayer.js';
 import { NotesHandler } from '../../notes/NotesHandler.js';
 import { RatingText } from '../../judgments/RatingText.js';
+import { PlayEvents } from '../../PlayEvents.js'; 
 
 export class PlaySceneLoad {
     constructor(scene) {
         this.scene = scene;
+        this.isAborted = false; 
+        
+        this._onBlurHandler = null; // Guardar referencia para limpiar
+
+        this.scene.events.once('shutdown', this.stop, this);
+        this.scene.events.once('destroy', this.stop, this);
+    }
+
+    stop() {
+        this.isAborted = true;
+        // Limpiar listener global de blur si existe
+        if (this._onBlurHandler && this.scene && this.scene.game) {
+            this.scene.game.events.off('blur', this._onBlurHandler);
+            this._onBlurHandler = null;
+        }
     }
 
     async processChartAndEvents() {
+        if (this._shouldAbort()) return;
+        await this._yieldToMainThread();
+        if (this._shouldAbort()) return;
+
         this.scene.chartData = ChartDataHandler.processChartData(
             this.scene,
             this.scene.initData.targetSongId,
@@ -23,63 +43,74 @@ export class PlaySceneLoad {
         );
 
         if (!this.scene.chartData) {
-            this.scene.exitToMenu();
+            this.scene.events.emit(window.PlayEvents.EXIT_TO_MENU);
             return;
         }
 
         if (this.scene.chartData.events === true) {
-            console.log("[PlaySceneLoad] Events: true detectado...");
-            const songId = this.scene.initData.targetSongId;
-            const eventsKey = `Events_${songId}`;
-            let eventsPath = await ModHandler.getPath('songs', `${songId}/charts/Events.json`);
+            await this._loadChartEvents();
+        } else {
+            this.scene.chartData.events = [];
+            this.continueCreate();
+        }
+    }
 
-            if (eventsPath && typeof eventsPath !== 'string') {
-                if (eventsPath instanceof Blob || eventsPath instanceof File) {
-                    eventsPath = URL.createObjectURL(eventsPath);
-                }
-            }
+    async _loadChartEvents() {
+        const songId = this.scene.initData.targetSongId;
+        const eventsKey = `Events_${songId}`;
+        let eventsPath = await ModHandler.getPath('songs', `${songId}/charts/Events.json`);
 
-            if (typeof eventsPath === 'string') {
-                this.scene.load.json(eventsKey, eventsPath);
-                this.scene.load.once('complete', () => {
-                    const eventsJson = this.scene.cache.json.get(eventsKey);
-                    if (eventsJson && Array.isArray(eventsJson.events)) {
-                        this.scene.chartData.events = eventsJson.events;
-                    } else {
-                        this.scene.chartData.events = [];
-                    }
-                    this.continueCreate();
-                });
-                this.scene.load.start();
-                return;
-            } else {
-                this.scene.chartData.events = [];
-                this.continueCreate();
-                return;
+        if (this._shouldAbort()) return;
+
+        if (eventsPath && typeof eventsPath !== 'string') {
+            if (eventsPath instanceof Blob || eventsPath instanceof File) {
+                eventsPath = URL.createObjectURL(eventsPath);
             }
         }
-        this.continueCreate();
+
+        if (typeof eventsPath === 'string') {
+            await new Promise((resolve) => {
+                if (this._shouldAbort()) { resolve(); return; }
+                
+                this.scene.load.json(eventsKey, eventsPath);
+                this.scene.load.once('complete', () => {
+                    if (!this._shouldAbort()) {
+                        const eventsJson = this.scene.cache.json.get(eventsKey);
+                        this.scene.chartData.events = (eventsJson && Array.isArray(eventsJson.events)) ? eventsJson.events : [];
+                    }
+                    resolve();
+                });
+                this.scene.load.start();
+            });
+        } else {
+            this.scene.chartData.events = [];
+        }
+        
+        if (!this._shouldAbort()) this.continueCreate();
     }
 
     async continueCreate() {
-        // 1. Inicializar Conductor y Scripts
+        await this._yieldToMainThread();
+        if (this._shouldAbort()) return;
+
         this.scene.conductor = new Conductor(this.scene.chartData.bpm);
         this.scene.scriptHandler = new ScriptHandler(this.scene);
         
         if (this.scene.chartData.events && Array.isArray(this.scene.chartData.events)) {
             await this.scene.scriptHandler.loadEventScripts(this.scene.chartData.events);
         }
+        
+        if (this._shouldAbort()) return;
 
-        this.scene.conductor.on('beat', (beat) => this.scene.scriptHandler.call('onBeatHit', beat));
-        this.scene.conductor.on('step', (step) => this.scene.scriptHandler.call('onStepHit', step));
-
-        // 2. PRECARGA ESPECÍFICA DEL NIVEL (Skin, Stage, Personajes)
-        // Nota: La UI base (TimeBar, etc) YA FUE CARGADA en PlayScene.preload()
+        this.scene.conductor.on('beat', (beat) => this.scene.events.emit(window.PlayEvents.BEAT_HIT, beat));
+        this.scene.conductor.on('step', (step) => this.scene.events.emit(window.PlayEvents.STEP_HIT, step));
 
         this.scene.tempNoteSkin = new NoteSkin(this.scene, this.scene.chartData);
         await this.scene.tempNoteSkin.preloadJSON();
 
-        this.scene.stageHandler = new Stage(this.scene, this.scene.chartData, this.scene.cameraManager, this.scene.conductor);
+        if (this._shouldAbort()) return;
+
+        this.scene.stageHandler = new Stage(this.scene, this.scene.chartData, this.scene.cameraManager);
         this.scene.charactersHandler = new Characters(
             this.scene, 
             this.scene.chartData, 
@@ -91,8 +122,9 @@ export class PlaySceneLoad {
 
         await this.scene.stageHandler.loadStageJSON();
         await this.scene.charactersHandler.loadCharacterJSONs();
-
         await SongPlayer.loadSongAudio(this.scene, this.scene.initData.targetSongId, this.scene.chartData);
+
+        if (this._shouldAbort()) return;
 
         this.scene.load.once("complete", this.onAllDataLoaded, this);
         this.scene.load.start();
@@ -101,14 +133,15 @@ export class PlaySceneLoad {
     }
 
     async onAllDataLoaded() {
+        if (this._shouldAbort()) return;
         if (this.scene.assetsLoaded) return;
-
-        console.log("[PlaySceneLoad] Datos cargados. Iniciando carga de imágenes...");
 
         if (this.scene.tempNoteSkin) await this.scene.tempNoteSkin.loadAssets();
         if (this.scene.stageHandler) await this.scene.stageHandler.loadStageImages();
         if (this.scene.charactersHandler) await this.scene.charactersHandler.processAndLoadImages();
         
+        if (this._shouldAbort()) return;
+
         if (HealthBar.preloadIcons) {
             HealthBar.preloadIcons(this.scene, this.scene.chartData, this.scene.playSessionId);
         }
@@ -118,75 +151,73 @@ export class PlaySceneLoad {
     }
 
     async onAllAssetsLoaded() {
+        if (this._shouldAbort()) return;
         if (this.scene.assetsLoaded) return;
+        
         this.scene.assetsLoaded = true;
+        await this._yieldToMainThread(); 
 
-        console.log("[PlaySceneLoad] Assets cargados. Finalizando creación...");
+        if (this._shouldAbort()) return;
 
-        // 1. Finalizar HealthBar
-        const healthBar = new HealthBar(this.scene, this.scene.chartData, this.scene.conductor, this.scene.playSessionId);
-        await healthBar.init(); 
-        
-        if (this.scene.hud) {
-            this.scene.hud.healthBar = healthBar; 
-            // IMPORTANTE: Esto actualiza el HUD y oculta la pantalla de carga
-            this.scene.hud.onAssetsLoaded(this.scene.cameraManager);
+        try {
+            if (this.scene.textures.exists('healthBar')) {
+                const healthBar = new HealthBar(this.scene, this.scene.chartData, this.scene.conductor, this.scene.playSessionId);
+                await healthBar.init(); 
+                
+                if (this._shouldAbort()) { 
+                    if(healthBar.destroy) healthBar.destroy(); 
+                    return; 
+                }
+
+                this.scene.events.emit(window.PlayEvents.SONG_LOADING_COMPLETE, {
+                    healthBar: healthBar,
+                    ratingText: null 
+                });
+            }
+
+            this.scene.ratingText = new RatingText(this.scene, null); 
+            if (this.scene.ratingText.container && this.scene.cameraManager) {
+                this.scene.cameraManager.assignToUI(this.scene.ratingText.container);
+                this.scene.ratingText.container.setDepth(101);
+                if (this.scene.hud) this.scene.hud.onLoadingComplete({ ratingText: this.scene.ratingText });
+            }
+
+            if (this.scene.stageHandler) this.scene.stageHandler.createStageElements();
+            if (this.scene.charactersHandler) this.scene.charactersHandler.createAnimationsAndSprites();
+
+            try {
+                this.scene.notesHandler = new NotesHandler(
+                    this.scene, 
+                    this.scene.chartData, 
+                    this.scene.conductor, 
+                    this.scene.playSessionId
+                );
+                
+                if(this.scene.cameraManager && this.scene.notesHandler.mainUICADContainer) {
+                    this.scene.cameraManager.assignToUI(this.scene.notesHandler.mainUICADContainer);
+                    this.scene.notesHandler.mainUICADContainer.setDepth(2);
+                }
+            } catch (noteError) {
+                console.error("[PlaySceneLoad] Error crítico creando NotesHandler:", noteError);
+            }
+
+        } catch (e) {
+            console.error("[PlaySceneLoad] Error visual:", e);
         }
 
-        // 2. Rating Text
-        this.scene.ratingText = new RatingText(this.scene, this.scene.scoreManager);
-        if (this.scene.ratingText.container) {
-            this.scene.cameraManager.assignToUI(this.scene.ratingText.container);
-            this.scene.ratingText.container.setDepth(101);
-            if(this.scene.hud) this.scene.hud.ratingText = this.scene.ratingText;
-        }
-
-        // 3. Stage & Characters
-        if (this.scene.stageHandler) this.scene.stageHandler.createStageElements();
-        if (this.scene.charactersHandler) this.scene.charactersHandler.createAnimationsAndSprites();
-
-        // 4. Notas
-        this.scene.notesHandler = new NotesHandler(
-            this.scene, 
-            this.scene.chartData, 
-            this.scene.scoreManager, 
-            this.scene.conductor, 
-            this.scene.playSessionId
-        );
-        this.scene.cameraManager.assignToUI(this.scene.notesHandler.mainUICADContainer);
-        this.scene.notesHandler.mainUICADContainer.setDepth(2);
-        
-        if (this.scene.notesHandler.notesContainer) {
-            this.scene.cameraManager.assignToUI(this.scene.notesHandler.notesContainer);
-            this.scene.notesHandler.notesContainer.setDepth(2);
-        }
-
-        if (this.scene.notesHandler && this.scene.charactersHandler) {
-            this.scene.notesHandler.setCharactersHandler(this.scene.charactersHandler);
-        }
-
-        if (this.scene.charactersHandler) {
-            this.scene.charactersHandler.startBeatSystem();
-            this.scene.charactersHandler.dance();
-        }
-        if (this.scene.stageHandler) {
-            this.scene.stageHandler.dance();
-        }
-
+        this.scene.events.emit(window.PlayEvents.BEAT_HIT, 0); 
         if (this.scene.scriptHandler) this.scene.scriptHandler.call('onCreatePost');
 
-        // Fallback por si HUDManager no ocultó la carga
-        if (this.scene.hud && this.scene.hud.funWaiting && this.scene.isWaitingOnLoad) {
-             // HUDManager se encarga
-        } else {
-            this.scene.isWaitingOnLoad = false;
-            this.scene.startGameLogic();
-        }
+        this.scene.isWaitingOnLoad = false;
+        this.scene.startGameLogic();
     }
 
     setupAutoPause() {
-        this.scene.onWindowBlur = () => {
-            if (!this.scene.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
+        this._onBlurHandler = () => {
+            if (this._shouldAbort()) return;
+            // Evitar warning si la escena ya no está activa
+            if (!this.scene.sys || !this.scene.sys.settings.active) return;
+            
             let shouldAutoPause = true;
             try {
                 const stored = localStorage.getItem('genesis_preferences');
@@ -198,10 +229,22 @@ export class PlaySceneLoad {
                 }
             } catch (e) {}
 
-            if (shouldAutoPause && !this.scene.isWaitingOnLoad && this.scene.sys.settings.active) {
-                this.scene.triggerPause();
+            if (shouldAutoPause && !this.scene.isWaitingOnLoad) {
+                this.scene.events.emit(window.PlayEvents.PAUSE_CALL);
             }
         };
-        this.scene.game.events.on('blur', this.scene.onWindowBlur);
+
+        this.scene.game.events.on('blur', this._onBlurHandler);
+    }
+
+    _yieldToMainThread() {
+        return new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    _shouldAbort() {
+        if (this.isAborted) return true;
+        if (!this.scene || !this.scene.sys) return true;
+        if (!this.scene.sys.isActive() && !this.scene.sys.isTransitioning()) return true;
+        return false;
     }
 }

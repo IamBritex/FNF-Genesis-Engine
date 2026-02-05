@@ -1,20 +1,15 @@
-/**
- * funkin/play/stage/StageElements.js
- */
 import { StageSpritesheet } from "./StageSpritesheet.js"
 
 export const IMAGE_ORIGIN = { x: 0.5, y: 0.5 }
 
 export class StageElements {
-    constructor(scene, stageDataKey, cameraManager, conductor) {
+    constructor(scene, stageDataKey, cameraManager) {
         this.scene = scene
         this.stageDataKey = stageDataKey
         this.cameraManager = cameraManager
-        this.conductor = conductor
 
         this.stageElements = []
-
-        this.spritesheetHandler = new StageSpritesheet(scene, stageDataKey, cameraManager, this.conductor)
+        this.spritesheetHandler = new StageSpritesheet(scene, stageDataKey, cameraManager)
     }
 
     preloadImages(stageContent) {
@@ -50,8 +45,8 @@ export class StageElements {
         })
     }
 
-    dance() {
-        if (this.spritesheetHandler) this.spritesheetHandler.dance()
+    dance(beat) {
+        if (this.spritesheetHandler) this.spritesheetHandler.dance(beat)
     }
 
     _createSingleImage(item) {

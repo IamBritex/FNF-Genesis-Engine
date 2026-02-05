@@ -1,12 +1,13 @@
 import { PlayGamepadInput } from "./PlayGamepadInput.js";
+import { PlayEvents } from "../../PlayEvents.js";
 
 /**
- * source/funkin/play/components/extensionPlay/PlayInputHandler.js
- * Maneja todas las entradas: Teclado y ahora Gamepad.
+ * PlayInputHandler.js
+ * Captura entradas crudas y las convierte en eventos del sistema.
+ * No tiene lógica de juego, solo de despacho.
  */
-export class PlayInputHandler extends Phaser.Events.EventEmitter {
+export class PlayInputHandler {
     constructor(scene) {
-        super();
         this.scene = scene;
         this.blocked = false;
 
@@ -14,17 +15,17 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
         this.resetKey = null;
         this.debugKeys = null;
         
-        this.gamepadInput = null; // Instancia del gamepad
+        this.gamepadInput = null; 
     }
 
     create() {
-        // 1. Teclas de Pausa (Enter / ESC)
+        // 1. Teclas de Pausa
         this.pauseKeys = this.scene.input.keyboard.addKeys({
             enter: Phaser.Input.Keyboard.KeyCodes.ENTER,
             esc: Phaser.Input.Keyboard.KeyCodes.ESC
         });
 
-        // 2. Teclas de Debug (I, J, K, L)
+        // 2. Teclas de Debug
         this.debugKeys = this.scene.input.keyboard.addKeys({
             I: Phaser.Input.Keyboard.KeyCodes.I,
             K: Phaser.Input.Keyboard.KeyCodes.K,
@@ -32,33 +33,36 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
             L: Phaser.Input.Keyboard.KeyCodes.L
         });
 
-        // 3. Configurar Reset
+        // 3. Configurar Reset (Leyendo preferencias si existen)
         this.setupResetControl();
 
-        // 4. [NUEVO] Inicializar Gamepad
+        // 4. Inicializar Gamepad
         this.gamepadInput = new PlayGamepadInput();
         this.setupGamepadEvents();
+
+        // Escuchar si alguien quiere bloquear inputs (ej. cinemáticas)
+        this.scene.events.on('block_input', () => this.block());
+        this.scene.events.on('unblock_input', () => this.unblock());
     }
 
     setupGamepadEvents() {
         if (!this.gamepadInput) return;
 
-        // Conectar eventos del gamepad a los eventos de este Handler
+        // Convertir eventos locales del GamepadInput a eventos globales de la Scene
         this.gamepadInput.on('pause', () => {
-            if (!this.blocked) this.emit('pause');
+            if (!this.blocked) this.scene.events.emit(PlayEvents.PAUSE_CALL);
         });
 
         this.gamepadInput.on('reset', () => {
-            if (!this.blocked) this.emit('reset');
+            if (!this.blocked) this.scene.events.emit(PlayEvents.RESET_CALL);
         });
 
-        // Reenviar eventos de notas al PlayerNotesHandler
         this.gamepadInput.on('noteDown', (direction) => {
-            if (!this.blocked) this.emit('noteDown', direction);
+            if (!this.blocked) this.scene.events.emit(PlayEvents.INPUT_NOTE_DOWN, direction);
         });
 
         this.gamepadInput.on('noteUp', (direction) => {
-            if (!this.blocked) this.emit('noteUp', direction);
+            if (!this.blocked) this.scene.events.emit(PlayEvents.INPUT_NOTE_UP, direction);
         });
     }
 
@@ -66,49 +70,36 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
         let canReset = true;
         let resetBind = "R";
 
-        try {
-            const stored = localStorage.getItem('genesis_preferences');
-            if (stored) {
-                const prefs = JSON.parse(stored);
-                if (prefs && typeof prefs['opt-reset'] !== 'undefined') {
-                    canReset = prefs['opt-reset'];
-                }
-                if (prefs && prefs['keybind_reset_0']) {
-                    resetBind = prefs['keybind_reset_0'];
-                }
-            }
-        } catch (e) {
-            console.warn("[PlayInputHandler] Error leyendo preferencias:", e);
+        // Intento simple de leer localStorage sin try-catch bloqueante
+        const stored = localStorage.getItem('genesis_preferences');
+        if (stored) {
+            const prefs = JSON.parse(stored);
+            if (prefs?.['opt-reset'] !== undefined) canReset = prefs['opt-reset'];
+            if (prefs?.['keybind_reset_0']) resetBind = prefs['keybind_reset_0'];
         }
 
         if (canReset) {
             let finalKey = resetBind.replace("Key", "").toUpperCase();
-            try {
-                this.resetKey = this.scene.input.keyboard.addKey(finalKey);
-                console.log(`[PlayInputHandler] Reset activado con tecla: ${finalKey}`);
-            } catch (err) {
-                this.resetKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
-            }
+            // Fallback a 'R' si falla
+            this.resetKey = this.scene.input.keyboard.addKey(finalKey) || this.scene.input.keyboard.addKey('R');
         }
     }
 
     update(delta) {
         if (this.blocked) return;
 
-        // Actualizar lógica del Gamepad
-        if (this.gamepadInput) {
-            this.gamepadInput.update();
-        }
+        // Actualizar Gamepad
+        if (this.gamepadInput) this.gamepadInput.update();
 
-        // Detectar Pausa (Teclado)
+        // Detectar Pausa
         if (Phaser.Input.Keyboard.JustDown(this.pauseKeys.enter) || Phaser.Input.Keyboard.JustDown(this.pauseKeys.esc)) {
-            this.emit('pause');
+            this.scene.events.emit(PlayEvents.PAUSE_CALL);
             return;
         }
 
-        // Detectar Reset (Teclado)
+        // Detectar Reset
         if (this.resetKey && Phaser.Input.Keyboard.JustDown(this.resetKey)) {
-            this.emit('reset');
+            this.scene.events.emit(PlayEvents.RESET_CALL);
             return;
         }
 
@@ -120,8 +111,7 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
         if (!this.debugKeys) return;
         
         const moveSpeed = 1000 * (delta / 1000);
-        let x = 0;
-        let y = 0;
+        let x = 0, y = 0;
 
         if (this.debugKeys.I.isDown) y -= moveSpeed;
         if (this.debugKeys.K.isDown) y += moveSpeed;
@@ -129,7 +119,8 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
         if (this.debugKeys.L.isDown) x += moveSpeed;
 
         if (x !== 0 || y !== 0) {
-            this.emit('debugCamera', x, y);
+            // Emitimos evento de movimiento debug
+            this.scene.events.emit(PlayEvents.DEBUG_CAMERA_MOVE, { x, y });
         }
     }
 
@@ -137,7 +128,9 @@ export class PlayInputHandler extends Phaser.Events.EventEmitter {
     unblock() { this.blocked = false; }
     
     destroy() {
-        this.removeAllListeners();
+        this.scene.events.off('block_input');
+        this.scene.events.off('unblock_input');
+        
         this.pauseKeys = null;
         this.resetKey = null;
         this.debugKeys = null;

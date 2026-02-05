@@ -1,3 +1,5 @@
+import { PlayEvents } from "../../PlayEvents.js";
+
 /**
  * Lógica del Botplay / Showcase Mode
  * @this {import('./PlayerNotesHandler').PlayerNotesHandler}
@@ -17,34 +19,19 @@ export function toggleBotMode() {
 }
 
 /**
- * Actualiza el estado visual y cámaras según el Botplay
+ * Actualiza el estado visual y cámaras emitiendo un evento.
  * @this {import('./PlayerNotesHandler').PlayerNotesHandler}
  */
 export function updateBotPlayState() {
     console.log("Player Botplay State:", this.isBotPlay);
 
-    // Notificar al texto de rating (si existe)
-    if (this.scene.ratingText) {
-        this.scene.ratingText.setBotPlay(this.isBotPlay);
-    }
+    // --- ANTES: Llamada directa (Causante del Error) ---
+    // this.scene.ratingText.setBotPlay(this.isBotPlay);
+    // this.scene.cameraManager.UICamera.setVisible(...)
 
-    // Lógica de Showcase: Ocultar/Mostrar las cámaras de UI y HUD
-    if (this.scene.cameraManager) {
-        const uiCam = this.scene.cameraManager.UICamera;
-        const hudCam = this.scene.cameraManager.HUDCamera;
-
-        // Si es BotPlay -> Ocultar UI (visible = false). Si no -> Mostrar UI (visible = true)
-        const isVisible = !this.isBotPlay;
-
-        if (uiCam) {
-            uiCam.setVisible(isVisible);
-            console.log(`[PlayerNotesHandler] UICamera visible: ${isVisible}`);
-        }
-        if (hudCam) {
-            hudCam.setVisible(isVisible);
-            console.log(`[PlayerNotesHandler] HUDCamera visible: ${isVisible}`);
-        }
-    }
+    // --- AHORA: Full Eventos ---
+    // Emitimos que el estado cambió. RatingText y CameraManager escucharán.
+    this.scene.events.emit(PlayEvents.BOTPLAY_CHANGED, this.isBotPlay);
 }
 
 /**

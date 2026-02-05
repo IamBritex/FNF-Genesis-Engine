@@ -1,4 +1,5 @@
 import { NoteDirection } from "../NoteDirection.js";
+import { PlayEvents } from "../../PlayEvents.js"; 
 
 /**
  * Inicializa los inputs, keybinds y preferencias del jugador.
@@ -19,76 +20,63 @@ export function _initInput() {
         if (stored) {
             const prefs = JSON.parse(stored);
 
-            // 1. Cargar configuración de Ghost Tapping
             if (prefs && typeof prefs['opt-ghosttap'] !== 'undefined') {
                 this.ghostTapEnabled = prefs['opt-ghosttap'];
             }
 
-            // 2. Cargar configuración de Botplay (opt-botplay)
             if (prefs && typeof prefs['opt-botplay'] !== 'undefined') {
                 this.isBotPlay = prefs['opt-botplay'];
-                console.log(`[PlayerNotesHandler] Botplay cargado desde preferencias: ${this.isBotPlay}`);
             }
 
-            // 3. Funciones para limpiar nombres de teclas
+            // Helpers para limpiar teclas
             const cleanKey = (k) => {
                 if (!k) return null;
                 if (k.startsWith("Key")) return k.replace("Key", "").toUpperCase();
                 if (k.startsWith("Arrow")) return k.replace("Arrow", "").toUpperCase();
                 return k.toUpperCase();
             };
-
             const getBind = (name) => {
                 if (prefs[name]) return cleanKey(prefs[name]);
                 return null;
             };
 
-            // 4. Cargar binds personalizados
-            const l0 = getBind("keybind_note_left_0");
-            const l1 = getBind("keybind_note_left_1");
+            // Cargar binds custom
+            const l0 = getBind("keybind_note_left_0"); const l1 = getBind("keybind_note_left_1");
             if (l0 || l1) binds[NoteDirection.LEFT] = [l0, l1].filter(x => x);
 
-            const d0 = getBind("keybind_note_down_0");
-            const d1 = getBind("keybind_note_down_1");
+            const d0 = getBind("keybind_note_down_0"); const d1 = getBind("keybind_note_down_1");
             if (d0 || d1) binds[NoteDirection.DOWN] = [d0, d1].filter(x => x);
 
-            const u0 = getBind("keybind_note_up_0");
-            const u1 = getBind("keybind_note_up_1");
+            const u0 = getBind("keybind_note_up_0"); const u1 = getBind("keybind_note_up_1");
             if (u0 || u1) binds[NoteDirection.UP] = [u0, u1].filter(x => x);
 
-            const r0 = getBind("keybind_note_right_0");
-            const r1 = getBind("keybind_note_right_1");
+            const r0 = getBind("keybind_note_right_0"); const r1 = getBind("keybind_note_right_1");
             if (r0 || r1) binds[NoteDirection.RIGHT] = [r0, r1].filter(x => x);
         }
     } catch (e) {
-        console.warn("PlayerNotesHandler: Error cargando preferencias/keybinds, usando defaults.", e);
+        console.warn("PlayerNotesHandler: Error cargando preferencias, usando defaults.", e);
     }
 
-    // Aplicar estado visual inicial del Botplay (ocultar UI si es necesario)
-    this.updateBotPlayState();
+    // [CORRECCIÓN CRÍTICA]
+    // No llamamos a updateBotPlayState() aquí porque emite eventos a la UI
+    // antes de que la escena haya terminado de construirse, causando el crash 'drawImage'.
+    // La variable this.isBotPlay ya está seteada correctamente arriba.
+    // this.updateBotPlayState(); 
 
-    // Construir mapa plano de teclas
+    // --- TECLADO (Legacy Direct Input) ---
     const keyMap = {};
     Object.keys(binds).forEach(dir => {
         const keys = binds[dir];
-        keys.forEach(k => {
-            if (k) keyMap[k] = parseInt(dir);
-        });
+        keys.forEach(k => { if (k) keyMap[k] = parseInt(dir); });
     });
 
-    // Registrar listeners en Phaser (TECLADO)
     Object.keys(keyMap).forEach((keyName) => {
         const direction = keyMap[keyName];
         let keyObj;
-        try {
-            keyObj = this.scene.input.keyboard.addKey(keyName);
-        } catch (e) {
-            console.warn(`PlayerNotesHandler: Tecla inválida '${keyName}'`);
-            return;
-        }
+        try { keyObj = this.scene.input.keyboard.addKey(keyName); } catch (e) { return; }
 
         const onDown = () => {
-            if (this.scene.pauseHandler?.isPaused) return;
+            if (this.scene.pauseHandler?.isPaused) return; // Compatibilidad legacy
             if (this.isBotPlay) return;
 
             if (!this.activeInput[direction]) {
@@ -112,51 +100,45 @@ export function _initInput() {
         this.gameplayInputListeners.push({ keyObj, downHandler: onDown, upHandler: onUp });
     });
 
-    // Toggle Botplay Manual (Tecla B)
+    // Toggle Botplay (B)
     const bKey = this.scene.input.keyboard.addKey("B");
-    const onBotKey = () => {
-        if (this.scene.pauseHandler?.isPaused) return;
-        this.toggleBotMode();
-    };
+    const onBotKey = () => { if (!this.scene.pauseHandler?.isPaused) this.toggleBotMode(); };
     bKey.on("down", onBotKey);
     this.gameplayInputListeners.push({ keyObj: bKey, downHandler: onBotKey, upHandler: () => { } });
 
-    // [NUEVO] Conexión con el Gamepad via PlayInputHandler
-    if (this.scene.inputHandler) {
-        // Función auxiliar para Gamepad Down
-        const onGamepadDown = (direction) => {
-            if (this.scene.pauseHandler?.isPaused) return;
-            if (this.isBotPlay) return;
+    // --- GAMEPAD / INPUT CENTRALIZADO ---
+    // Escuchamos los eventos globales emitidos por PlayInputHandler
+    
+    const onInputDown = (direction) => {
+        if (this.isBotPlay) return;
+        
+        // Evitar duplicados si el teclado ya activó este input
+        if (!this.activeInput[direction]) {
+            this.activeInput[direction] = true;
+            this.onStrumPressed(direction);
+        }
+    };
 
-            if (!this.activeInput[direction]) {
-                this.activeInput[direction] = true;
-                this.onStrumPressed(direction);
+    const onInputUp = (direction) => {
+        if (this.isBotPlay) return;
+
+        if (this.activeInput[direction]) {
+            this.activeInput[direction] = false;
+            this.onStrumReleased(direction);
+        }
+    };
+
+    // Usamos scene.events en lugar de scene.inputHandler.on
+    this.scene.events.on(PlayEvents.INPUT_NOTE_DOWN, onInputDown, this);
+    this.scene.events.on(PlayEvents.INPUT_NOTE_UP, onInputUp, this);
+
+    // Guardar referencia para limpieza
+    this.gameplayInputListeners.push({
+        destroy: () => {
+            if (this.scene && this.scene.events) {
+                this.scene.events.off(PlayEvents.INPUT_NOTE_DOWN, onInputDown, this);
+                this.scene.events.off(PlayEvents.INPUT_NOTE_UP, onInputUp, this);
             }
-        };
-
-        // Función auxiliar para Gamepad Up
-        const onGamepadUp = (direction) => {
-            if (this.scene.pauseHandler?.isPaused) return;
-            if (this.isBotPlay) return;
-
-            if (this.activeInput[direction]) {
-                this.activeInput[direction] = false;
-                this.onStrumReleased(direction);
-            }
-        };
-
-        // Suscribirse a los eventos
-        this.scene.inputHandler.on('noteDown', onGamepadDown);
-        this.scene.inputHandler.on('noteUp', onGamepadUp);
-
-        // Guardar referencia para limpiar listeners al destruir
-        this.gameplayInputListeners.push({
-            destroy: () => {
-                if (this.scene && this.scene.inputHandler) {
-                    this.scene.inputHandler.off('noteDown', onGamepadDown);
-                    this.scene.inputHandler.off('noteUp', onGamepadUp);
-                }
-            }
-        });
-    }
+        }
+    });
 }

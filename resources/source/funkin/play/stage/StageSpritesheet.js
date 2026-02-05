@@ -1,17 +1,12 @@
-/**
- * funkin/play/stage/StageSpritesheet.js
- */
 export const SPRITESHEET_ORIGIN = { x: 0.5, y: 0.5 }
 
 export class StageSpritesheet {
-    constructor(scene, stageDataKey, cameraManager, conductor) {
+    constructor(scene, stageDataKey, cameraManager) {
         this.scene = scene
         this.stageDataKey = stageDataKey
         this.cameraManager = cameraManager
-        this.conductor = conductor
 
         this.createdSprites = []
-        this.beatListenerRegistered = false
     }
 
     preload(item) {
@@ -113,6 +108,9 @@ export class StageSpritesheet {
 
         const firstAnimKey = `${textureKey}_${firstAnimName}`
 
+        // Guardamos metadatos para la lógica de Beat
+        sprite.setData('play_mode', play_mode);
+
         if (play_mode === 'Loop') {
             const animToPlay = this.scene.anims.get(firstAnimKey)
             if (animToPlay) {
@@ -132,70 +130,52 @@ export class StageSpritesheet {
             }
         }
 
-        if (play_mode === 'Beat' && this.conductor && !this.beatListenerRegistered) {
-            this.conductor.on('beat', this.onBeatUpdate, this)
-            this.beatListenerRegistered = true
-        }
-
         this.createdSprites.push(sprite)
     }
 
-    dance() {
-        if (!this.createdSprites || !this.scene) return
+    // Este método ahora es llamado manualmente por Stage.onBeatHit, que recibe el evento
+    dance(beat) {
+        if (!this.createdSprites || !this.scene) return;
+
         for (const sprite of this.createdSprites) {
-            if (!sprite || !sprite.active) continue
-            const animList = sprite.getData('beat_anim_list')
-            if (!animList) continue
-            const index = sprite.getData('beat_anim_index') || 0
-            const animKey = animList[index]
-            if (this.scene.anims.exists(animKey)) {
-                sprite.play(animKey)
+            if (!sprite || !sprite.active) continue;
+            
+            const playMode = sprite.getData('play_mode');
+            if (playMode === 'Beat') {
+                this.updateBeatSprite(sprite);
             }
         }
     }
 
-    onBeatUpdate(beat) {
-        if (!this.createdSprites || !this.scene) return
+    updateBeatSprite(sprite) {
+        const animList = sprite.getData('beat_anim_list')
+        if (!animList) return
 
-        for (const sprite of this.createdSprites) {
-            if (!sprite || !sprite.active) continue
+        let interval = sprite.getData('beat_anim_interval')
+        let countdown = sprite.getData('beat_anim_countdown')
 
-            const animList = sprite.getData('beat_anim_list')
-            if (!animList) continue
+        countdown--
 
-            let interval = sprite.getData('beat_anim_interval')
-            let countdown = sprite.getData('beat_anim_countdown')
+        if (countdown <= 0) {
+            let index = sprite.getData('beat_anim_index')
+            index = (index + 1) % animList.length
 
-            countdown--
+            const nextAnimKey = animList[index]
 
-            if (countdown <= 0) {
-                let index = sprite.getData('beat_anim_index')
-                index = (index + 1) % animList.length
-
-                const nextAnimKey = animList[index]
-
-                if (this.scene && this.scene.anims.exists(nextAnimKey)) {
-                    sprite.play(nextAnimKey)
-                }
-
-                sprite.setData('beat_anim_index', index)
-                sprite.setData('beat_anim_countdown', interval)
-            } else {
-                sprite.setData('beat_anim_countdown', countdown)
+            if (this.scene && this.scene.anims.exists(nextAnimKey)) {
+                sprite.play(nextAnimKey)
             }
+
+            sprite.setData('beat_anim_index', index)
+            sprite.setData('beat_anim_countdown', interval)
+        } else {
+            sprite.setData('beat_anim_countdown', countdown)
         }
     }
 
     destroy() {
-        if (this.beatListenerRegistered && this.conductor) {
-            this.conductor.off('beat', this.onBeatUpdate, this)
-            this.beatListenerRegistered = false
-        }
-
         this.createdSprites.forEach((s) => s.destroy())
         this.createdSprites = []
-
-        this.conductor = null
         this.scene = null
         this.cameraManager = null
     }

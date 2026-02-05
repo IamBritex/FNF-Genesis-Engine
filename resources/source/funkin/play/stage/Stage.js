@@ -1,20 +1,31 @@
-/**
- * funkin/play/stage/Stage.js
- */
 import { StageData } from "./StageData.js"
 import { StageElements } from "./StageElements.js"
 import ModHandler from "../../../core/ModHandler.js"
+import { PlayEvents } from "../PlayEvents.js"
 
 export class Stage {
-  constructor(scene, chartData, cameraManager, conductor) {
+  // Eliminamos 'conductor' del constructor
+  constructor(scene, chartData, cameraManager) {
     this.scene = scene
     this.cameraManager = cameraManager
-    this.conductor = conductor
     this.stageDataKey = StageData.extract(chartData)
     this.stageKey = null
     this.defaultStageKey = "StageJSON_stage"
     this.stageContent = null
-    this.stageElements = new StageElements(this.scene, this.stageDataKey, this.cameraManager, this.conductor)
+    
+    // StageElements ahora se maneja por eventos también
+    this.stageElements = new StageElements(this.scene, this.stageDataKey, this.cameraManager)
+    
+    this.setupEventListeners();
+  }
+
+  setupEventListeners() {
+      // Escuchar el Beat Global para bailar
+      this.scene.events.on(PlayEvents.BEAT_HIT, this.onBeatHit, this);
+  }
+
+  onBeatHit(beat) {
+      if (this.stageElements) this.stageElements.dance(beat);
   }
 
   async loadStageJSON() {
@@ -22,7 +33,6 @@ export class Stage {
     this.stageKey = `StageJSON_${this.stageDataKey}`
 
     const specificPath = await ModHandler.getPath('data', `stages/${this.stageDataKey}.json`)
-
     if (!this.scene.cache.json.exists(this.stageKey)) {
       this.scene.load.json(this.stageKey, specificPath)
     }
@@ -54,11 +64,9 @@ export class Stage {
     }
   }
 
-  dance() {
-    if (this.stageElements) this.stageElements.dance()
-  }
-
   shutdown() {
+    this.scene.events.off(PlayEvents.BEAT_HIT, this.onBeatHit, this);
+
     const finalStageKey = this.stageElements?.stageDataKey || this.stageDataKey
 
     if (this.stageElements) {
